@@ -1,0 +1,6 @@
+root /app/.output/public;
+
+location /api/ {
+    proxy_set_header origin http://localhost:<%= ENV["PORT"] %>;
+    proxy_pass http://localhost:<%= ENV["PORT"] %>;
+}
