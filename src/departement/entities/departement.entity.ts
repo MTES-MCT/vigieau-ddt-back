@@ -4,7 +4,7 @@ import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 @Entity()
 export class Departement {
   @PrimaryColumn()
-  code: number;
+  code: string;
 
   @Column({ nullable: false, length: 50 })
   code_iso: string;

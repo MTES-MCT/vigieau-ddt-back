@@ -1,5 +1,13 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Departement } from '../../departement/entities/departement.entity';
+import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 
 @Entity()
 export class ZoneAlerte {
@@ -20,4 +28,8 @@ export class ZoneAlerte {
 
   @ManyToOne(() => Departement, (departement) => departement.zones_alerte)
   departement: Departement;
+
+  @ManyToMany(() => ArreteCadre, (arreteCadre) => arreteCadre.zones_alerte)
+  @JoinTable()
+  arretes_cadre: ArreteCadre[];
 }

@@ -1,34 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { ZoneAlerteService } from './zone_alerte.service';
-import { CreateZoneAlerteDto } from './dto/create-zone_alerte.dto';
-import { UpdateZoneAlerteDto } from './dto/update-zone_alerte.dto';
+import { ApiOperation } from '@nestjs/swagger';
+import { ZoneAlerte } from './entities/zone_alerte.entity';
+import { plainToInstance } from 'class-transformer';
+import * as camelcaseKeys from 'camelcase-keys';
+import { ZoneAlerteDto } from './dto/zone_alerte.dto';
 
 @Controller('zone-alerte')
 export class ZoneAlerteController {
   constructor(private readonly zoneAlerteService: ZoneAlerteService) {}
 
-  @Post()
-  create(@Body() createZoneAlerteDto: CreateZoneAlerteDto) {
-    return this.zoneAlerteService.create(createZoneAlerteDto);
-  }
-
   @Get()
-  findAll() {
-    return this.zoneAlerteService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.zoneAlerteService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateZoneAlerteDto: UpdateZoneAlerteDto) {
-    return this.zoneAlerteService.update(+id, updateZoneAlerteDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.zoneAlerteService.remove(+id);
+  @ApiOperation({ summary: "Retourne toute les zones d'alerte" })
+  async findAll(): Promise<ZoneAlerteDto[]> {
+    const zonesAlerte: ZoneAlerte[] = await this.zoneAlerteService.findAll();
+    return plainToInstance(
+      ZoneAlerteDto,
+      camelcaseKeys(zonesAlerte, { deep: true }),
+    );
   }
 }

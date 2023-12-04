@@ -1,26 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { CreateZoneAlerteDto } from './dto/create-zone_alerte.dto';
-import { UpdateZoneAlerteDto } from './dto/update-zone_alerte.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { ZoneAlerte } from './entities/zone_alerte.entity';
 
 @Injectable()
 export class ZoneAlerteService {
-  create(createZoneAlerteDto: CreateZoneAlerteDto) {
-    return 'This action adds a new zoneAlerte';
-  }
+  constructor(
+    @InjectRepository(ZoneAlerte)
+    private readonly zoneAlerteRepository: Repository<ZoneAlerte>,
+  ) {}
 
-  findAll() {
-    return `This action returns all zoneAlerte`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} zoneAlerte`;
-  }
-
-  update(id: number, updateZoneAlerteDto: UpdateZoneAlerteDto) {
-    return `This action updates a #${id} zoneAlerte`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} zoneAlerte`;
+  findAll(): Promise<ZoneAlerte[]> {
+    return this.zoneAlerteRepository.find();
   }
 }
