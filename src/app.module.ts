@@ -9,8 +9,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Session } from './core/entities/session.entity';
 import { UserModule } from './user/user.module';
 import { ZoneAlerteModule } from './zone_alerte/zone_alerte.module';
-import { DepartementModule } from './departement/departement.module';
 import { DataSource } from 'typeorm';
+import { Region } from './core/entities/region.entity';
+import { Departement } from './core/entities/departement.entity';
+import { BassinVersant } from './core/entities/bassin_versant.entity';
+import { Thematique } from './core/entities/thematique.entity';
+import { Usage } from './core/entities/usage.entity';
 
 @Module({
   imports: [
@@ -45,7 +49,14 @@ import { DataSource } from 'typeorm';
         return dataSource;
       },
     }),
-    TypeOrmModule.forFeature([Session]),
+    TypeOrmModule.forFeature([
+      Session,
+      Region,
+      Departement,
+      BassinVersant,
+      Thematique,
+      Usage,
+    ]),
     // Rate limit, 300 requêtes maximum toutes les 15min par IP
     ThrottlerModule.forRoot([
       {
@@ -58,7 +69,6 @@ import { DataSource } from 'typeorm';
     AuthModule,
     UserModule,
     ZoneAlerteModule,
-    DepartementModule,
   ],
   controllers: [],
   providers: [

@@ -5,10 +5,10 @@ import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import * as camelcaseKeys from 'camelcase-keys';
-import { ArreteCadreDto } from './dto/arrete_cardre.dto';
+import { ArreteCadreDto } from './dto/arrete_cadre.dto';
 
 @UseGuards(AuthenticatedGuard)
-@Controller('arrete_cadre')
+@Controller('arrete-cadre')
 @ApiTags('Arrêtés Cadre')
 export class ArreteCadreController {
   constructor(private readonly arreteCadreService: ArreteCadreService) {}

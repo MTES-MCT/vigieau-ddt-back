@@ -16,7 +16,7 @@ export class ArreteCadreService {
       curentUser.role === 'mte'
         ? {}
         : {
-            zones_alerte: {
+            zonesAlerte: {
               departement: {
                 code: curentUser.role_departement,
               },
