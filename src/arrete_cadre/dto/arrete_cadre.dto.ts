@@ -1,4 +1,4 @@
-import { IsNumber, IsString } from 'class-validator';
+import { IsArray, IsNumber, IsString } from 'class-validator';
 
 export class ArreteCadreDto {
   @IsNumber()
@@ -8,5 +8,11 @@ export class ArreteCadreDto {
   numero: string;
 
   @IsString()
-  statut: string;
+  dateDebut: string;
+
+  @IsString()
+  dateFin: string;
+
+  @IsArray()
+  departements: any[];
 }

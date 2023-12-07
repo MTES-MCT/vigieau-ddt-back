@@ -34,8 +34,13 @@ SELECT id_statut, libelle_statut from talend_ingestion_ppluvia.statut_arrete_cad
 SELECT setval('statut_arrete_cadre_id_seq', (SELECT MAX(id) FROM public.statut_arrete_cadre)+1);
 
 -- ARRETES CADRES
-INSERT INTO public.arrete_cadre (id, numero, url, "statutId", "dateDebut", "dateFin", "urlDdt")
-SELECT id_arrete_cadre, numero_arrete_cadre, url_arrete_cadre, id_statut, date_debut, date_fin, url_ddt from talend_ingestion_ppluvia.arretescadres;
+INSERT INTO public.arrete_cadre (id, numero, url, statut, "dateDebut", "dateFin", "urlDdt")
+SELECT id_arrete_cadre, numero_arrete_cadre, url_arrete_cadre, (CASE
+                                                                      WHEN id_statut=1 THEN 'a_valider'::arrete_cadre_statut_enum
+                                                                      WHEN id_statut=2 THEN 'publie'::arrete_cadre_statut_enum
+                                                                      ELSE 'abroge'::arrete_cadre_statut_enum
+                                                                    END), date_debut, date_fin, url_ddt
+from talend_ingestion_ppluvia.arretescadres;
 SELECT setval('arrete_cadre_id_seq', (SELECT MAX(id) FROM public.arrete_cadre)+1);
 
 -- ARRETES CADRES / DEPARTEMENTS

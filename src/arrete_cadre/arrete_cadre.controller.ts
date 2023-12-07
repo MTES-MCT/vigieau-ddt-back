@@ -6,6 +6,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import * as camelcaseKeys from 'camelcase-keys';
 import { ArreteCadreDto } from './dto/arrete_cadre.dto';
+import { Paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('arrete-cadre')
@@ -13,16 +14,17 @@ import { ArreteCadreDto } from './dto/arrete_cadre.dto';
 export class ArreteCadreController {
   constructor(private readonly arreteCadreService: ArreteCadreService) {}
 
-  @Get()
-  @ApiOperation({ summary: 'Retourne tout les arrêtés cadre' })
-  async findAll(@Req() req): Promise<ArreteCadreDto[]> {
-    const arretesCadre: ArreteCadre[] = await this.arreteCadreService.findAll(
-      req.session.user,
-    );
-    return plainToInstance(
-      ArreteCadreDto,
-      camelcaseKeys(arretesCadre, { deep: true }),
-    );
+  @Get('/search')
+  @ApiOperation({ summary: 'Retourne les arrêtés cadres paginés' })
+  async findAll(
+    @Req() req,
+    @Paginate() query: PaginateQuery,
+  ): Promise<Paginated<ArreteCadre>> {
+    return this.arreteCadreService.findAll(req.session.user, query);
+    // return plainToInstance(
+    //   ArreteCadreDto,
+    //   camelcaseKeys(arretesCadre, { deep: true }),
+    // );
   }
 
   @Get(':id')

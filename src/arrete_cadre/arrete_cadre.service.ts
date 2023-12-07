@@ -3,6 +3,7 @@ import { FindOptionsWhere, Repository } from 'typeorm';
 import { ArreteCadre } from './entities/arrete_cadre.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
+import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 
 @Injectable()
 export class ArreteCadreService {
@@ -11,10 +12,13 @@ export class ArreteCadreService {
     private readonly arreteCadreRepository: Repository<ArreteCadre>,
   ) {}
 
-  findAll(curentUser: User): Promise<ArreteCadre[]> {
-    const where: FindOptionsWhere<ArreteCadre> =
+  findAll(
+    curentUser: User,
+    query: PaginateQuery,
+  ): Promise<Paginated<ArreteCadre>> {
+    const whereClause: FindOptionsWhere<ArreteCadre> | null =
       curentUser.role === 'mte'
-        ? {}
+        ? null
         : {
             zonesAlerte: {
               departement: {
@@ -22,9 +26,14 @@ export class ArreteCadreService {
               },
             },
           };
-    return this.arreteCadreRepository.find({
-      relations: ['zones_alerte', 'zones_alerte.departement'],
-      where,
+    return paginate(query, this.arreteCadreRepository, {
+      sortableColumns: ['dateDebut'],
+      defaultSortBy: [['dateDebut', 'DESC']],
+      nullSort: 'last',
+      relations: ['zonesAlerte', 'departements'],
+      searchableColumns: [],
+      filterableColumns: {},
+      where: whereClause ? whereClause : null,
     });
   }
 

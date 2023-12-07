@@ -3,12 +3,11 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
-  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
-import { StatutArreteCadre } from './satut_arrete_cadre.entity';
 import { Departement } from '../../core/entities/departement.entity';
+import { StatutArreteCadre } from '../type/statut_arrete_cadre.type';
 
 @Entity()
 export class ArreteCadre {
@@ -30,7 +29,12 @@ export class ArreteCadre {
   @Column({ nullable: true, length: 200 })
   urlDdt: string;
 
-  @ManyToOne(() => StatutArreteCadre, (statut) => statut.arretesCadre)
+  @Column('enum', {
+    name: 'statut',
+    enum: ['a_valider', 'publie', 'abroge'],
+    default: 'a_valider',
+    nullable: false,
+  })
   statut: StatutArreteCadre;
 
   @ManyToMany(() => Departement, (departement) => departement.arretesCadre)
