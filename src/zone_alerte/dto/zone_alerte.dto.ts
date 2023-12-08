@@ -1,4 +1,5 @@
-import { IsNumber, IsString } from 'class-validator';
+import { IsNumber, IsObject, IsString } from 'class-validator';
+import { DepartementDto } from '../../core/dto/departement.dto';
 
 export class ZoneAlerteDto {
   @IsNumber()
@@ -13,6 +14,6 @@ export class ZoneAlerteDto {
   @IsString()
   nom: string;
 
-  @IsNumber()
-  surface: number;
+  @IsObject()
+  departement: DepartementDto;
 }

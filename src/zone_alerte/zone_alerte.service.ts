@@ -11,6 +11,8 @@ export class ZoneAlerteService {
   ) {}
 
   findAll(): Promise<ZoneAlerte[]> {
-    return this.zoneAlerteRepository.find();
+    return this.zoneAlerteRepository.find({
+      relations: ['departement'],
+    });
   }
 }
