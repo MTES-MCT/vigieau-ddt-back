@@ -41,6 +41,12 @@ import { Usage } from './core/entities/usage.entity';
         },
         synchronize: false,
         maxQueryExecutionTime: 1000,
+        ssl: true,
+        extra: {
+          ssl: {
+            rejectUnauthorized: false,
+          },
+        },
       }),
       dataSourceFactory: async (options) => {
         const dataSource = await new DataSource(options).initialize();
