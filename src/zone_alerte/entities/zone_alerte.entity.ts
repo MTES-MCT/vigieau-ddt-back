@@ -1,13 +1,15 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   ManyToMany,
   ManyToOne,
+  Polygon,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
-import { Departement } from '../../core/entities/departement.entity';
 import { BassinVersant } from '../../core/entities/bassin_versant.entity';
+import { Departement } from '../../departement/entities/departement.entity';
 
 @Entity()
 export class ZoneAlerte {
@@ -23,6 +25,18 @@ export class ZoneAlerte {
   @Column({ nullable: false, length: 50 })
   type: 'SOU' | 'SUP';
 
+  @Column({ nullable: false })
+  numeroVersion: number;
+
+  @Column({
+    type: 'geometry',
+    nullable: false,
+  })
+  geom: Polygon;
+
+  @Column({ nullable: false, default: false })
+  disabled: boolean;
+
   @ManyToOne(() => Departement, (departement) => departement.zonesAlerte)
   departement: Departement;
 
@@ -31,4 +45,7 @@ export class ZoneAlerte {
 
   @ManyToMany(() => ArreteCadre, (arreteCadre) => arreteCadre.zonesAlerte)
   arretesCadre: ArreteCadre[];
+
+  @CreateDateColumn()
+  createdAt: Date;
 }

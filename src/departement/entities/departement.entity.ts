@@ -4,11 +4,12 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
+  Polygon,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
-import { Region } from './region.entity';
+import { Region } from '../../core/entities/region.entity';
 
 @Entity()
 export class Departement {
@@ -20,6 +21,12 @@ export class Departement {
 
   @Column({ nullable: false, length: 60 })
   nom: string;
+
+  @Column({
+    type: 'geometry',
+    nullable: true,
+  })
+  geom: Polygon;
 
   @ManyToOne(() => Region, (region) => region.departements)
   region: Region;

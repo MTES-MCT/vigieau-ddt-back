@@ -1,5 +1,5 @@
+import { Departement } from 'src/departement/entities/departement.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Departement } from './departement.entity';
 
 @Entity()
 export class Region {

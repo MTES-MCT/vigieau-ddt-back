@@ -6,8 +6,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
-import { Departement } from '../../core/entities/departement.entity';
 import { StatutArreteCadre } from '../type/statut_arrete_cadre.type';
+import { Departement } from '../../departement/entities/departement.entity';
 
 @Entity()
 export class ArreteCadre {

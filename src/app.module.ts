@@ -11,10 +11,11 @@ import { UserModule } from './user/user.module';
 import { ZoneAlerteModule } from './zone_alerte/zone_alerte.module';
 import { DataSource } from 'typeorm';
 import { Region } from './core/entities/region.entity';
-import { Departement } from './core/entities/departement.entity';
 import { BassinVersant } from './core/entities/bassin_versant.entity';
 import { Thematique } from './core/entities/thematique.entity';
 import { Usage } from './core/entities/usage.entity';
+import { ScheduleModule } from '@nestjs/schedule';
+import { DepartementModule } from './departement/departement.module';
 
 @Module({
   imports: [
@@ -61,7 +62,6 @@ import { Usage } from './core/entities/usage.entity';
     TypeOrmModule.forFeature([
       Session,
       Region,
-      Departement,
       BassinVersant,
       Thematique,
       Usage,
@@ -78,6 +78,8 @@ import { Usage } from './core/entities/usage.entity';
     AuthModule,
     UserModule,
     ZoneAlerteModule,
+    ScheduleModule.forRoot(),
+    DepartementModule,
   ],
   controllers: [],
   providers: [

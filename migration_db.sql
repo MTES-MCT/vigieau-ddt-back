@@ -4,8 +4,8 @@ SELECT id_region, code_region, nom_region, dom_on from talend_ingestion_ppluvia.
 SELECT setval('region_id_seq', (SELECT MAX(id) FROM public.region)+1);
 
 -- DEPARTEMENTS
-INSERT INTO public.departement (id, "regionId", code, nom)
-SELECT id_dep, id_region, code_dep, nom_dep from talend_ingestion_ppluvia.departements;
+INSERT INTO public.departement (id, "regionId", code, nom, geom)
+SELECT id_dep, id_region, code_dep, nom_dep, the_geom from talend_ingestion_ppluvia.departements;
 SELECT setval('departement_id_seq', (SELECT MAX(id) FROM public.departement)+1);
 
 -- BASSINS VERSANTS
@@ -24,9 +24,20 @@ SELECT id_usage, nom_usage, id_thematique from talend_ingestion_ppluvia.usage;
 SELECT setval('usage_id_seq', (SELECT MAX(id) FROM public.usage)+1);
 
 -- ZONES D'ALERTE
-INSERT INTO public.zone_alerte (id, type, "departementId", "bassinVersantId", nom, code)
-SELECT id_zone, type_zone, id_dep, id_bassin, nom_zone, code_zone from talend_ingestion_ppluvia.zones_alertes;
+INSERT INTO public.zone_alerte (id, type, "departementId", "bassinVersantId", nom, code, "numeroVersion", geom)
+SELECT id_zone, type_zone, id_dep, id_bassin, nom_zone, code_zone, numero_version, the_geom from talend_ingestion_ppluvia.zones_alertes;
 SELECT setval('zone_alerte_id_seq', (SELECT MAX(id) FROM public.zone_alerte)+1);
+
+-- TODO flaguer les anciennes zones en disabled
+UPDATE public.zone_alerte
+SET disabled = true
+WHERE id not in (select za.id
+                      FROM public.zone_alerte as za
+                      where za."numeroVersion" = (
+                      	select max(zaBis."numeroVersion")
+                      	FROM public.zone_alerte as zaBis
+                      	where zaBis."departementId" = za."departementId" and zaBis.type = za.type
+                      ));
 
 -- STATUS ARRETES CADRES
 INSERT INTO public.statut_arrete_cadre (id, nom)
