@@ -20,6 +20,14 @@ export class DepartementService {
     }
   }
 
+  findAll(): Promise<Departement[]> {
+    return this.departementRepository.find({
+      order: {
+        code: 'ASC',
+      },
+    });
+  }
+
   findByCode(departementCode: string): Promise<Departement> {
     return this.departementRepository.findOne({
       select: ['id', 'code'],

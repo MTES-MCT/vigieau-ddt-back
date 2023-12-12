@@ -40,7 +40,7 @@ export class ZoneAlerteController {
     );
   }
 
-  @Post(':departementCode/check')
+  @Post(':departementCode/:typeZone/check')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
     summary: "Vérifie les zones d'alerte d'un département",
@@ -50,8 +50,13 @@ export class ZoneAlerteController {
   async verifyZones(
     @UploadedFile() file: Express.Multer.File,
     @Param('departementCode') departementCode: string,
+    @Param('typeZone') typeZone: 'SUP' | 'SOU',
   ) {
-    return this.zoneAlerteService.importTmpZones(file, departementCode);
+    return this.zoneAlerteService.importTmpZones(
+      file,
+      departementCode,
+      typeZone,
+    );
   }
 
   @Get(':departementCode/:typeZone/check')
@@ -62,7 +67,7 @@ export class ZoneAlerteController {
   @Roles(['mte'])
   async checkByDepartement(
     @Param('departementCode') departementCode: string,
-    @Param('typeZone') typeZone: string,
+    @Param('typeZone') typeZone: 'SUP' | 'SOU',
   ): Promise<ZoneAlerteVerificationDto> {
     return plainToInstance(
       ZoneAlerteVerificationDto,

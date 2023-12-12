@@ -28,7 +28,11 @@ export class ZoneAlerteService {
     });
   }
 
-  async importTmpZones(file: Express.Multer.File, departementCode: string) {
+  async importTmpZones(
+    file: Express.Multer.File,
+    departementCode: string,
+    typeZone: 'SUP' | 'SOU',
+  ) {
     const geojson = JSON.parse(file.buffer.toString());
     const toInsert: Partial<ZoneAlerte>[] = [];
     const departement =
@@ -37,7 +41,7 @@ export class ZoneAlerteService {
       toInsert.push({
         nom: feature.properties.nom,
         code: feature.properties.code,
-        type: feature.properties.type,
+        type: typeZone,
         numeroVersion: -1,
         geom: feature.geometry,
         disabled: true,
@@ -63,7 +67,7 @@ export class ZoneAlerteService {
     );
   }
 
-  async verifyZones(departementCode: string, typeZone: string) {
+  async verifyZones(departementCode: string, typeZone: 'SUP' | 'SOU') {
     const comparaisonZones: ZoneAlerteComparaisonZone[] = await this
       .zoneAlerteRepository.query(`
     SELECT currentZones.code as current_code,
@@ -79,7 +83,7 @@ FROM (
         SELECT zone_alerte.code, ST_UNION(zone_alerte.geom) as geom
         FROM zone_alerte
         LEFT JOIN departement on departement.id = zone_alerte."departementId"
-        where departement.code = '${departementCode}' and type = 'SUP' and disabled = false
+        where departement.code = '${departementCode}' and type = '${typeZone}' and disabled = false
         GROUP BY zone_alerte.code
      ) as currentZones, (
         SELECT zone_alerte.code, ST_UNION(zone_alerte.geom) as geom
