@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Departement } from './entities/departement.entity';
 import { firstValueFrom } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class DepartementService {
@@ -12,8 +13,11 @@ export class DepartementService {
     private readonly httpService: HttpService,
     @InjectRepository(Departement)
     private readonly departementRepository: Repository<Departement>,
+    private readonly configService: ConfigService,
   ) {
-    this.updateDepartementsGeom();
+    if (configService.get('NODE_ENV') !== 'local') {
+      this.updateDepartementsGeom();
+    }
   }
 
   findByCode(departementCode: string): Promise<Departement> {

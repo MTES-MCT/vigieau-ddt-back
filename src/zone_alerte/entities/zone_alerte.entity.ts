@@ -31,6 +31,7 @@ export class ZoneAlerte {
   @Column({
     type: 'geometry',
     nullable: false,
+    select: false,
   })
   geom: Polygon;
 

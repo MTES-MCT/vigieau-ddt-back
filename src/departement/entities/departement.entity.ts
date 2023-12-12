@@ -25,6 +25,7 @@ export class Departement {
   @Column({
     type: 'geometry',
     nullable: true,
+    select: false,
   })
   geom: Polygon;
 
