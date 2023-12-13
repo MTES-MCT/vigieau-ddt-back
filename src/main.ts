@@ -45,7 +45,7 @@ async function bootstrap() {
       saveUninitialized: false, // will default to false in near future: https://github.com/expressjs/session#saveuninitialized
       rolling: true, // keep session alive
       cookie: {
-        maxAge: 30 * 60 * 1000, // session expires in 1hr, refreshed by `rolling: true` option.
+        maxAge: 7 * 24 * 60 * 60 * 1000, // session expires in one week, refreshed by `rolling: true` option.
         httpOnly: true, // so that cookie can't be accessed via client-side script
         domain: configService.get('DOMAIN'),
       },
