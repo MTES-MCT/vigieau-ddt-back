@@ -38,7 +38,10 @@ export class ArreteCadreService {
   }
 
   findOne(id: number) {
-    return this.arreteCadreRepository.findOne({ where: { id } });
+    return this.arreteCadreRepository.findOne({
+      relations: ['departements', 'zonesAlerte'],
+      where: { id },
+    });
   }
 
   // create(createArreteCadreDto: CreateArreteCadreDto) {
