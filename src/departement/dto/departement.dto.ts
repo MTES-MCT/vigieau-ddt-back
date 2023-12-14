@@ -1,4 +1,5 @@
-import { IsNumber, IsString } from 'class-validator';
+import { IsArray, IsNumber, IsString } from 'class-validator';
+import { ZoneAlerteDto } from '../../zone_alerte/dto/zone_alerte.dto';
 
 export class DepartementDto {
   @IsNumber()
@@ -9,4 +10,7 @@ export class DepartementDto {
 
   @IsString()
   nom: string;
+
+  @IsArray()
+  zonesAlerte: ZoneAlerteDto[];
 }

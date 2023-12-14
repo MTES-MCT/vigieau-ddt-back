@@ -22,6 +22,23 @@ export class DepartementService {
 
   findAll(): Promise<Departement[]> {
     return this.departementRepository.find({
+      select: {
+        id: true,
+        code: true,
+        nom: true,
+        zonesAlerte: {
+          id: true,
+          nom: true,
+          code: true,
+          type: true,
+        },
+      },
+      relations: ['zonesAlerte'],
+      where: {
+        zonesAlerte: {
+          disabled: false,
+        },
+      },
       order: {
         code: 'ASC',
       },
