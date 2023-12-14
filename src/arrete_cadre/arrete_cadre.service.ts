@@ -3,7 +3,12 @@ import { FindOptionsWhere, Repository } from 'typeorm';
 import { ArreteCadre } from './entities/arrete_cadre.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
-import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
+import {
+  FilterOperator,
+  paginate,
+  Paginated,
+  PaginateQuery,
+} from 'nestjs-paginate';
 
 @Injectable()
 export class ArreteCadreService {
@@ -32,7 +37,9 @@ export class ArreteCadreService {
       nullSort: 'last',
       relations: ['zonesAlerte', 'departements'],
       searchableColumns: ['numero', 'departements.nom', 'departements.code'],
-      filterableColumns: {},
+      filterableColumns: {
+        statut: [FilterOperator.IN],
+      },
       where: whereClause ? whereClause : null,
     });
   }
