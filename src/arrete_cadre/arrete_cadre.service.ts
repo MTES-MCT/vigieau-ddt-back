@@ -46,7 +46,51 @@ export class ArreteCadreService {
 
   findOne(id: number) {
     return this.arreteCadreRepository.findOne({
-      relations: ['departements', 'zonesAlerte'],
+      select: {
+        id: true,
+        numero: true,
+        dateDebut: true,
+        dateFin: true,
+        url: true,
+        urlDdt: true,
+        statut: true,
+        departements: {
+          id: true,
+          code: true,
+          nom: true,
+        },
+        zonesAlerte: {
+          id: true,
+          code: true,
+          nom: true,
+          type: true,
+        },
+        usagesArreteCadre: {
+          concerneParticulier: true,
+          concerneEntreprise: true,
+          concerneCollectivite: true,
+          concerneExploitation: true,
+          descriptionVigilance: true,
+          descriptionAlerte: true,
+          descriptionAlerteRenforcee: true,
+          descriptionCrise: true,
+          usage: {
+            id: true,
+            nom: true,
+            thematique: {
+              id: true,
+              nom: true,
+            },
+          },
+        },
+      },
+      relations: [
+        'departements',
+        'zonesAlerte',
+        'usagesArreteCadre',
+        'usagesArreteCadre.usage',
+        'usagesArreteCadre.usage.thematique',
+      ],
       where: { id },
     });
   }

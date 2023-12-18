@@ -1,13 +1,16 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinTable,
   ManyToMany,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { StatutArreteCadre } from '../type/statut_arrete_cadre.type';
 import { Departement } from '../../departement/entities/departement.entity';
+import { UsageArreteCadre } from '../../core/entities/usage_arrete_cadre.entity';
 
 @Entity()
 export class ArreteCadre {
@@ -48,4 +51,13 @@ export class ArreteCadre {
     name: 'arrete_cadre_zone_alerte',
   })
   zonesAlerte: ZoneAlerte[];
+
+  @OneToMany(
+    () => UsageArreteCadre,
+    (usagesArreteCadre) => usagesArreteCadre.arreteCadre,
+  )
+  usagesArreteCadre: UsageArreteCadre[];
+
+  @CreateDateColumn({ type: 'timestamp' })
+  created_at: number;
 }

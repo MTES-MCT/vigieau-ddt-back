@@ -1,10 +1,5 @@
-import {
-  Column,
-  Entity,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
-import { Usage } from './usage.entity';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Usage } from '../../usage/entities/usage.entity';
 
 @Entity()
 export class Thematique {
