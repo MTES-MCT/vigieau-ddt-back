@@ -12,10 +12,11 @@ import { ZoneAlerteModule } from './zone_alerte/zone_alerte.module';
 import { DataSource } from 'typeorm';
 import { Region } from './core/entities/region.entity';
 import { BassinVersant } from './core/entities/bassin_versant.entity';
-import { Thematique } from './core/entities/thematique.entity';
+import { Thematique } from './thematique/entities/thematique.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DepartementModule } from './departement/departement.module';
 import { UsageModule } from './usage/usage.module';
+import { ThematiqueModule } from './thematique/thematique.module';
 
 @Module({
   imports: [
@@ -59,7 +60,7 @@ import { UsageModule } from './usage/usage.module';
         return dataSource;
       },
     }),
-    TypeOrmModule.forFeature([Session, Region, BassinVersant, Thematique]),
+    TypeOrmModule.forFeature([Session, Region, BassinVersant]),
     // Rate limit, 300 requêtes maximum toutes les 15min par IP
     ThrottlerModule.forRoot([
       {
@@ -75,6 +76,7 @@ import { UsageModule } from './usage/usage.module';
     ScheduleModule.forRoot(),
     DepartementModule,
     UsageModule,
+    ThematiqueModule,
   ],
   controllers: [],
   providers: [

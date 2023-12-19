@@ -23,7 +23,7 @@ export class User {
   @Column({ nullable: true, length: 10 })
   role_departement: string;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
 
   @Column({ default: false })

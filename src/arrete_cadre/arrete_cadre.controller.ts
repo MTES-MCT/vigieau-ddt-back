@@ -1,4 +1,13 @@
-import { Controller, Get, Param, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  UseGuards,
+  Req,
+  Post,
+  Body,
+  Patch,
+} from '@nestjs/common';
 import { ArreteCadreService } from './arrete_cadre.service';
 import { ArreteCadre } from './entities/arrete_cadre.entity';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
@@ -7,6 +16,7 @@ import { plainToInstance } from 'class-transformer';
 import * as camelcaseKeys from 'camelcase-keys';
 import { ArreteCadreDto } from './dto/arrete_cadre.dto';
 import { Paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
+import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('arrete-cadre')
@@ -19,12 +29,15 @@ export class ArreteCadreController {
   async findAll(
     @Req() req,
     @Paginate() query: PaginateQuery,
-  ): Promise<Paginated<ArreteCadre>> {
-    return this.arreteCadreService.findAll(req.session.user, query);
-    // return plainToInstance(
-    //   ArreteCadreDto,
-    //   camelcaseKeys(arretesCadre, { deep: true }),
-    // );
+  ): Promise<Paginated<ArreteCadreDto>> {
+    const paginated = await this.arreteCadreService.findAll(
+      req.session.user,
+      query,
+    );
+    return plainToInstance(
+      Paginated<ArreteCadreDto>,
+      camelcaseKeys(paginated, { deep: true }),
+    );
   }
 
   @Get(':id')
@@ -37,18 +50,41 @@ export class ArreteCadreController {
     );
   }
 
-  // @Post()
-  // create(@Body() createArreteCadreDto: CreateArreteCadreDto) {
-  //   return this.arreteCadreService.create(createArreteCadreDto);
-  // }
-  //
-  // @Patch(':id')
-  // update(
-  //   @Param('id') id: string,
-  //   @Body() updateArreteCadreDto: UpdateArreteCadreDto,
-  // ) {
-  //   return this.arreteCadreService.update(+id, updateArreteCadreDto);
-  // }
+  @Post()
+  @ApiOperation({ summary: "Création d'un arrêté cadre" })
+  async create(
+    @Body() createArreteCadreDto: CreateUpdateArreteCadreDto,
+  ): Promise<ArreteCadreDto> {
+    const arreteCadre =
+      await this.arreteCadreService.create(createArreteCadreDto);
+    return plainToInstance(
+      ArreteCadreDto,
+      camelcaseKeys(arreteCadre, { deep: true }),
+    );
+  }
+
+  @Post(':id/publier')
+  @ApiOperation({ summary: "Publication d'un arrêté cadre" })
+  async publish(@Param('id') id: string): Promise<void> {
+    return this.arreteCadreService.publish(+id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: "Edition d'un arrêté cadre" })
+  async update(
+    @Param('id') id: string,
+    @Body() updateArreteCadreDto: CreateUpdateArreteCadreDto,
+  ): Promise<ArreteCadreDto> {
+    const arreteCadre = await this.arreteCadreService.update(
+      +id,
+      updateArreteCadreDto,
+    );
+    return plainToInstance(
+      ArreteCadreDto,
+      camelcaseKeys(arreteCadre, { deep: true }),
+    );
+  }
+
   //
   // @Delete(':id')
   // remove(@Param('id') id: string) {

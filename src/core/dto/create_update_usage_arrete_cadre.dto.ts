@@ -1,18 +1,8 @@
-import { IsBoolean, IsNumber, IsObject, IsString } from 'class-validator';
-import { ThematiqueDto } from '../../thematique/dto/thematique.dto';
+import { IsBoolean, IsObject, IsString } from 'class-validator';
 
-export class UsageDto {
-  @IsNumber()
-  id: number;
-
-  @IsString()
-  nom: string;
-
+export class CreateUpdateUsageArreteCadreDto {
   @IsObject()
-  thematique: ThematiqueDto;
-
-  @IsBoolean()
-  isTemplate: boolean;
+  usage: { id: number };
 
   @IsBoolean()
   concerneParticulier: boolean;

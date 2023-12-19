@@ -6,6 +6,7 @@ import {
   ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { StatutArreteCadre } from '../type/statut_arrete_cadre.type';
@@ -58,6 +59,9 @@ export class ArreteCadre {
   )
   usagesArreteCadre: UsageArreteCadre[];
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
+
+  @UpdateDateColumn({ select: false, type: 'timestamp' })
+  updated_at: number;
 }

@@ -5,7 +5,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Thematique } from '../../core/entities/thematique.entity';
+import { Thematique } from '../../thematique/entities/thematique.entity';
 import { UsageArreteCadre } from '../../core/entities/usage_arrete_cadre.entity';
 
 @Entity()

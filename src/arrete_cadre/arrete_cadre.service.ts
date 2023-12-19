@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { ArreteCadre } from './entities/arrete_cadre.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,6 +9,7 @@ import {
   Paginated,
   PaginateQuery,
 } from 'nestjs-paginate';
+import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
 
 @Injectable()
 export class ArreteCadreService {
@@ -95,15 +96,49 @@ export class ArreteCadreService {
     });
   }
 
-  // create(createArreteCadreDto: CreateArreteCadreDto) {
-  //   return 'This action adds a new arreteCadre';
-  // }
-  //
-  // update(id: number, updateArreteCadreDto: UpdateArreteCadreDto) {
-  //   return `This action updates a #${id} arreteCadre`;
-  // }
-  //
-  // remove(id: number) {
-  //   return `This action removes a #${id} arreteCadre`;
-  // }
+  create(
+    createArreteCadreDto: CreateUpdateArreteCadreDto,
+  ): Promise<ArreteCadre> {
+    return this.arreteCadreRepository.save(
+      this.formatArreteCadreDto(createArreteCadreDto),
+    );
+  }
+
+  async update(
+    id: number,
+    updateArreteCadreDto: CreateUpdateArreteCadreDto,
+  ): Promise<ArreteCadre> {
+    if (!(await this.canUpdateArreteCadre(id))) {
+      throw new HttpException(
+        `Edition d'un arrêté cadre interdit.`,
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    return this.arreteCadreRepository.save({
+      id,
+      ...this.formatArreteCadreDto(updateArreteCadreDto),
+    });
+  }
+
+  async publish(id: number) {
+    if (!(await this.canUpdateArreteCadre(id))) {
+      return;
+    }
+    return;
+  }
+
+  async canUpdateArreteCadre(id: number): Promise<boolean> {
+    const arrete = await this.findOne(id);
+    return arrete.statut === 'a_valider';
+  }
+
+  formatArreteCadreDto(
+    arreteCadreDto: CreateUpdateArreteCadreDto,
+  ): ArreteCadre {
+    arreteCadreDto.dateDebut =
+      arreteCadreDto.dateDebut === '' ? null : arreteCadreDto.dateDebut;
+    arreteCadreDto.dateFin =
+      arreteCadreDto.dateFin === '' ? null : arreteCadreDto.dateFin;
+    return <ArreteCadre>arreteCadreDto;
+  }
 }
