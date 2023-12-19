@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usage } from './entities/usage.entity';
 import { User } from '../user/entities/user.entity';
+import { CreateUsageDto } from './dto/create_usage.dto';
 
 @Injectable()
 export class UsageService {
@@ -10,6 +11,10 @@ export class UsageService {
     @InjectRepository(Usage)
     private readonly usageRepository: Repository<Usage>,
   ) {}
+
+  findOne(nom: string): Promise<Usage> {
+    return this.usageRepository.findOne({ where: { nom } });
+  }
 
   findAll(curentUser: User): Promise<Usage[]> {
     return this.usageRepository
@@ -27,5 +32,13 @@ export class UsageService {
           curentUser.role === 'mte' ? '34' : curentUser.role_departement,
       })
       .getMany();
+  }
+
+  async create(usage: CreateUsageDto): Promise<Usage> {
+    const usageExists = await this.findOne(usage.nom);
+    if (!usageExists) {
+      return this.usageRepository.save(usage);
+    }
+    return usageExists;
   }
 }
