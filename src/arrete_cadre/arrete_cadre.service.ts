@@ -136,6 +136,16 @@ export class ArreteCadreService {
     return;
   }
 
+  async remove(curentUser: User, id: number) {
+    if (!(await this.canUpdateArreteCadre(id))) {
+      throw new HttpException(
+        `Suppression d'un arrêté cadre interdit.`,
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    return this.arreteCadreRepository.delete(id);
+  }
+
   async canUpdateArreteCadre(id: number): Promise<boolean> {
     const arrete = await this.findOne(id);
     return arrete.statut === 'a_valider';

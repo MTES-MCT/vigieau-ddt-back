@@ -7,6 +7,7 @@ import {
   Post,
   Body,
   Patch,
+  Delete,
 } from '@nestjs/common';
 import { ArreteCadreService } from './arrete_cadre.service';
 import { ArreteCadre } from './entities/arrete_cadre.entity';
@@ -85,9 +86,9 @@ export class ArreteCadreController {
     );
   }
 
-  //
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.arreteCadreService.remove(+id);
-  // }
+  @Delete(':id')
+  @ApiOperation({ summary: "Suppression d'un arrêté cadre" })
+  remove(@Req() req, @Param('id') id: string) {
+    return this.arreteCadreService.remove(req.session.user, +id);
+  }
 }

@@ -23,7 +23,7 @@ export class UsageArreteCadre {
   @ManyToOne(
     () => ArreteCadre,
     (arreteCadre) => arreteCadre.usagesArreteCadre,
-    { nullable: false, persistence: false },
+    { nullable: false, persistence: false, onDelete: 'CASCADE' },
   )
   arreteCadre: ArreteCadre;
 
