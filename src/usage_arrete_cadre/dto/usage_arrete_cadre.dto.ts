@@ -1,7 +1,10 @@
-import { IsBoolean, IsObject, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsObject, IsString } from 'class-validator';
 import { UsageDto } from '../../usage/dto/usage.dto';
 
 export class UsageArreteCadreDto {
+  @IsNumber()
+  id: number;
+
   @IsObject()
   usage: UsageDto;
 

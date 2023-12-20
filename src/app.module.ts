@@ -12,11 +12,11 @@ import { ZoneAlerteModule } from './zone_alerte/zone_alerte.module';
 import { DataSource } from 'typeorm';
 import { Region } from './core/entities/region.entity';
 import { BassinVersant } from './core/entities/bassin_versant.entity';
-import { Thematique } from './thematique/entities/thematique.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DepartementModule } from './departement/departement.module';
 import { UsageModule } from './usage/usage.module';
 import { ThematiqueModule } from './thematique/thematique.module';
+import { UsageArreteCadreModule } from './usage_arrete_cadre/usage_arrete_cadre.module';
 
 @Module({
   imports: [
@@ -77,6 +77,7 @@ import { ThematiqueModule } from './thematique/thematique.module';
     DepartementModule,
     UsageModule,
     ThematiqueModule,
+    UsageArreteCadreModule,
   ],
   controllers: [],
   providers: [

@@ -1,7 +1,7 @@
 import { IsArray, IsNumber, IsString } from 'class-validator';
 import { DepartementDto } from '../../departement/dto/departement.dto';
 import { ZoneAlerteDto } from '../../zone_alerte/dto/zone_alerte.dto';
-import { UsageArreteCadreDto } from '../../core/dto/usage_arrete_cadre.dto';
+import { UsageArreteCadreDto } from '../../usage_arrete_cadre/dto/usage_arrete_cadre.dto';
 
 export class ArreteCadreDto {
   @IsNumber()

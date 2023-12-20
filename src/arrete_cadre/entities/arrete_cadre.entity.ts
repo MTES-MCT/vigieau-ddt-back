@@ -11,7 +11,7 @@ import {
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { StatutArreteCadre } from '../type/statut_arrete_cadre.type';
 import { Departement } from '../../departement/entities/departement.entity';
-import { UsageArreteCadre } from '../../core/entities/usage_arrete_cadre.entity';
+import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
 
 @Entity()
 export class ArreteCadre {
@@ -56,6 +56,7 @@ export class ArreteCadre {
   @OneToMany(
     () => UsageArreteCadre,
     (usagesArreteCadre) => usagesArreteCadre.arreteCadre,
+    { persistence: false },
   )
   usagesArreteCadre: UsageArreteCadre[];
 

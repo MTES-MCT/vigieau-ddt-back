@@ -6,7 +6,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { CreateUpdateUsageArreteCadreDto } from '../../core/dto/create_update_usage_arrete_cadre.dto';
+import { CreateUpdateUsageArreteCadreDto } from '../../usage_arrete_cadre/dto/create_update_usage_arrete_cadre.dto';
 import { Type } from 'class-transformer';
 
 class updateDepartementDto {
@@ -47,5 +47,6 @@ export class CreateUpdateArreteCadreDto {
   @IsArray()
   @ValidateNested({ each: true })
   @IsOptional()
+  @Type(() => CreateUpdateUsageArreteCadreDto)
   usagesArreteCadre: CreateUpdateUsageArreteCadreDto[];
 }

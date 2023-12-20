@@ -1,15 +1,30 @@
-import { Column, Entity, ManyToOne, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { Usage } from '../../usage/entities/usage.entity';
 
 @Entity()
+@Unique(['usage', 'arreteCadre'])
 export class UsageArreteCadre {
-  @PrimaryColumn({ type: 'int', name: 'usageId' })
-  @ManyToOne(() => Usage, (usage) => usage.usagesArreteCadre)
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => Usage, (usage) => usage.usagesArreteCadre, {
+    nullable: false,
+    persistence: false,
+  })
   usage: Usage;
 
-  @PrimaryColumn({ type: 'int', name: 'arreteCadreId' })
-  @ManyToOne(() => ArreteCadre, (arreteCadre) => arreteCadre.usagesArreteCadre)
+  @ManyToOne(
+    () => ArreteCadre,
+    (arreteCadre) => arreteCadre.usagesArreteCadre,
+    { nullable: false, persistence: false },
+  )
   arreteCadre: ArreteCadre;
 
   @Column({ nullable: true })

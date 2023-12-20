@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Thematique } from '../../thematique/entities/thematique.entity';
-import { UsageArreteCadre } from '../../core/entities/usage_arrete_cadre.entity';
+import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
 
 @Entity()
 export class Usage {

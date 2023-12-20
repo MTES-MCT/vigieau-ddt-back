@@ -10,12 +10,14 @@ import {
   PaginateQuery,
 } from 'nestjs-paginate';
 import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
+import { UsageArreteCadreService } from '../usage_arrete_cadre/usage_arrete_cadre.service';
 
 @Injectable()
 export class ArreteCadreService {
   constructor(
     @InjectRepository(ArreteCadre)
     private readonly arreteCadreRepository: Repository<ArreteCadre>,
+    private readonly uageArreteCadreService: UsageArreteCadreService,
   ) {}
 
   findAll(
@@ -67,6 +69,7 @@ export class ArreteCadreService {
           type: true,
         },
         usagesArreteCadre: {
+          id: true,
           concerneParticulier: true,
           concerneEntreprise: true,
           concerneCollectivite: true,
@@ -96,12 +99,15 @@ export class ArreteCadreService {
     });
   }
 
-  create(
+  async create(
     createArreteCadreDto: CreateUpdateArreteCadreDto,
   ): Promise<ArreteCadre> {
-    return this.arreteCadreRepository.save(
+    const arreteCadre = await this.arreteCadreRepository.save(
       this.formatArreteCadreDto(createArreteCadreDto),
     );
+    arreteCadre.usagesArreteCadre =
+      await this.uageArreteCadreService.updateAll(arreteCadre);
+    return arreteCadre;
   }
 
   async update(
@@ -114,10 +120,13 @@ export class ArreteCadreService {
         HttpStatus.FORBIDDEN,
       );
     }
-    return this.arreteCadreRepository.save({
+    const arreteCadre = await this.arreteCadreRepository.save({
       id,
       ...this.formatArreteCadreDto(updateArreteCadreDto),
     });
+    arreteCadre.usagesArreteCadre =
+      await this.uageArreteCadreService.updateAll(arreteCadre);
+    return arreteCadre;
   }
 
   async publish(id: number) {
