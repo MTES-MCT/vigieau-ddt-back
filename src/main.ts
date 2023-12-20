@@ -39,7 +39,7 @@ async function bootstrap() {
   const sessionRepository = app.get(DataSource).getRepository(Session);
   app.use(
     session({
-      name: 'vigieau_ddt_session',
+      name: 'regleau_session',
       secret: configService.get('SESSION_SECRET'), // to sign session id
       resave: false, // will default to false in near future: https://github.com/expressjs/session#resave
       saveUninitialized: false, // will default to false in near future: https://github.com/expressjs/session#saveuninitialized
