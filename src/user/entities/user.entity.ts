@@ -1,8 +1,14 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryColumn,
+} from 'typeorm';
 import { UserRole } from '../type/user-role.type';
 
 @Entity()
-export class User {
+export class User extends BaseEntity {
   @PrimaryColumn({ nullable: false, length: 200 })
   email: string;
 

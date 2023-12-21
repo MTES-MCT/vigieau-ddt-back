@@ -36,14 +36,18 @@ export class CreateUpdateUsageArreteCadreDto {
   concerneExploitation: boolean;
 
   @IsString()
+  @IsOptional()
   descriptionVigilance: string;
 
   @IsString()
+  @IsOptional()
   descriptionAlerte: string;
 
   @IsString()
+  @IsOptional()
   descriptionAlerteRenforcee: string;
 
   @IsString()
+  @IsOptional()
   descriptionCrise: string;
 }

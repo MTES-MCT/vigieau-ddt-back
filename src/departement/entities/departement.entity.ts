@@ -1,4 +1,5 @@
 import {
+  BaseEntity,
   Column,
   Entity,
   ManyToMany,
@@ -12,7 +13,7 @@ import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { Region } from '../../core/entities/region.entity';
 
 @Entity()
-export class Departement {
+export class Departement extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

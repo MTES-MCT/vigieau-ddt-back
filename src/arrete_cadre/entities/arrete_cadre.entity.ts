@@ -1,4 +1,5 @@
 import {
+  BaseEntity,
   Column,
   CreateDateColumn,
   Entity,
@@ -14,7 +15,7 @@ import { Departement } from '../../departement/entities/departement.entity';
 import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
 
 @Entity()
-export class ArreteCadre {
+export class ArreteCadre extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

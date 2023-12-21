@@ -1,4 +1,5 @@
 import {
+  BaseEntity,
   Column,
   CreateDateColumn,
   Entity,
@@ -12,7 +13,7 @@ import { BassinVersant } from '../../core/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 
 @Entity()
-export class ZoneAlerte {
+export class ZoneAlerte extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

@@ -4,7 +4,7 @@ import { Controller } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UsageService } from './usage.service';
 import { plainToInstance } from 'class-transformer';
-import * as camelcaseKeys from 'camelcase-keys';
+import camelcaseKeys from 'camelcase-keys';
 import { UsageDto } from './dto/usage.dto';
 import { Usage } from './entities/usage.entity';
 import { CreateUserDto } from '../user/dto/create-user.dto';

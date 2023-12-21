@@ -2,7 +2,7 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import * as camelcaseKeys from 'camelcase-keys';
+import camelcaseKeys from 'camelcase-keys';
 import { DepartementService } from './departement.service';
 import { DepartementDto } from './dto/departement.dto';
 import { Departement } from './entities/departement.entity';

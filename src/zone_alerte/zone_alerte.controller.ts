@@ -11,7 +11,7 @@ import { ZoneAlerteService } from './zone_alerte.service';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZoneAlerte } from './entities/zone_alerte.entity';
 import { plainToInstance } from 'class-transformer';
-import * as camelcaseKeys from 'camelcase-keys';
+import camelcaseKeys from 'camelcase-keys';
 import { ZoneAlerteDto } from './dto/zone_alerte.dto';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
 import { FileInterceptor } from '@nestjs/platform-express';

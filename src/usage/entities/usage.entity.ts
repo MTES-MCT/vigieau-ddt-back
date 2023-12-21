@@ -1,4 +1,5 @@
 import {
+  BaseEntity,
   Column,
   Entity,
   ManyToOne,
@@ -9,7 +10,7 @@ import { Thematique } from '../../thematique/entities/thematique.entity';
 import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
 
 @Entity()
-export class Usage {
+export class Usage extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

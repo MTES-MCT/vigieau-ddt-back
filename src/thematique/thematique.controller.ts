@@ -3,7 +3,7 @@ import { ThematiqueService } from './thematique.service';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import * as camelcaseKeys from 'camelcase-keys';
+import camelcaseKeys from 'camelcase-keys';
 import { ThematiqueDto } from './dto/thematique.dto';
 import { Thematique } from './entities/thematique.entity';
 

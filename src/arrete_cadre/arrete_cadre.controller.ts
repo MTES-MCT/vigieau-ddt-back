@@ -10,11 +10,10 @@ import {
   Delete,
 } from '@nestjs/common';
 import { ArreteCadreService } from './arrete_cadre.service';
-import { ArreteCadre } from './entities/arrete_cadre.entity';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import * as camelcaseKeys from 'camelcase-keys';
+import camelcaseKeys from 'camelcase-keys';
 import { ArreteCadreDto } from './dto/arrete_cadre.dto';
 import { Paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';

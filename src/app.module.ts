@@ -17,7 +17,9 @@ import { DepartementModule } from './departement/departement.module';
 import { UsageModule } from './usage/usage.module';
 import { ThematiqueModule } from './thematique/thematique.module';
 import { UsageArreteCadreModule } from './usage_arrete_cadre/usage_arrete_cadre.module';
+import { AdminModule } from './admin.module';
 
+// @ts-ignore
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -68,6 +70,7 @@ import { UsageArreteCadreModule } from './usage_arrete_cadre/usage_arrete_cadre.
         limit: 300,
       },
     ]),
+    // AdminModule,
     HealthModule,
     ArreteCadreModule,
     AuthModule,
