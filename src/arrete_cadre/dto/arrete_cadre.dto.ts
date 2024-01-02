@@ -2,6 +2,7 @@ import { IsArray, IsNumber, IsString } from 'class-validator';
 import { DepartementDto } from '../../departement/dto/departement.dto';
 import { ZoneAlerteDto } from '../../zone_alerte/dto/zone_alerte.dto';
 import { UsageArreteCadreDto } from '../../usage_arrete_cadre/dto/usage_arrete_cadre.dto';
+import { ArreteRestrictionDto } from '../../arrete_restriction/dto/arrete_restriction.dto';
 
 export class ArreteCadreDto {
   @IsNumber()
@@ -24,4 +25,7 @@ export class ArreteCadreDto {
 
   @IsArray()
   usagesArreteCadre: UsageArreteCadreDto[];
+
+  @IsArray()
+  arretesRestriction: ArreteRestrictionDto[];
 }

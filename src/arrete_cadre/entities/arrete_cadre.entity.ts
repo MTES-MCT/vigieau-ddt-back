@@ -13,6 +13,7 @@ import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { StatutArreteCadre } from '../type/statut_arrete_cadre.type';
 import { Departement } from '../../departement/entities/departement.entity';
 import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
+import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
 
 @Entity()
 export class ArreteCadre extends BaseEntity {
@@ -41,6 +42,15 @@ export class ArreteCadre extends BaseEntity {
     nullable: false,
   })
   statut: StatutArreteCadre;
+
+  @ManyToMany(
+    () => ArreteRestriction,
+    (ArreteRestriction) => ArreteRestriction.arretesCadre,
+  )
+  @JoinTable({
+    name: 'arrete_cadre_arrete_restriction',
+  })
+  arretesRestriction: ArreteRestriction[];
 
   @ManyToMany(() => Departement, (departement) => departement.arretesCadre)
   @JoinTable({

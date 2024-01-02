@@ -309,3 +309,17 @@ SET "descriptionCrise" = concat_ws(',' , "descriptionCrise", (select string_agg(
                                                      and (nar.heure_deb is not null and nar.heure_fin is not null)
                                                      and u.id = uac."usageId" and r.id_arrete_cadre = uac."arreteCadreId"));
 UPDATE public.usage_arrete_cadre set "descriptionCrise" = null where "descriptionCrise" = '';
+
+-- ARRETES RESTRICTIONS
+INSERT INTO public.arrete_restriction (id, numero, statut, "dateDebut", "dateFin", "dateSignature")
+SELECT id_arrete, numero_arrete, (CASE
+                                                                      WHEN id_statut=1 THEN 'a_valider'::arrete_restriction_statut_enum
+                                                                      WHEN id_statut=2 THEN 'publie'::arrete_restriction_statut_enum
+                                                                      ELSE 'abroge'::arrete_restriction_statut_enum
+                                                                    END), debut_val_arrete, fin_val_arrete, date_signature
+from talend_ingestion_ppluvia.arretes;
+SELECT setval('arrete_restriction_id_seq', (SELECT MAX(id) FROM public.arrete_restriction)+1);
+
+-- ARRETES RESTRICTIONS / ARRETES CADRES
+INSERT INTO public.arrete_cadre_arrete_restriction ("arreteCadreId", "arreteRestrictionId")
+SELECT DISTINCT id_arrete_cadre, id_arrete from talend_ingestion_ppluvia.arretes where id_arrete_cadre is not null;

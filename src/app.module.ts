@@ -18,6 +18,7 @@ import { UsageModule } from './usage/usage.module';
 import { ThematiqueModule } from './thematique/thematique.module';
 import { UsageArreteCadreModule } from './usage_arrete_cadre/usage_arrete_cadre.module';
 import { AdminModule } from './admin.module';
+import { ArreteRestrictionModule } from './arrete_restriction/arrete_restriction.module';
 
 // @ts-ignore
 @Module({
@@ -81,6 +82,7 @@ import { AdminModule } from './admin.module';
     UsageModule,
     ThematiqueModule,
     UsageArreteCadreModule,
+    ArreteRestrictionModule,
   ],
   controllers: [],
   providers: [

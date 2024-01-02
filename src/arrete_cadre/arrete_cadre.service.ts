@@ -38,7 +38,7 @@ export class ArreteCadreService {
       sortableColumns: ['dateDebut'],
       defaultSortBy: [['dateDebut', 'DESC']],
       nullSort: 'last',
-      relations: ['zonesAlerte', 'departements'],
+      relations: ['zonesAlerte', 'departements', 'arretesRestriction'],
       searchableColumns: ['numero', 'departements.nom', 'departements.code'],
       filterableColumns: {
         statut: [FilterOperator.IN],
