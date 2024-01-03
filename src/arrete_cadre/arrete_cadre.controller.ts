@@ -82,8 +82,8 @@ export class ArreteCadreController {
 
   @Post(':id/publier')
   @ApiOperation({ summary: "Publication d'un arrêté cadre" })
-  async publish(@Param('id') id: string): Promise<void> {
-    return this.arreteCadreService.publish(+id);
+  async publish(@Req() req, @Param('id') id: string): Promise<void> {
+    return this.arreteCadreService.publish(+id, req.session.user);
   }
 
   @Patch(':id')
@@ -93,12 +93,14 @@ export class ArreteCadreController {
     type: ArreteCadreDto,
   })
   async update(
+    @Req() req,
     @Param('id') id: string,
     @Body() updateArreteCadreDto: CreateUpdateArreteCadreDto,
   ): Promise<ArreteCadreDto> {
     const arreteCadre = await this.arreteCadreService.update(
       +id,
       updateArreteCadreDto,
+      req.session.user,
     );
     return plainToInstance(
       ArreteCadreDto,
@@ -109,6 +111,6 @@ export class ArreteCadreController {
   @Delete(':id')
   @ApiOperation({ summary: "Suppression d'un arrêté cadre" })
   remove(@Req() req, @Param('id') id: string) {
-    return this.arreteCadreService.remove(req.session.user, +id);
+    return this.arreteCadreService.remove(+id, req.session.user);
   }
 }

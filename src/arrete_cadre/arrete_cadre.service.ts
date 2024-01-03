@@ -12,6 +12,7 @@ import {
 import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
 import { UsageArreteCadreService } from '../usage_arrete_cadre/usage_arrete_cadre.service';
 import { arreteCadrePaginateConfig } from './dto/arrete_cadre.dto';
+import { UserDto } from '../user/dto/user.dto';
 
 @Injectable()
 export class ArreteCadreService {
@@ -40,7 +41,18 @@ export class ArreteCadreService {
     return paginate(query, this.arreteCadreRepository, paginateConfig);
   }
 
-  findOne(id: number) {
+  findOne(id: number, curentUser?: User) {
+    const whereClause: FindOptionsWhere<ArreteCadre> | null =
+      !curentUser || curentUser.role === 'mte'
+        ? { id }
+        : {
+            id,
+            zonesAlerte: {
+              departement: {
+                code: curentUser.role_departement,
+              },
+            },
+          };
     return this.arreteCadreRepository.findOne({
       select: {
         id: true,
@@ -80,15 +92,20 @@ export class ArreteCadreService {
             },
           },
         },
+        arretesRestriction: {
+          id: true,
+          statut: true,
+        },
       },
       relations: [
         'departements',
         'zonesAlerte',
+        'arretesRestriction',
         'usagesArreteCadre',
         'usagesArreteCadre.usage',
         'usagesArreteCadre.usage.thematique',
       ],
-      where: { id },
+      where: whereClause,
     });
   }
 
@@ -106,10 +123,11 @@ export class ArreteCadreService {
   async update(
     id: number,
     updateArreteCadreDto: CreateUpdateArreteCadreDto,
+    curentUser: User,
   ): Promise<ArreteCadre> {
-    if (!(await this.canUpdateArreteCadre(id))) {
+    if (!(await this.canUpdateArreteCadre(id, curentUser))) {
       throw new HttpException(
-        `Edition d'un arrêté cadre interdit.`,
+        `Vous ne pouvez éditer un arrêté cadre que si il est sur votre département et en statut brouillon.`,
         HttpStatus.FORBIDDEN,
       );
     }
@@ -122,26 +140,35 @@ export class ArreteCadreService {
     return arreteCadre;
   }
 
-  async publish(id: number) {
-    if (!(await this.canUpdateArreteCadre(id))) {
+  async publish(id: number, currentUser: User) {
+    if (!(await this.canUpdateArreteCadre(id, currentUser))) {
       return;
     }
     return;
   }
 
-  async remove(curentUser: User, id: number) {
-    if (!(await this.canUpdateArreteCadre(id))) {
+  async remove(id: number, curentUser: User) {
+    if (!(await this.canRemoveArreteCadre(id, curentUser))) {
       throw new HttpException(
-        `Suppression d'un arrêté cadre interdit.`,
+        `Vous ne pouvez supprimer un arrêté cadre que si il est sur votre département et en statut brouillon.`,
         HttpStatus.FORBIDDEN,
       );
     }
     return this.arreteCadreRepository.delete(id);
   }
 
-  async canUpdateArreteCadre(id: number): Promise<boolean> {
-    const arrete = await this.findOne(id);
-    return arrete.statut === 'a_valider';
+  async canUpdateArreteCadre(id: number, user: User): Promise<boolean> {
+    const arrete = await this.findOne(id, user);
+    return (
+      arrete &&
+      (arrete.statut === 'a_valider' ||
+        (arrete.statut === 'publie' && arrete.arretesRestriction.length < 1))
+    );
+  }
+
+  async canRemoveArreteCadre(id: number, user: User): Promise<boolean> {
+    const arrete = await this.findOne(id, user);
+    return arrete && arrete.statut === 'a_valider';
   }
 
   formatArreteCadreDto(
