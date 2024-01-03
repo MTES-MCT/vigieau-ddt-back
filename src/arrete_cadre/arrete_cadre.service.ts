@@ -11,6 +11,7 @@ import {
 } from 'nestjs-paginate';
 import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
 import { UsageArreteCadreService } from '../usage_arrete_cadre/usage_arrete_cadre.service';
+import { arreteCadrePaginateConfig } from './dto/arrete_cadre.dto';
 
 @Injectable()
 export class ArreteCadreService {
@@ -34,17 +35,9 @@ export class ArreteCadreService {
               },
             },
           };
-    return paginate(query, this.arreteCadreRepository, {
-      sortableColumns: ['dateDebut'],
-      defaultSortBy: [['dateDebut', 'DESC']],
-      nullSort: 'last',
-      relations: ['zonesAlerte', 'departements', 'arretesRestriction'],
-      searchableColumns: ['numero', 'departements.nom', 'departements.code'],
-      filterableColumns: {
-        statut: [FilterOperator.IN],
-      },
-      where: whereClause ? whereClause : null,
-    });
+    const paginateConfig = arreteCadrePaginateConfig;
+    paginateConfig.where = whereClause ? whereClause : null;
+    return paginate(query, this.arreteCadreRepository, paginateConfig);
   }
 
   findOne(id: number) {

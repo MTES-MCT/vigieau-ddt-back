@@ -1,12 +1,23 @@
-import { Controller, Get, Req } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { ArreteRestrictionService } from './arrete_restriction.service';
-import { ApiOperation } from '@nestjs/swagger';
-import { Paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Paginate,
+  Paginated,
+  PaginatedSwaggerDocs,
+  PaginateQuery,
+} from 'nestjs-paginate';
 import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
-import { ArreteRestrictionDto } from './dto/arrete_restriction.dto';
+import {
+  ArreteRestrictionDto,
+  arreteRestrictionPaginateConfig,
+} from './dto/arrete_restriction.dto';
+import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
 
+@UseGuards(AuthenticatedGuard)
 @Controller('arrete-restriction')
+@ApiTags('Arrêtés de Restriction')
 export class ArreteRestrictionController {
   constructor(
     private readonly arreteRestrictionService: ArreteRestrictionService,
@@ -14,6 +25,7 @@ export class ArreteRestrictionController {
 
   @Get('/search')
   @ApiOperation({ summary: 'Retourne les arrêtés de restrictions paginés' })
+  @PaginatedSwaggerDocs(ArreteRestrictionDto, arreteRestrictionPaginateConfig)
   async findAll(
     @Req() req,
     @Paginate() query: PaginateQuery,

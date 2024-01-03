@@ -1,7 +1,7 @@
 import { Body, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
 import { Controller } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsageService } from './usage.service';
 import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
@@ -20,6 +20,10 @@ export class UsageController {
   @ApiOperation({
     summary: "Retourne tout les usages suivant les droits de l'utilisateur",
   })
+  @ApiResponse({
+    status: 201,
+    type: [UsageDto],
+  })
   async findAll(@Req() req): Promise<UsageDto[]> {
     const usages: Usage[] = await this.usageService.findAll(req.session.user);
     return plainToInstance(UsageDto, camelcaseKeys(usages, { deep: true }));
@@ -31,7 +35,11 @@ export class UsageController {
     description: 'Usage',
     type: CreateUserDto,
   })
-  async create(@Body() createUsageDto: CreateUsageDto) {
+  @ApiResponse({
+    status: 201,
+    type: UsageDto,
+  })
+  async create(@Body() createUsageDto: CreateUsageDto): Promise<UsageDto> {
     const usage = await this.usageService.create(createUsageDto);
     return plainToInstance(UsageDto, camelcaseKeys(<any>usage, { deep: true }));
   }

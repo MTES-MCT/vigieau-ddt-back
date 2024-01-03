@@ -13,7 +13,7 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
 import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
@@ -21,6 +21,7 @@ import snakecaseKeys from 'snakecase-keys';
 import { UserDto } from './dto/user.dto';
 import { RolesGuard } from '../core/guards/roles.guard';
 import { Roles } from '../core/decorators/roles.decorator';
+import { ArreteCadreDto } from '../arrete_cadre/dto/arrete_cadre.dto';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('user')
@@ -30,6 +31,10 @@ export class UserController {
 
   @Get()
   @ApiOperation({ summary: 'Retourne tout les utilisateurs' })
+  @ApiResponse({
+    status: 201,
+    type: [UserDto],
+  })
   async findAll(@Req() req): Promise<UserDto[]> {
     const users: User[] = await this.userService.findAll(req.session.user);
     return plainToInstance(UserDto, camelcaseKeys(users, { deep: true }));
@@ -37,7 +42,11 @@ export class UserController {
 
   @Get('/me')
   @ApiOperation({ summary: "Retourne l'utilisateur courant" })
-  async me(@Req() req) {
+  @ApiResponse({
+    status: 201,
+    type: UserDto,
+  })
+  async me(@Req() req): Promise<UserDto> {
     const user: User = await this.userService.findOne(
       req.user?.userinfo?.email,
     );
@@ -49,6 +58,10 @@ export class UserController {
   @ApiBody({
     description: 'User',
     type: CreateUserDto,
+  })
+  @ApiResponse({
+    status: 201,
+    type: UserDto,
   })
   async create(@Req() req, @Body() createUserDto: CreateUserDto) {
     const user = await this.userService.create(
@@ -64,12 +77,16 @@ export class UserController {
     description: 'User',
     type: UpdateUserDto,
   })
+  @ApiResponse({
+    status: 201,
+    type: UserDto,
+  })
   @UseGuards(RolesGuard)
   @Roles(['mte'])
   async update(
     @Param('email') email: string,
     @Body() updateUserDto: UpdateUserDto,
-  ) {
+  ): Promise<UserDto> {
     const userModel = await this.userService.update(
       email,
       plainToInstance(User, snakecaseKeys(<any>updateUserDto)),

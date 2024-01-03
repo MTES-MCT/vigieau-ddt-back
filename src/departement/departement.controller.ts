@@ -1,6 +1,6 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
 import { DepartementService } from './departement.service';
@@ -15,6 +15,10 @@ export class DepartementController {
 
   @Get()
   @ApiOperation({ summary: 'Retourne tout les départements' })
+  @ApiResponse({
+    status: 201,
+    type: [DepartementDto],
+  })
   async findAll(): Promise<DepartementDto[]> {
     const departements: Departement[] = await this.departementService.findAll();
     return plainToInstance(

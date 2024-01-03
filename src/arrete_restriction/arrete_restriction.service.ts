@@ -1,15 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '../user/entities/user.entity';
-import {
-  FilterOperator,
-  paginate,
-  Paginated,
-  PaginateQuery,
-} from 'nestjs-paginate';
-import { ArreteCadre } from '../arrete_cadre/entities/arrete_cadre.entity';
+import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ArreteRestriction } from './entities/arrete_restriction.entity';
+import { arreteRestrictionPaginateConfig } from './dto/arrete_restriction.dto';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -32,20 +27,8 @@ export class ArreteRestrictionService {
               },
             },
           };
-    return paginate(query, this.arreteRestrictionRepository, {
-      sortableColumns: ['dateDebut'],
-      defaultSortBy: [['dateDebut', 'DESC']],
-      nullSort: 'last',
-      relations: ['arretesCadre', 'arretesCadre.departements'],
-      searchableColumns: [
-        'numero',
-        'arretesCadre.departements.nom',
-        'arretesCadre.departements.code',
-      ],
-      filterableColumns: {
-        statut: [FilterOperator.IN],
-      },
-      where: whereClause ? whereClause : null,
-    });
+    const paginateConfig = arreteRestrictionPaginateConfig;
+    paginateConfig.where = whereClause ? whereClause : null;
+    return paginate(query, this.arreteRestrictionRepository, paginateConfig);
   }
 }

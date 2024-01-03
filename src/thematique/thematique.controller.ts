@@ -1,7 +1,7 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ThematiqueService } from './thematique.service';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
 import { ThematiqueDto } from './dto/thematique.dto';
@@ -16,6 +16,10 @@ export class ThematiqueController {
   @Get()
   @ApiOperation({
     summary: 'Retourne toutes les thématiques',
+  })
+  @ApiResponse({
+    status: 201,
+    type: [ThematiqueDto],
   })
   async findAll(): Promise<ThematiqueDto[]> {
     const thematiques: Thematique[] = await this.thematiqueService.findAll();

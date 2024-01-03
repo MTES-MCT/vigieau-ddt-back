@@ -11,11 +11,19 @@ import {
 } from '@nestjs/common';
 import { ArreteCadreService } from './arrete_cadre.service';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
-import { ArreteCadreDto } from './dto/arrete_cadre.dto';
-import { Paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
+import {
+  ArreteCadreDto,
+  arreteCadrePaginateConfig,
+} from './dto/arrete_cadre.dto';
+import {
+  Paginate,
+  Paginated,
+  PaginatedSwaggerDocs,
+  PaginateQuery,
+} from 'nestjs-paginate';
 import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
 
 @UseGuards(AuthenticatedGuard)
@@ -26,6 +34,7 @@ export class ArreteCadreController {
 
   @Get('/search')
   @ApiOperation({ summary: 'Retourne les arrêtés cadres paginés' })
+  @PaginatedSwaggerDocs(ArreteCadreDto, arreteCadrePaginateConfig)
   async findAll(
     @Req() req,
     @Paginate() query: PaginateQuery,
@@ -42,6 +51,10 @@ export class ArreteCadreController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Retourne un arrêté cadre' })
+  @ApiResponse({
+    status: 201,
+    type: ArreteCadreDto,
+  })
   async findOne(@Param('id') id: string): Promise<ArreteCadreDto> {
     const arreteCadre = await this.arreteCadreService.findOne(+id);
     return plainToInstance(
@@ -52,6 +65,10 @@ export class ArreteCadreController {
 
   @Post()
   @ApiOperation({ summary: "Création d'un arrêté cadre" })
+  @ApiResponse({
+    status: 201,
+    type: ArreteCadreDto,
+  })
   async create(
     @Body() createArreteCadreDto: CreateUpdateArreteCadreDto,
   ): Promise<ArreteCadreDto> {
@@ -71,6 +88,10 @@ export class ArreteCadreController {
 
   @Patch(':id')
   @ApiOperation({ summary: "Edition d'un arrêté cadre" })
+  @ApiResponse({
+    status: 201,
+    type: ArreteCadreDto,
+  })
   async update(
     @Param('id') id: string,
     @Body() updateArreteCadreDto: CreateUpdateArreteCadreDto,

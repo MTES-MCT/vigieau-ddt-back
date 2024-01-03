@@ -8,7 +8,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ZoneAlerteService } from './zone_alerte.service';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ZoneAlerte } from './entities/zone_alerte.entity';
 import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
@@ -28,6 +28,10 @@ export class ZoneAlerteController {
   @Get(':departementCode')
   @ApiOperation({
     summary: "Retourne toute les zones d'alerte d'un département",
+  })
+  @ApiResponse({
+    status: 201,
+    type: [ZoneAlerteDto],
   })
   async findByDepartement(
     @Param('departementCode') departementCode: string,
