@@ -13,9 +13,12 @@ export const buildOpenIdClient = async () => {
   const TrustIssuer = await Issuer.discover(
     `${process.env.OAUTH2_CLIENT_PROVIDER_OIDC_ISSUER}/.well-known/openid-configuration`,
   );
+  console.log(TrustIssuer);
   const client = new TrustIssuer.Client({
     client_id: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_CLIENT_ID,
     client_secret: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_CLIENT_SECRET,
+    acr_values: TrustIssuer.acr_values_supported,
+    response_types: ['id_token'],
   });
   return client;
 };
@@ -32,15 +35,18 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
       params: {
         redirect_uri: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_REDIRECT_URI,
         scope: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_SCOPE,
+        acr_values: client.acr_values,
       },
       passReqToCallback: false,
-      usePKCE: false,
+      usePKCE: true,
     });
+    console.log(client);
 
     this.client = client;
   }
 
   async validate(tokenset: TokenSet): Promise<any> {
+    console.log('VALIDATION');
     const userinfo: UserinfoResponse = await this.client.userinfo(tokenset);
     const userInDb = await this.userService.findOne(userinfo?.email);
 
