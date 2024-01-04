@@ -13,7 +13,6 @@ export const buildOpenIdClient = async () => {
   const TrustIssuer = await Issuer.discover(
     `${process.env.OAUTH2_CLIENT_PROVIDER_OIDC_ISSUER}/.well-known/openid-configuration`,
   );
-  console.log(TrustIssuer);
   const client = new TrustIssuer.Client({
     client_id: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_CLIENT_ID,
     client_secret: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_CLIENT_SECRET,
@@ -40,13 +39,11 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
       passReqToCallback: false,
       usePKCE: true,
     });
-    console.log(client);
 
     this.client = client;
   }
 
   async validate(tokenset: TokenSet): Promise<any> {
-    console.log('VALIDATION');
     const userinfo: UserinfoResponse = await this.client.userinfo(tokenset);
     const userInDb = await this.userService.findOne(userinfo?.email);
 

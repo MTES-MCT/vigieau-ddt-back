@@ -21,7 +21,11 @@ const OidcStrategyFactory = {
 
 @Module({
   imports: [
-    PassportModule.register({ session: true, defaultStrategy: 'oidc' }),
+    PassportModule.register({
+      session: null,
+      defaultStrategy: null,
+      property: null,
+    }),
     UserModule,
   ],
   controllers: [AuthController],
