@@ -6,6 +6,8 @@ import { Issuer } from 'openid-client';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserService } from '../user/user.service';
+import { Dev } from '../core/decorators/dev.decorator';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 @ApiTags('Authentification')
@@ -20,6 +22,16 @@ export class AuthController {
   @ApiOperation({ summary: 'OAuth - Login' })
   login() {}
 
+  @Get('/login/dev/:email')
+  @Dev()
+  @UseGuards(AuthGuard('local'))
+  @ApiOperation({ summary: 'Bypass Login pour le développement' })
+  async loginDev(@Req() req, @Res() res: Response) {
+    // Ajout de l'utilisateur avec ses droits dans la session
+    req.session.user = req.user;
+    res.redirect(this.configService.get('WEBSITE_URL'));
+  }
+
   @UseGuards(LoginGuard)
   @Get('/callback')
   @ApiOperation({ summary: 'OAuth - Callback' })
@@ -33,7 +45,7 @@ export class AuthController {
   @ApiOperation({ summary: 'OAuth - Logout' })
   async logout(@Req() req, @Res() res: Response, next) {
     const id_token = req.user ? req.user.id_token : undefined;
-    res.clearCookie('vigieau_ddt_session');
+    res.clearCookie('regleau_session');
     req.logout((err) => {
       if (err) {
         return next(err);

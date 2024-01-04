@@ -21,14 +21,26 @@ import snakecaseKeys from 'snakecase-keys';
 import { UserDto } from './dto/user.dto';
 import { RolesGuard } from '../core/guards/roles.guard';
 import { Roles } from '../core/decorators/roles.decorator';
-import { ArreteCadreDto } from '../arrete_cadre/dto/arrete_cadre.dto';
+import { Dev } from '../core/decorators/dev.decorator';
 
-@UseGuards(AuthenticatedGuard)
 @Controller('user')
 @ApiTags('Utilisateurs')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Get('/dev')
+  @Dev()
+  @ApiOperation({ summary: 'Retourne tout les utilisateurs - dev' })
+  @ApiResponse({
+    status: 201,
+    type: [UserDto],
+  })
+  async findAllDev(): Promise<UserDto[]> {
+    const users: User[] = await this.userService.findAll();
+    return plainToInstance(UserDto, camelcaseKeys(users, { deep: true }));
+  }
+
+  @UseGuards(AuthenticatedGuard)
   @Get()
   @ApiOperation({ summary: 'Retourne tout les utilisateurs' })
   @ApiResponse({
@@ -40,6 +52,7 @@ export class UserController {
     return plainToInstance(UserDto, camelcaseKeys(users, { deep: true }));
   }
 
+  @UseGuards(AuthenticatedGuard)
   @Get('/me')
   @ApiOperation({ summary: "Retourne l'utilisateur courant" })
   @ApiResponse({
@@ -48,11 +61,12 @@ export class UserController {
   })
   async me(@Req() req): Promise<UserDto> {
     const user: User = await this.userService.findOne(
-      req.user?.userinfo?.email,
+      req.session?.user ? req.session.user.email : req.user?.userinfo?.email,
     );
     return plainToInstance(UserDto, camelcaseKeys(user, { deep: true }));
   }
 
+  @UseGuards(AuthenticatedGuard)
   @Post()
   @ApiOperation({ summary: "Création d'un nouvel utilisateur" })
   @ApiBody({
@@ -81,7 +95,7 @@ export class UserController {
     status: 201,
     type: UserDto,
   })
-  @UseGuards(RolesGuard)
+  @UseGuards(AuthenticatedGuard, RolesGuard)
   @Roles(['mte'])
   async update(
     @Param('email') email: string,
@@ -97,6 +111,7 @@ export class UserController {
     );
   }
 
+  @UseGuards(AuthenticatedGuard)
   @Delete(':email')
   @ApiOperation({ summary: "Archivage d'un utilisateur" })
   remove(@Req() req, @Param('email') email: string) {

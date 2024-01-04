@@ -10,9 +10,9 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  findAll(curentUser: User): Promise<User[]> {
+  findAll(curentUser?: User): Promise<User[]> {
     const where =
-      curentUser.role === 'mte'
+      !curentUser || curentUser.role === 'mte'
         ? {}
         : {
             role: curentUser.role,
