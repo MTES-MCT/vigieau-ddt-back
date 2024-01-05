@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
@@ -18,6 +19,7 @@ export class UsageArreteCadre {
     nullable: false,
     persistence: false,
   })
+  @Index()
   usage: Usage;
 
   @ManyToOne(
@@ -25,6 +27,7 @@ export class UsageArreteCadre {
     (arreteCadre) => arreteCadre.usagesArreteCadre,
     { nullable: false, persistence: false, onDelete: 'CASCADE' },
   )
+  @Index()
   arreteCadre: ArreteCadre;
 
   @Column({ nullable: true })

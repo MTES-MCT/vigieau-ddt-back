@@ -2,6 +2,7 @@ import {
   BaseEntity,
   Column,
   Entity,
+  Index,
   ManyToMany,
   ManyToOne,
   OneToMany,

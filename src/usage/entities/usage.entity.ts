@@ -2,6 +2,7 @@ import {
   BaseEntity,
   Column,
   Entity,
+  Index,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -18,6 +19,7 @@ export class Usage extends BaseEntity {
   nom: string;
 
   @ManyToOne(() => Thematique, (thematique) => thematique.usages)
+  @Index()
   thematique: Thematique;
 
   @Column({ default: false })
