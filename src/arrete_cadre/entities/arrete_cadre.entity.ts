@@ -10,7 +10,12 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
-import { StatutArreteCadre } from '../type/statut_arrete_cadre.type';
+import {
+  AffichageRessource,
+  CommuneNiveauGraviteMax,
+  RessourceEapCommunique,
+  StatutArreteCadre,
+} from '../type/arrete_cadre.type';
 import { Departement } from '../../departement/entities/departement.entity';
 import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
@@ -42,6 +47,51 @@ export class ArreteCadre extends BaseEntity {
     nullable: false,
   })
   statut: StatutArreteCadre;
+
+  @Column('enum', {
+    name: 'communeNiveauGraviteMax',
+    enum: ['all', 'eap', 'none'],
+    nullable: true,
+  })
+  communeNiveauGraviteMax: CommuneNiveauGraviteMax;
+
+  @Column({ nullable: true })
+  niveauGraviteSpecifiqueEap: boolean;
+
+  @Column('enum', {
+    name: 'ressourceEapCommunique',
+    enum: ['esu', 'eso', 'max'],
+    nullable: true,
+  })
+  ressourceEapCommunique: RessourceEapCommunique;
+
+  @Column('enum', {
+    name: 'affichageRessourceParticulier',
+    enum: ['esu', 'eso', 'aep', 'max'],
+    nullable: true,
+  })
+  affichageRessourceParticulier: AffichageRessource;
+
+  @Column('enum', {
+    name: 'affichageRessourceCollectivite',
+    enum: ['esu', 'eso', 'aep', 'max'],
+    nullable: true,
+  })
+  affichageRessourceCollectivite: AffichageRessource;
+
+  @Column('enum', {
+    name: 'affichageRessourceEntreprise',
+    enum: ['esu', 'eso', 'aep', 'max'],
+    nullable: true,
+  })
+  affichageRessourceEntreprise: AffichageRessource;
+
+  @Column('enum', {
+    name: 'affichageRessourceExploitation',
+    enum: ['esu', 'eso', 'aep', 'max'],
+    nullable: true,
+  })
+  affichageRessourceExploitation: AffichageRessource;
 
   @ManyToMany(
     () => ArreteRestriction,
