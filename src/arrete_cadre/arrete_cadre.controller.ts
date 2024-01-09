@@ -25,6 +25,9 @@ import {
   PaginateQuery,
 } from 'nestjs-paginate';
 import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
+import { Dev } from '../core/decorators/dev.decorator';
+import { Public } from '../core/decorators/public.decorator';
+import { DeleteResult } from 'typeorm';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('arrete-cadre')
@@ -112,5 +115,23 @@ export class ArreteCadreController {
   @ApiOperation({ summary: "Suppression d'un arrêté cadre" })
   remove(@Req() req, @Param('id') id: string) {
     return this.arreteCadreService.remove(+id, req.session.user);
+  }
+
+  @Post('populateTestData')
+  @Public()
+  @Dev()
+  @ApiOperation({
+    summary: 'Génération des données nécessaires pour les tests',
+  })
+  async populateTestData(): Promise<void> {
+    return this.arreteCadreService.populateTestData();
+  }
+
+  @Post('clearTestData')
+  @Public()
+  @Dev()
+  @ApiOperation({ summary: 'Suppression des données générées par les tests' })
+  async clearTestData(): Promise<DeleteResult> {
+    return this.arreteCadreService.removeTestData();
   }
 }

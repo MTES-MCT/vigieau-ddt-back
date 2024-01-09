@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { DeleteResult, FindOptionsWhere, Like, Repository } from 'typeorm';
 import { ArreteCadre } from './entities/arrete_cadre.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
@@ -13,6 +13,7 @@ import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto
 import { UsageArreteCadreService } from '../usage_arrete_cadre/usage_arrete_cadre.service';
 import { arreteCadrePaginateConfig } from './dto/arrete_cadre.dto';
 import { UserDto } from '../user/dto/user.dto';
+import { testArretesCadre } from '../core/test/data';
 
 @Injectable()
 export class ArreteCadreService {
@@ -41,7 +42,7 @@ export class ArreteCadreService {
     return paginate(query, this.arreteCadreRepository, paginateConfig);
   }
 
-  findOne(id: number, curentUser?: User) {
+  async findOne(id: number, curentUser?: User) {
     const whereClause: FindOptionsWhere<ArreteCadre> | null =
       !curentUser || curentUser.role === 'mte'
         ? { id }
@@ -53,60 +54,41 @@ export class ArreteCadreService {
               },
             },
           };
-    return this.arreteCadreRepository.findOne({
-      select: {
-        id: true,
-        numero: true,
-        dateDebut: true,
-        dateFin: true,
-        url: true,
-        urlDdt: true,
-        statut: true,
-        departements: {
+    const [arreteCadre, usagesArreteCadre] = await Promise.all([
+      this.arreteCadreRepository.findOne({
+        select: {
           id: true,
-          code: true,
-          nom: true,
-        },
-        zonesAlerte: {
-          id: true,
-          code: true,
-          nom: true,
-          type: true,
-        },
-        usagesArreteCadre: {
-          id: true,
-          concerneParticulier: true,
-          concerneEntreprise: true,
-          concerneCollectivite: true,
-          concerneExploitation: true,
-          descriptionVigilance: true,
-          descriptionAlerte: true,
-          descriptionAlerteRenforcee: true,
-          descriptionCrise: true,
-          usage: {
+          numero: true,
+          dateDebut: true,
+          dateFin: true,
+          url: true,
+          urlDdt: true,
+          statut: true,
+          departements: {
             id: true,
+            code: true,
             nom: true,
-            thematique: {
-              id: true,
-              nom: true,
-            },
+          },
+          zonesAlerte: {
+            id: true,
+            code: true,
+            nom: true,
+            type: true,
+          },
+          arretesRestriction: {
+            id: true,
+            statut: true,
           },
         },
-        arretesRestriction: {
-          id: true,
-          statut: true,
-        },
-      },
-      relations: [
-        'departements',
-        'zonesAlerte',
-        'arretesRestriction',
-        'usagesArreteCadre',
-        'usagesArreteCadre.usage',
-        'usagesArreteCadre.usage.thematique',
-      ],
-      where: whereClause,
-    });
+        relations: ['departements', 'zonesAlerte', 'arretesRestriction'],
+        where: whereClause,
+      }),
+      this.uageArreteCadreService.findByArreteCadre(id),
+    ]);
+    if (arreteCadre) {
+      arreteCadre.usagesArreteCadre = usagesArreteCadre;
+    }
+    return arreteCadre;
   }
 
   async create(
@@ -179,5 +161,25 @@ export class ArreteCadreService {
     arreteCadreDto.dateFin =
       arreteCadreDto.dateFin === '' ? null : arreteCadreDto.dateFin;
     return <ArreteCadre>arreteCadreDto;
+  }
+
+  /************************************************************************************ TEST FUNCTIONS ************************************************************************************/
+
+  /**
+   * Ajouts d'arrêtés cadres pour les tests E2E
+   */
+  async populateTestData(): Promise<void> {
+    testArretesCadre.forEach(async (ac: any) => {
+      await this.create(JSON.parse(JSON.stringify(ac)));
+    });
+    return;
+  }
+
+  /**
+   * Suppression des données générées par les tests E2E
+   * Par convention les données générées par les tests E2E sont préfixées par CYTEST
+   */
+  removeTestData(): Promise<DeleteResult> {
+    return this.arreteCadreRepository.delete({ numero: Like('CYTEST%') });
   }
 }

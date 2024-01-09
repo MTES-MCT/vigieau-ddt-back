@@ -32,4 +32,34 @@ export class UsageArreteCadreService {
       });
     return this.usageArreteCadreRepository.save(usagesArreteCadre);
   }
+
+  findByArreteCadre(arreteCadreId: number) {
+    return this.usageArreteCadreRepository.find({
+      select: {
+        id: true,
+        concerneParticulier: true,
+        concerneEntreprise: true,
+        concerneCollectivite: true,
+        concerneExploitation: true,
+        descriptionVigilance: true,
+        descriptionAlerte: true,
+        descriptionAlerteRenforcee: true,
+        descriptionCrise: true,
+        usage: {
+          id: true,
+          nom: true,
+          thematique: {
+            id: true,
+            nom: true,
+          },
+        },
+      },
+      relations: ['usage', 'usage.thematique'],
+      where: {
+        arreteCadre: {
+          id: arreteCadreId,
+        },
+      },
+    });
+  }
 }

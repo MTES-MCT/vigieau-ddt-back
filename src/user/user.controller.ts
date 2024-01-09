@@ -22,13 +22,16 @@ import { UserDto } from './dto/user.dto';
 import { RolesGuard } from '../core/guards/roles.guard';
 import { Roles } from '../core/decorators/roles.decorator';
 import { Dev } from '../core/decorators/dev.decorator';
+import { Public } from '../core/decorators/public.decorator';
 
+@UseGuards(AuthenticatedGuard)
 @Controller('user')
 @ApiTags('Utilisateurs')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('/dev')
+  @Public()
   @Dev()
   @ApiOperation({ summary: 'Retourne tout les utilisateurs - dev' })
   @ApiResponse({
@@ -40,7 +43,6 @@ export class UserController {
     return plainToInstance(UserDto, camelcaseKeys(users, { deep: true }));
   }
 
-  @UseGuards(AuthenticatedGuard)
   @Get()
   @ApiOperation({ summary: 'Retourne tout les utilisateurs' })
   @ApiResponse({
@@ -52,7 +54,6 @@ export class UserController {
     return plainToInstance(UserDto, camelcaseKeys(users, { deep: true }));
   }
 
-  @UseGuards(AuthenticatedGuard)
   @Get('/me')
   @ApiOperation({ summary: "Retourne l'utilisateur courant" })
   @ApiResponse({
@@ -66,7 +67,6 @@ export class UserController {
     return plainToInstance(UserDto, camelcaseKeys(user, { deep: true }));
   }
 
-  @UseGuards(AuthenticatedGuard)
   @Post()
   @ApiOperation({ summary: "Création d'un nouvel utilisateur" })
   @ApiBody({
@@ -95,7 +95,7 @@ export class UserController {
     status: 201,
     type: UserDto,
   })
-  @UseGuards(AuthenticatedGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   @Roles(['mte'])
   async update(
     @Param('email') email: string,
@@ -111,7 +111,6 @@ export class UserController {
     );
   }
 
-  @UseGuards(AuthenticatedGuard)
   @Delete(':email')
   @ApiOperation({ summary: "Archivage d'un utilisateur" })
   remove(@Req() req, @Param('email') email: string) {
