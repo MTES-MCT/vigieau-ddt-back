@@ -74,6 +74,16 @@ export class ArreteCadreDto {
 }
 
 export const arreteCadrePaginateConfig: PaginateConfig<ArreteCadre> = {
+  select: [
+    'id',
+    'numero',
+    'dateDebut',
+    'dateFin',
+    'statut',
+    'departements.nom',
+    'arretesRestriction.id',
+    'arretesRestriction.statut',
+  ],
   sortableColumns: ['dateDebut'],
   defaultSortBy: [['dateDebut', 'DESC']],
   nullSort: 'last',

@@ -39,12 +39,14 @@ export class ArreteRestrictionDto {
 
 export const arreteRestrictionPaginateConfig: PaginateConfig<ArreteRestriction> =
   {
+    select: ['id', 'numero', 'statut', 'dateDebut', 'dateFin'],
     sortableColumns: ['dateDebut'],
     defaultSortBy: [['dateDebut', 'DESC']],
     nullSort: 'last',
     relations: ['arretesCadre', 'arretesCadre.departements'],
     searchableColumns: [
       'numero',
+      'arretesCadre.numero',
       'arretesCadre.departements.nom',
       'arretesCadre.departements.code',
     ],

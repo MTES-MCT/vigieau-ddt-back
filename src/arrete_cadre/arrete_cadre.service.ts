@@ -14,6 +14,7 @@ import { UsageArreteCadreService } from '../usage_arrete_cadre/usage_arrete_cadr
 import { arreteCadrePaginateConfig } from './dto/arrete_cadre.dto';
 import { UserDto } from '../user/dto/user.dto';
 import { testArretesCadre } from '../core/test/data';
+import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
 
 @Injectable()
 export class ArreteCadreService {
@@ -23,7 +24,7 @@ export class ArreteCadreService {
     private readonly uageArreteCadreService: UsageArreteCadreService,
   ) {}
 
-  findAll(
+  async findAll(
     curentUser: User,
     query: PaginateQuery,
   ): Promise<Paginated<ArreteCadre>> {
@@ -39,7 +40,17 @@ export class ArreteCadreService {
           };
     const paginateConfig = arreteCadrePaginateConfig;
     paginateConfig.where = whereClause ? whereClause : null;
-    return paginate(query, this.arreteCadreRepository, paginateConfig);
+    const paginateToReturn = await paginate(
+      query,
+      this.arreteCadreRepository,
+      paginateConfig,
+    );
+    paginateToReturn.data.map((ac: ArreteCadre) => {
+      ac.arretesRestriction = ac.arretesRestriction.filter(
+        (ar: ArreteRestriction) => ['a_venir', 'publie'].includes(ar.statut),
+      );
+    });
+    return paginateToReturn;
   }
 
   async findOne(id: number, curentUser?: User) {

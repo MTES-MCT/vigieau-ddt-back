@@ -28,7 +28,7 @@ export class ArreteRestriction extends BaseEntity {
 
   @Column('enum', {
     name: 'statut',
-    enum: ['a_valider', 'publie', 'abroge'],
+    enum: ['a_valider', 'a_venir', 'publie', 'abroge'],
     default: 'a_valider',
     nullable: false,
   })
