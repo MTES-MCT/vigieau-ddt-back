@@ -45,6 +45,7 @@ SELECT id_statut, libelle_statut from talend_ingestion_ppluvia.statut_arrete_cad
 SELECT setval('statut_arrete_cadre_id_seq', (SELECT MAX(id) FROM public.statut_arrete_cadre)+1);
 
 -- ARRETES CADRES
+-- Prendre en compte le nouveau statut a_venir
 INSERT INTO public.arrete_cadre (id, numero, url, statut, "dateDebut", "dateFin", "urlDdt")
 SELECT id_arrete_cadre, numero_arrete_cadre, url_arrete_cadre, (CASE
                                                                       WHEN id_statut=1 THEN 'a_valider'::arrete_cadre_statut_enum

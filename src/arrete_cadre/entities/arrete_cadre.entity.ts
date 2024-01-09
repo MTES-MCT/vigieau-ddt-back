@@ -11,7 +11,6 @@ import {
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import {
-  AffichageRessource,
   CommuneNiveauGraviteMax,
   RessourceEapCommunique,
   StatutArreteCadre,
@@ -42,7 +41,7 @@ export class ArreteCadre extends BaseEntity {
 
   @Column('enum', {
     name: 'statut',
-    enum: ['a_valider', 'publie', 'abroge'],
+    enum: ['a_valider', 'a_venir', 'publie', 'abroge'],
     default: 'a_valider',
     nullable: false,
   })
@@ -50,7 +49,7 @@ export class ArreteCadre extends BaseEntity {
 
   @Column('enum', {
     name: 'communeNiveauGraviteMax',
-    enum: ['all', 'eap', 'none'],
+    enum: ['all', 'aep', 'none'],
     nullable: true,
   })
   communeNiveauGraviteMax: CommuneNiveauGraviteMax;
@@ -64,34 +63,6 @@ export class ArreteCadre extends BaseEntity {
     nullable: true,
   })
   ressourceEapCommunique: RessourceEapCommunique;
-
-  @Column('enum', {
-    name: 'affichageRessourceParticulier',
-    enum: ['esu', 'eso', 'aep', 'max'],
-    nullable: true,
-  })
-  affichageRessourceParticulier: AffichageRessource;
-
-  @Column('enum', {
-    name: 'affichageRessourceCollectivite',
-    enum: ['esu', 'eso', 'aep', 'max'],
-    nullable: true,
-  })
-  affichageRessourceCollectivite: AffichageRessource;
-
-  @Column('enum', {
-    name: 'affichageRessourceEntreprise',
-    enum: ['esu', 'eso', 'aep', 'max'],
-    nullable: true,
-  })
-  affichageRessourceEntreprise: AffichageRessource;
-
-  @Column('enum', {
-    name: 'affichageRessourceExploitation',
-    enum: ['esu', 'eso', 'aep', 'max'],
-    nullable: true,
-  })
-  affichageRessourceExploitation: AffichageRessource;
 
   @ManyToMany(
     () => ArreteRestriction,

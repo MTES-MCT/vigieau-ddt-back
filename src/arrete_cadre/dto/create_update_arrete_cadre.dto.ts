@@ -75,46 +75,6 @@ export class CreateUpdateArreteCadreDto {
   })
   ressourceEapCommunique: 'esu' | 'eso' | 'max';
 
-  @IsString()
-  @IsOptional()
-  @IsIn(['esu', 'eso', 'aep', 'max'])
-  @ApiProperty({
-    example: 'eap',
-    description:
-      'Quelle ressource afficher en priorité pour les particuliers sur VigiEau ?',
-  })
-  affichageRessourceParticulier: 'esu' | 'eso' | 'aep' | 'max';
-
-  @IsString()
-  @IsOptional()
-  @IsIn(['esu', 'eso', 'aep', 'max'])
-  @ApiProperty({
-    example: 'max',
-    description:
-      'Quelle ressource afficher en priorité pour les collectivités sur VigiEau ?',
-  })
-  affichageRessourceCollectivite: 'esu' | 'eso' | 'aep' | 'max';
-
-  @IsString()
-  @IsOptional()
-  @IsIn(['esu', 'eso', 'aep', 'max'])
-  @ApiProperty({
-    example: 'max',
-    description:
-      'Quelle ressource afficher en priorité pour les entreprises sur VigiEau ?',
-  })
-  affichageRessourceEntreprise: 'esu' | 'eso' | 'aep' | 'max';
-
-  @IsString()
-  @IsOptional()
-  @IsIn(['esu', 'eso', 'aep', 'max'])
-  @ApiProperty({
-    example: 'eso',
-    description:
-      'Quelle ressource afficher en priorité pour les exploitations agricoles sur VigiEau ?',
-  })
-  affichageRessourceExploitation: 'esu' | 'eso' | 'aep' | 'max';
-
   @IsArray()
   @ValidateNested({ each: true })
   @IsOptional()

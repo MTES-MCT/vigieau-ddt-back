@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Departement } from './entities/departement.entity';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
@@ -31,12 +31,18 @@ export class DepartementService {
           nom: true,
           code: true,
           type: true,
+          arretesCadre: {
+            id: true,
+          },
         },
       },
-      relations: ['zonesAlerte'],
+      relations: ['zonesAlerte', 'zonesAlerte.arretesCadre'],
       where: {
         zonesAlerte: {
           disabled: false,
+          arretesCadre: {
+            statut: In(['a_venir', 'publie']),
+          },
         },
       },
       order: {
