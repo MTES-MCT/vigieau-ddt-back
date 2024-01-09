@@ -24,7 +24,7 @@ export class ArreteCadreService {
     private readonly uageArreteCadreService: UsageArreteCadreService,
   ) {}
 
-  async findAll(
+  findAll(
     curentUser: User,
     query: PaginateQuery,
   ): Promise<Paginated<ArreteCadre>> {
@@ -40,17 +40,7 @@ export class ArreteCadreService {
           };
     const paginateConfig = arreteCadrePaginateConfig;
     paginateConfig.where = whereClause ? whereClause : null;
-    const paginateToReturn = await paginate(
-      query,
-      this.arreteCadreRepository,
-      paginateConfig,
-    );
-    paginateToReturn.data.map((ac: ArreteCadre) => {
-      ac.arretesRestriction = ac.arretesRestriction.filter(
-        (ar: ArreteRestriction) => ['a_venir', 'publie'].includes(ar.statut),
-      );
-    });
-    return paginateToReturn;
+    return paginate(query, this.arreteCadreRepository, paginateConfig);
   }
 
   async findOne(id: number, curentUser?: User) {
