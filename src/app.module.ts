@@ -72,7 +72,7 @@ import { AppController } from './app.controller';
         limit: 300,
       },
     ]),
-    // AdminModule,
+    AdminModule,
     HealthModule,
     ArreteCadreModule,
     AuthModule,
