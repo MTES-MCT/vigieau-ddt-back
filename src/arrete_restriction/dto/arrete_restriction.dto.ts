@@ -39,7 +39,7 @@ export class ArreteRestrictionDto {
 
 export const arreteRestrictionPaginateConfig: PaginateConfig<ArreteRestriction> =
   {
-    select: ['id', 'numero', 'statut', 'dateDebut', 'dateFin'],
+    select: ['id', 'numero', 'statut', 'dateDebut', 'dateFin', 'dateSignature'],
     sortableColumns: ['dateDebut'],
     defaultSortBy: [['dateDebut', 'DESC']],
     nullSort: 'last',

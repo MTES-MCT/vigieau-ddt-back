@@ -1,6 +1,6 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import { ArreteRestrictionService } from './arrete_restriction.service';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   Paginate,
   Paginated,
@@ -37,6 +37,20 @@ export class ArreteRestrictionController {
     return plainToInstance(
       Paginated<ArreteRestrictionDto>,
       camelcaseKeys(paginated, { deep: true }),
+    );
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Retourne un arrêté de restriction' })
+  @ApiResponse({
+    status: 201,
+    type: ArreteRestrictionDto,
+  })
+  async findOne(@Param('id') id: string): Promise<ArreteRestrictionDto> {
+    const arreteRestriction = await this.arreteRestrictionService.findOne(+id);
+    return plainToInstance(
+      ArreteRestrictionDto,
+      camelcaseKeys(arreteRestriction, { deep: true }),
     );
   }
 }

@@ -12,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ArreteRestriction } from './entities/arrete_restriction.entity';
 import { arreteRestrictionPaginateConfig } from './dto/arrete_restriction.dto';
 import { RegleauLogger } from '../logger/regleau.logger';
+import { ArreteCadre } from '../arrete_cadre/entities/arrete_cadre.entity';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -39,6 +40,39 @@ export class ArreteRestrictionService {
     const paginateConfig = arreteRestrictionPaginateConfig;
     paginateConfig.where = whereClause ? whereClause : null;
     return paginate(query, this.arreteRestrictionRepository, paginateConfig);
+  }
+
+  async findOne(id: number, curentUser?: User) {
+    const whereClause: FindOptionsWhere<ArreteRestriction> | null =
+      !curentUser || curentUser.role === 'mte'
+        ? { id }
+        : {
+            id,
+            arretesCadre: {
+              zonesAlerte: {
+                departement: {
+                  code: curentUser.role_departement,
+                },
+              },
+            },
+          };
+    return this.arreteRestrictionRepository.findOne({
+      select: {
+        id: true,
+        numero: true,
+        dateDebut: true,
+        dateFin: true,
+        dateSignature: true,
+        statut: true,
+        arretesCadre: {
+          id: true,
+          numero: true,
+          statut: true,
+        },
+      },
+      relations: ['arretesCadre'],
+      where: whereClause,
+    });
   }
 
   /**
