@@ -22,6 +22,7 @@ import { PublishArreteCadreDto } from './dto/publish_arrete_cadre.dto';
 import { StatutArreteCadre } from './type/arrete_cadre.type';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { RegleauLogger } from '../logger/regleau.logger';
+import { RepealArreteCadreDto } from './dto/repeal_arrete_cadre.dto';
 
 @Injectable()
 export class ArreteCadreService {
@@ -87,6 +88,7 @@ export class ArreteCadreService {
           },
           arretesRestriction: {
             id: true,
+            numero: true,
             statut: true,
           },
         },
@@ -149,18 +151,41 @@ export class ArreteCadreService {
     if (!(await this.canUpdateArreteCadre(id, currentUser))) {
       return;
     }
-    const toSave = {
+    let toSave = {
       id,
       ...publishArreteCadreDto,
-      ...{ statut: <StatutArreteCadre>'a_venir' },
     };
+    toSave =
+      new Date(publishArreteCadreDto.dateDebut) <= new Date()
+        ? { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
+        : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
+    return this.arreteCadreRepository.save(toSave);
+  }
+
+  async repeal(
+    id: number,
+    repealArreteCadreDto: RepealArreteCadreDto,
+    currentUser: User,
+  ): Promise<ArreteCadre> {
+    if (
+      await this.canRepealArreteCadre(id, repealArreteCadreDto, currentUser)
+    ) {
+      return;
+    }
+    let toSave = {
+      id,
+      ...repealArreteCadreDto,
+    };
+    if (new Date(repealArreteCadreDto.dateFin) <= new Date()) {
+      toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
+    }
     return this.arreteCadreRepository.save(toSave);
   }
 
   async remove(id: number, curentUser: User) {
     if (!(await this.canRemoveArreteCadre(id, curentUser))) {
       throw new HttpException(
-        `Vous ne pouvez supprimer un arrêté cadre que si il est sur votre département et en statut brouillon.`,
+        `Vous ne pouvez supprimer un arrêté cadre que si il est sur votre département et qu'il n'est lié à aucun arrêté de restriction.`,
         HttpStatus.FORBIDDEN,
       );
     }
@@ -174,11 +199,31 @@ export class ArreteCadreService {
 
   async canRemoveArreteCadre(id: number, user: User): Promise<boolean> {
     const arrete = await this.findOne(id, user);
-    return arrete && arrete.statut === 'a_valider';
+    return (
+      arrete && (user.role === 'mte' || arrete.arretesRestriction.length < 1)
+    );
+  }
+
+  async canRepealArreteCadre(
+    id: number,
+    repealArreteCadre: RepealArreteCadreDto,
+    user: User,
+  ): Promise<boolean> {
+    const arrete = await this.findOne(id, user);
+    if (
+      repealArreteCadre.dateFin &&
+      new Date(repealArreteCadre.dateFin) < new Date(arrete.dateDebut)
+    ) {
+      throw new HttpException(
+        `La date de fin doit être postérieure à la date de début.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return arrete && ['a_venir', 'publie'].includes(arrete.statut);
   }
 
   /**
-   * Mis à jour des statut des AC tous les jours à 2h du matin
+   * Mis à jour des statuts des AC tous les jours à 2h du matin
    */
   @Cron(CronExpression.EVERY_DAY_AT_2AM)
   async updateArreteCadreStatus() {

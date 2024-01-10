@@ -29,6 +29,7 @@ import { Dev } from '../core/decorators/dev.decorator';
 import { Public } from '../core/decorators/public.decorator';
 import { DeleteResult } from 'typeorm';
 import { PublishArreteCadreDto } from './dto/publish_arrete_cadre.dto';
+import { RepealArreteCadreDto } from './dto/repeal_arrete_cadre.dto';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('arrete-cadre')
@@ -94,6 +95,24 @@ export class ArreteCadreController {
     const arreteCadre = await this.arreteCadreService.publish(
       +id,
       publishArreteCadreDto,
+      req.session.user,
+    );
+    return plainToInstance(
+      ArreteCadreDto,
+      camelcaseKeys(arreteCadre, { deep: true }),
+    );
+  }
+
+  @Post(':id/abroger')
+  @ApiOperation({ summary: "Abrogement d'un arrêté cadre" })
+  async repeal(
+    @Req() req,
+    @Param('id') id: string,
+    @Body() repealArreteCadreDto: RepealArreteCadreDto,
+  ): Promise<ArreteCadreDto> {
+    const arreteCadre = await this.arreteCadreService.repeal(
+      +id,
+      repealArreteCadreDto,
       req.session.user,
     );
     return plainToInstance(

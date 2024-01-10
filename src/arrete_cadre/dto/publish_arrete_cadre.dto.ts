@@ -1,9 +1,9 @@
-import { IsDateString, IsOptional } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PublishArreteCadreDto {
   @IsDateString()
-  @IsOptional()
+  @IsNotEmpty()
   @ApiProperty({
     example: '01/01/2024',
     description: "Date de début de validité de l'arrêté cadre",
