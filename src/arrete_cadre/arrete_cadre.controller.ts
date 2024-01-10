@@ -28,6 +28,7 @@ import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto
 import { Dev } from '../core/decorators/dev.decorator';
 import { Public } from '../core/decorators/public.decorator';
 import { DeleteResult } from 'typeorm';
+import { PublishArreteCadreDto } from './dto/publish_arrete_cadre.dto';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('arrete-cadre')
@@ -85,8 +86,20 @@ export class ArreteCadreController {
 
   @Post(':id/publier')
   @ApiOperation({ summary: "Publication d'un arrêté cadre" })
-  async publish(@Req() req, @Param('id') id: string): Promise<void> {
-    return this.arreteCadreService.publish(+id, req.session.user);
+  async publish(
+    @Req() req,
+    @Param('id') id: string,
+    @Body() publishArreteCadreDto: PublishArreteCadreDto,
+  ): Promise<ArreteCadreDto> {
+    const arreteCadre = await this.arreteCadreService.publish(
+      +id,
+      publishArreteCadreDto,
+      req.session.user,
+    );
+    return plainToInstance(
+      ArreteCadreDto,
+      camelcaseKeys(arreteCadre, { deep: true }),
+    );
   }
 
   @Patch(':id')

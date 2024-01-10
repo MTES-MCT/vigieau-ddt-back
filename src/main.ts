@@ -9,9 +9,11 @@ import { TypeormStore } from 'connect-typeorm';
 import { Session } from './core/entities/session.entity';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
+import { RegleauLogger } from './logger/regleau.logger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useLogger(app.get(RegleauLogger));
   app.use(
     helmet({
       contentSecurityPolicy: {

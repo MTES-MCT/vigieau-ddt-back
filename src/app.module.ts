@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { HealthModule } from './health/health.module';
 import { ArreteCadreModule } from './arrete_cadre/arrete_cadre.module';
 import { AuthModule } from './auth/auth.module';
@@ -20,6 +20,8 @@ import { UsageArreteCadreModule } from './usage_arrete_cadre/usage_arrete_cadre.
 import { AdminModule } from './admin.module';
 import { ArreteRestrictionModule } from './arrete_restriction/arrete_restriction.module';
 import { AppController } from './app.controller';
+import { LoggerModule } from './logger/logger.module';
+import { LoggerInterceptor } from './core/interceptor/logger.interceptor';
 
 // @ts-ignore
 @Module({
@@ -84,9 +86,14 @@ import { AppController } from './app.controller';
     ThematiqueModule,
     UsageArreteCadreModule,
     ArreteRestrictionModule,
+    LoggerModule,
   ],
   controllers: [AppController],
   providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggerInterceptor,
+    },
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

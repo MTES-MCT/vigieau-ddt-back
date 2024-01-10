@@ -1,23 +1,32 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { DeleteResult, FindOptionsWhere, Like, Repository } from 'typeorm';
+import {
+  DeleteResult,
+  FindOptionsWhere,
+  In,
+  LessThan,
+  LessThanOrEqual,
+  Like,
+  MoreThan,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { ArreteCadre } from './entities/arrete_cadre.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
-import {
-  FilterOperator,
-  paginate,
-  Paginated,
-  PaginateQuery,
-} from 'nestjs-paginate';
+import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
 import { UsageArreteCadreService } from '../usage_arrete_cadre/usage_arrete_cadre.service';
 import { arreteCadrePaginateConfig } from './dto/arrete_cadre.dto';
-import { UserDto } from '../user/dto/user.dto';
 import { testArretesCadre } from '../core/test/data';
-import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
+import { PublishArreteCadreDto } from './dto/publish_arrete_cadre.dto';
+import { StatutArreteCadre } from './type/arrete_cadre.type';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { RegleauLogger } from '../logger/regleau.logger';
 
 @Injectable()
 export class ArreteCadreService {
+  private readonly logger = new RegleauLogger('ArreteCadreService');
+
   constructor(
     @InjectRepository(ArreteCadre)
     private readonly arreteCadreRepository: Repository<ArreteCadre>,
@@ -95,9 +104,8 @@ export class ArreteCadreService {
   async create(
     createArreteCadreDto: CreateUpdateArreteCadreDto,
   ): Promise<ArreteCadre> {
-    const arreteCadre = await this.arreteCadreRepository.save(
-      this.formatArreteCadreDto(createArreteCadreDto),
-    );
+    const arreteCadre =
+      await this.arreteCadreRepository.save(createArreteCadreDto);
     arreteCadre.usagesArreteCadre =
       await this.uageArreteCadreService.updateAll(arreteCadre);
     return arreteCadre;
@@ -116,18 +124,37 @@ export class ArreteCadreService {
     }
     const arreteCadre = await this.arreteCadreRepository.save({
       id,
-      ...this.formatArreteCadreDto(updateArreteCadreDto),
+      ...updateArreteCadreDto,
     });
     arreteCadre.usagesArreteCadre =
       await this.uageArreteCadreService.updateAll(arreteCadre);
     return arreteCadre;
   }
 
-  async publish(id: number, currentUser: User) {
+  async publish(
+    id: number,
+    publishArreteCadreDto: PublishArreteCadreDto,
+    currentUser: User,
+  ): Promise<ArreteCadre> {
+    if (
+      publishArreteCadreDto.dateFin &&
+      new Date(publishArreteCadreDto.dateFin) <
+        new Date(publishArreteCadreDto.dateDebut)
+    ) {
+      throw new HttpException(
+        `La date de fin doit être postérieure à la date de début.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     if (!(await this.canUpdateArreteCadre(id, currentUser))) {
       return;
     }
-    return;
+    const toSave = {
+      id,
+      ...publishArreteCadreDto,
+      ...{ statut: <StatutArreteCadre>'a_venir' },
+    };
+    return this.arreteCadreRepository.save(toSave);
   }
 
   async remove(id: number, curentUser: User) {
@@ -142,11 +169,7 @@ export class ArreteCadreService {
 
   async canUpdateArreteCadre(id: number, user: User): Promise<boolean> {
     const arrete = await this.findOne(id, user);
-    return (
-      arrete &&
-      (arrete.statut === 'a_valider' ||
-        (arrete.statut === 'publie' && arrete.arretesRestriction.length < 1))
-    );
+    return arrete && arrete.statut !== 'abroge';
   }
 
   async canRemoveArreteCadre(id: number, user: User): Promise<boolean> {
@@ -154,14 +177,38 @@ export class ArreteCadreService {
     return arrete && arrete.statut === 'a_valider';
   }
 
-  formatArreteCadreDto(
-    arreteCadreDto: CreateUpdateArreteCadreDto,
-  ): ArreteCadre {
-    arreteCadreDto.dateDebut =
-      arreteCadreDto.dateDebut === '' ? null : arreteCadreDto.dateDebut;
-    arreteCadreDto.dateFin =
-      arreteCadreDto.dateFin === '' ? null : arreteCadreDto.dateFin;
-    return <ArreteCadre>arreteCadreDto;
+  /**
+   * Mis à jour des statut des AC tous les jours à 2h du matin
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_2AM)
+  async updateArreteCadreStatus() {
+    const acAVenir = await this.arreteCadreRepository.find({
+      where: {
+        statut: 'a_venir',
+        // @ts-expect-error string date
+        dateDebut: LessThanOrEqual(new Date()),
+      },
+    });
+    await this.arreteCadreRepository.update(
+      { id: In(acAVenir.map((ac) => ac.id)) },
+      { statut: 'publie' },
+    );
+    this.logger.log(`${acAVenir.length} Arrêtés Cadre publiés`);
+
+    const acPerime = await this.arreteCadreRepository.find({
+      where: {
+        statut: 'publie',
+        // @ts-expect-error string date
+        dateFin: LessThan(new Date()),
+      },
+    });
+    await this.arreteCadreRepository.update(
+      { id: In(acPerime.map((ac) => ac.id)) },
+      { statut: 'abroge' },
+    );
+    this.logger.log(`${acPerime.length} Arrêtés Cadre abrogés`);
+
+    // TODO : S'occuper des AR associés
   }
 
   /************************************************************************************ TEST FUNCTIONS ************************************************************************************/

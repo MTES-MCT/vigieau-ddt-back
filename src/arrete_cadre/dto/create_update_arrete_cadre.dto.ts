@@ -32,22 +32,6 @@ export class CreateUpdateArreteCadreDto {
 
   @IsString()
   @IsOptional()
-  @ApiProperty({
-    example: '01/01/2024',
-    description: "Date de début de validité de l'arrêté cadre",
-  })
-  dateDebut: string;
-
-  @IsString()
-  @IsOptional()
-  @ApiProperty({
-    example: '31/12/2024',
-    description: "Date de fin de validité de l'arrêté cadre",
-  })
-  dateFin: string;
-
-  @IsString()
-  @IsOptional()
   @IsIn(['all', 'aep', 'none'])
   @ApiProperty({
     example: 'eap',
