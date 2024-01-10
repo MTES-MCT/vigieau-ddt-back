@@ -1,1 +1,5 @@
-export type StatutArreteRestriction = 'a_valider' | 'publie' | 'abroge';
+export type StatutArreteRestriction =
+  | 'a_valider'
+  | 'a_venir'
+  | 'publie'
+  | 'abroge';

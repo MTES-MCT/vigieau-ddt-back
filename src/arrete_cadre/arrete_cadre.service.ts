@@ -6,8 +6,6 @@ import {
   LessThan,
   LessThanOrEqual,
   Like,
-  MoreThan,
-  MoreThanOrEqual,
   Repository,
 } from 'typeorm';
 import { ArreteCadre } from './entities/arrete_cadre.entity';
@@ -23,6 +21,7 @@ import { StatutArreteCadre } from './type/arrete_cadre.type';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { RepealArreteCadreDto } from './dto/repeal_arrete_cadre.dto';
+import { ArreteRestrictionService } from '../arrete_restriction/arrete_restriction.service';
 
 @Injectable()
 export class ArreteCadreService {
@@ -32,6 +31,7 @@ export class ArreteCadreService {
     @InjectRepository(ArreteCadre)
     private readonly arreteCadreRepository: Repository<ArreteCadre>,
     private readonly uageArreteCadreService: UsageArreteCadreService,
+    private readonly arreteRestrictionService: ArreteRestrictionService,
   ) {}
 
   findAll(
@@ -226,7 +226,7 @@ export class ArreteCadreService {
    * Mis à jour des statuts des AC tous les jours à 2h du matin
    */
   @Cron(CronExpression.EVERY_DAY_AT_2AM)
-  async updateArreteCadreStatus() {
+  async updateArreteCadreStatut() {
     const acAVenir = await this.arreteCadreRepository.find({
       where: {
         statut: 'a_venir',
@@ -242,7 +242,7 @@ export class ArreteCadreService {
 
     const acPerime = await this.arreteCadreRepository.find({
       where: {
-        statut: 'publie',
+        statut: In(['a_venir', 'publie']),
         // @ts-expect-error string date
         dateFin: LessThan(new Date()),
       },
@@ -253,7 +253,7 @@ export class ArreteCadreService {
     );
     this.logger.log(`${acPerime.length} Arrêtés Cadre abrogés`);
 
-    // TODO : S'occuper des AR associés
+    this.arreteRestrictionService.updateArreteRestrictionStatut();
   }
 
   /************************************************************************************ TEST FUNCTIONS ************************************************************************************/

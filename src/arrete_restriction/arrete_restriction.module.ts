@@ -8,5 +8,6 @@ import { ArreteRestriction } from './entities/arrete_restriction.entity';
   imports: [TypeOrmModule.forFeature([ArreteRestriction])],
   controllers: [ArreteRestrictionController],
   providers: [ArreteRestrictionService],
+  exports: [ArreteRestrictionService],
 })
 export class ArreteRestrictionModule {}
