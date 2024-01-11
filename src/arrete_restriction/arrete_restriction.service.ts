@@ -75,6 +75,18 @@ export class ArreteRestrictionService {
     });
   }
 
+  async deleteByArreteCadreId(acId: number) {
+    const arIds = await this.arreteRestrictionRepository
+      .createQueryBuilder('arreteRestriction')
+      .select('arreteRestriction.id')
+      .leftJoin('arreteRestriction.arretesCadre', 'arretesCadre')
+      .where('arretesCadre.id = :acId', { acId: acId })
+      .getMany();
+    return this.arreteRestrictionRepository.delete({
+      id: In(arIds.map((ar) => ar.id)),
+    });
+  }
+
   /**
    * Mis à jour des statuts des AR en fonction de ceux des ACs
    * On reprend tout pour éviter que certains AR soient passés entre les mailles du filet (notamment l'historique ou autre)

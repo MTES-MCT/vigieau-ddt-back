@@ -37,6 +37,7 @@ export class ArreteRestriction extends BaseEntity {
   @ManyToMany(
     () => ArreteCadre,
     (arreteCadre) => arreteCadre.arretesRestriction,
+    { onDelete: 'CASCADE' },
   )
   arretesCadre: ArreteCadre[];
 }

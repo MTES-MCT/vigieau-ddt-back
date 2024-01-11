@@ -189,7 +189,10 @@ export class ArreteCadreService {
         HttpStatus.FORBIDDEN,
       );
     }
-    return this.arreteCadreRepository.delete(id);
+
+    await this.arreteRestrictionService.deleteByArreteCadreId(id);
+    await this.arreteCadreRepository.delete(id);
+    return;
   }
 
   async canUpdateArreteCadre(id: number, user: User): Promise<boolean> {
