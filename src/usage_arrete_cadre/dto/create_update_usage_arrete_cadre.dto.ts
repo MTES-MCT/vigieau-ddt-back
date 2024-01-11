@@ -55,6 +55,27 @@ export class CreateUpdateUsageArreteCadreDto {
   })
   concerneExploitation: boolean;
 
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description: 'Est-ce que cet usage concerne les eaux souterraines ?',
+  })
+  concerneEso: boolean;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description: 'Est-ce que cet usage concerne les eaux superficielles ?',
+  })
+  concerneEsu: boolean;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description: "Est-ce que cet usage concerne l'eau potableZ ?",
+  })
+  concerneAep: boolean;
+
   @IsString()
   @IsOptional()
   @ApiProperty({

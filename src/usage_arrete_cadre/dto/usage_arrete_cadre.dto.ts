@@ -1,7 +1,6 @@
 import { IsBoolean, IsNumber, IsObject, IsString } from 'class-validator';
 import { UsageDto } from '../../usage/dto/usage.dto';
 import { ApiProperty } from '@nestjs/swagger';
-import { ZoneAlerteDto } from '../../zone_alerte/dto/zone_alerte.dto';
 
 export class UsageArreteCadreDto {
   @IsNumber()
@@ -39,6 +38,27 @@ export class UsageArreteCadreDto {
     description: 'Est-ce que cet usage concerne les exploitations agricoles ?',
   })
   concerneExploitation: boolean;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description: 'Est-ce que cet usage concerne les eaux souterraines ?',
+  })
+  concerneEso: boolean;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description: 'Est-ce que cet usage concerne les eaux superficielles ?',
+  })
+  concerneEsu: boolean;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description: "Est-ce que cet usage concerne l'eau potableZ ?",
+  })
+  concerneAep: boolean;
 
   @IsString()
   @ApiProperty({

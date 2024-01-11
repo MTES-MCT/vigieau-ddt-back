@@ -7,7 +7,6 @@ import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
 import { UsageDto } from './dto/usage.dto';
 import { Usage } from './entities/usage.entity';
-import { CreateUserDto } from '../user/dto/create-user.dto';
 import { CreateUsageDto } from './dto/create_usage.dto';
 
 @UseGuards(AuthenticatedGuard)
@@ -33,7 +32,7 @@ export class UsageController {
   @ApiOperation({ summary: "Création d'un nouvel usage" })
   @ApiBody({
     description: 'Usage',
-    type: CreateUserDto,
+    type: CreateUsageDto,
   })
   @ApiResponse({
     status: 201,

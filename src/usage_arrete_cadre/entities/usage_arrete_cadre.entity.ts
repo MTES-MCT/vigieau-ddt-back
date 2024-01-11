@@ -42,6 +42,15 @@ export class UsageArreteCadre {
   @Column({ nullable: true })
   concerneExploitation: boolean;
 
+  @Column({ default: true })
+  concerneEso: boolean;
+
+  @Column({ default: true })
+  concerneEsu: boolean;
+
+  @Column({ default: true })
+  concerneAep: boolean;
+
   @Column({ nullable: true, length: 3000 })
   descriptionVigilance: string;
 

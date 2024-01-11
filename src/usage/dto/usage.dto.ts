@@ -54,6 +54,29 @@ export class UsageDto {
   })
   concerneExploitation: boolean;
 
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description:
+      'Modèle - Est-ce que cet usage concerne les eaux souterraines ?',
+  })
+  concerneEso: boolean;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description:
+      'Modèle - Est-ce que cet usage concerne les eaux superficielles ?',
+  })
+  concerneEsu: boolean;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: true,
+    description: "Modèle - Est-ce que cet usage concerne l'eau potableZ ?",
+  })
+  concerneAep: boolean;
+
   @IsString()
   @ApiProperty({
     example: 'Pas de restrictions',
