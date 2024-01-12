@@ -8,10 +8,17 @@ import {
   Body,
   Patch,
   Delete,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { ArreteCadreService } from './arrete_cadre.service';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
 import {
@@ -30,6 +37,9 @@ import { Public } from '../core/decorators/public.decorator';
 import { DeleteResult } from 'typeorm';
 import { PublishArreteCadreDto } from './dto/publish_arrete_cadre.dto';
 import { RepealArreteCadreDto } from './dto/repeal_arrete_cadre.dto';
+import { Utils } from '../core/utils';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { FileUploadDto } from '../core/dto/file_upload.dto';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('arrete-cadre')
@@ -86,14 +96,29 @@ export class ArreteCadreController {
   }
 
   @Post(':id/publier')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      fileFilter: Utils.pdfFileFilter,
+      limits: {
+        fileSize: 1e7,
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 201,
+    type: FileUploadDto,
+  })
   @ApiOperation({ summary: "Publication d'un arrêté cadre" })
   async publish(
     @Req() req,
     @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
     @Body() publishArreteCadreDto: PublishArreteCadreDto,
   ): Promise<ArreteCadreDto> {
     const arreteCadre = await this.arreteCadreService.publish(
       +id,
+      file,
       publishArreteCadreDto,
       req.session.user,
     );

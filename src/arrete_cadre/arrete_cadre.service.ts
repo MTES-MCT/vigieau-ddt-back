@@ -22,6 +22,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { RepealArreteCadreDto } from './dto/repeal_arrete_cadre.dto';
 import { ArreteRestrictionService } from '../arrete_restriction/arrete_restriction.service';
+import { S3Service } from '../shared/services/s3.service';
 
 @Injectable()
 export class ArreteCadreService {
@@ -32,6 +33,7 @@ export class ArreteCadreService {
     private readonly arreteCadreRepository: Repository<ArreteCadre>,
     private readonly uageArreteCadreService: UsageArreteCadreService,
     private readonly arreteRestrictionService: ArreteRestrictionService,
+    private readonly s3Service: S3Service,
   ) {}
 
   findAll(
@@ -118,7 +120,10 @@ export class ArreteCadreService {
     updateArreteCadreDto: CreateUpdateArreteCadreDto,
     curentUser: User,
   ): Promise<ArreteCadre> {
-    if (!(await this.canUpdateArreteCadre(id, curentUser))) {
+    const ac = await this.arreteCadreRepository.findOne({
+      where: { id },
+    });
+    if (!(await this.canUpdateArreteCadre(ac, curentUser))) {
       throw new HttpException(
         `Vous ne pouvez éditer un arrêté cadre que si il est sur votre département et en statut brouillon.`,
         HttpStatus.FORBIDDEN,
@@ -135,6 +140,7 @@ export class ArreteCadreService {
 
   async publish(
     id: number,
+    arreteCadrePdf: Express.Multer.File,
     publishArreteCadreDto: PublishArreteCadreDto,
     currentUser: User,
   ): Promise<ArreteCadre> {
@@ -148,13 +154,33 @@ export class ArreteCadreService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    if (!(await this.canUpdateArreteCadre(id, currentUser))) {
+    // CHECKER URL / FILE
+    const ac = await this.arreteCadreRepository.findOne({
+      where: { id },
+    });
+    if (!(await this.canUpdateArreteCadre(ac, currentUser, !arreteCadrePdf))) {
       return;
     }
-    let toSave = {
+    if (!arreteCadrePdf && !ac.url) {
+      throw new HttpException(
+        `Le PDF de l'arrêté cadre est obligatoire.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    let toSave: any = {
       id,
       ...publishArreteCadreDto,
     };
+    // Upload du PDF de l'arrêté cadre
+    if (arreteCadrePdf) {
+      // TODO Supprimer l'ancien AC si il existe
+      // TODO Check taille fichier front + back
+      const s3Response = await this.s3Service.uploadFile(
+        arreteCadrePdf,
+        'arrete-cadre/',
+      );
+      toSave.url = s3Response.Location;
+    }
     toSave =
       new Date(publishArreteCadreDto.dateDebut) <= new Date()
         ? { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
@@ -195,9 +221,16 @@ export class ArreteCadreService {
     return;
   }
 
-  async canUpdateArreteCadre(id: number, user: User): Promise<boolean> {
-    const arrete = await this.findOne(id, user);
-    return arrete && arrete.statut !== 'abroge';
+  async canUpdateArreteCadre(
+    arreteCadre: ArreteCadre,
+    user: User,
+    containUrl: boolean = false,
+  ): Promise<boolean> {
+    return (
+      arreteCadre &&
+      arreteCadre.statut !== 'abroge' &&
+      (!containUrl || !!arreteCadre.url)
+    );
   }
 
   async canRemoveArreteCadre(id: number, user: User): Promise<boolean> {

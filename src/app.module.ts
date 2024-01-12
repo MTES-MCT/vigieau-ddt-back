@@ -22,6 +22,7 @@ import { ArreteRestrictionModule } from './arrete_restriction/arrete_restriction
 import { AppController } from './app.controller';
 import { LoggerModule } from './logger/logger.module';
 import { LoggerInterceptor } from './core/interceptor/logger.interceptor';
+import { SharedModule } from './shared/shared.module';
 
 // @ts-ignore
 @Module({
@@ -87,6 +88,7 @@ import { LoggerInterceptor } from './core/interceptor/logger.interceptor';
     UsageArreteCadreModule,
     ArreteRestrictionModule,
     LoggerModule,
+    SharedModule,
   ],
   controllers: [AppController],
   providers: [
