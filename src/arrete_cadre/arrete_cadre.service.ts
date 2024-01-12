@@ -173,11 +173,12 @@ export class ArreteCadreService {
     };
     // Upload du PDF de l'arrêté cadre
     if (arreteCadrePdf) {
-      // TODO Supprimer l'ancien AC si il existe
-      // TODO Check taille fichier front + back
+      if (ac.url) {
+        await this.s3Service.deleteFile(ac.url);
+      }
       const s3Response = await this.s3Service.uploadFile(
         arreteCadrePdf,
-        'arrete-cadre/',
+        `arrete-cadre/${ac.id}/`,
       );
       toSave.url = s3Response.Location;
     }

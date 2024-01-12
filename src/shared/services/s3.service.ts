@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RegleauLogger } from '../../logger/regleau.logger';
-import { S3 } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, S3 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import process from 'node:process';
 
@@ -26,6 +26,19 @@ export class S3Service {
       (process.env.S3_PREFIX || '') + prefix + originalname,
       file.mimetype,
     );
+  }
+
+  async deleteFile(fileUrl: string) {
+    const client = this.client;
+    const params = {
+      Bucket: process.env.S3_BUCKET,
+      Key: fileUrl.replace(process.env.S3_VHOST, ''),
+    };
+    try {
+      await client.send(new DeleteObjectCommand(params));
+    } catch (e) {
+      this.logger.error("Erreur lors de la suppression d'un fichier", e);
+    }
   }
 
   async s3_upload(file, bucket, name, mimetype) {
