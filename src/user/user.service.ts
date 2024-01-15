@@ -67,6 +67,6 @@ export class UserService {
         );
       }
     }
-    return this.userRepository.update({ email }, { disabled: true });
+    return this.userRepository.delete({ email });
   }
 }

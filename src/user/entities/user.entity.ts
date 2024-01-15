@@ -31,7 +31,4 @@ export class User extends BaseEntity {
 
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
-
-  @Column({ default: false })
-  disabled: boolean;
 }

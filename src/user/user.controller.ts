@@ -112,7 +112,7 @@ export class UserController {
   }
 
   @Delete(':email')
-  @ApiOperation({ summary: "Archivage d'un utilisateur" })
+  @ApiOperation({ summary: "Suppression d'un utilisateur" })
   remove(@Req() req, @Param('email') email: string) {
     return this.userService.remove(req.session.user, email);
   }
