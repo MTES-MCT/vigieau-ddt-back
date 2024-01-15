@@ -80,6 +80,7 @@ export const arreteCadrePaginateConfig: PaginateConfig<ArreteCadre> = {
     'dateDebut',
     'dateFin',
     'statut',
+    'departements.id',
     'departements.nom',
     'arretesRestriction.id',
     'arretesRestriction.numero',
@@ -88,8 +89,17 @@ export const arreteCadrePaginateConfig: PaginateConfig<ArreteCadre> = {
   sortableColumns: ['dateDebut'],
   defaultSortBy: [['dateDebut', 'DESC']],
   nullSort: 'first',
-  relations: ['zonesAlerte', 'departements', 'arretesRestriction'],
-  searchableColumns: ['numero', 'departements.nom', 'departements.code'],
+  relations: [
+    'zonesAlerte',
+    'departements',
+    'arretesRestriction',
+    'zonesAlerte.departement',
+  ],
+  searchableColumns: [
+    'numero',
+    'zonesAlerte.departement.nom',
+    'zonesAlerte.departement.code',
+  ],
   filterableColumns: {
     statut: [FilterOperator.IN],
   },
