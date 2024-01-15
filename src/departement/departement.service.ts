@@ -21,34 +21,28 @@ export class DepartementService {
   }
 
   findAll(): Promise<Departement[]> {
-    return this.departementRepository.find({
-      select: {
-        id: true,
-        code: true,
-        nom: true,
-        zonesAlerte: {
-          id: true,
-          nom: true,
-          code: true,
-          type: true,
-          arretesCadre: {
-            id: true,
-          },
-        },
-      },
-      relations: ['zonesAlerte', 'zonesAlerte.arretesCadre'],
-      where: {
-        zonesAlerte: {
-          disabled: false,
-          arretesCadre: {
-            statut: In(['a_venir', 'publie']),
-          },
-        },
-      },
-      order: {
-        code: 'ASC',
-      },
-    });
+    return this.departementRepository
+      .createQueryBuilder('departement')
+      .select([
+        'departement.id',
+        'departement.code',
+        'departement.nom',
+        'zonesAlerte.id',
+        'zonesAlerte.nom',
+        'zonesAlerte.code',
+        'zonesAlerte.type',
+        'arretesCadre.id',
+      ])
+      .leftJoin('departement.zonesAlerte', 'zonesAlerte')
+      .leftJoin(
+        'zonesAlerte.arretesCadre',
+        'arretesCadre',
+        'arretesCadre.statut IN (:...acStatut)',
+        { acStatut: ['a_venir', 'publie'] },
+      )
+      .where('zonesAlerte.disabled = false')
+      .orderBy('departement.code', 'ASC')
+      .getMany();
   }
 
   findByCode(departementCode: string): Promise<Departement> {
