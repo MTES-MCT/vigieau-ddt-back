@@ -23,6 +23,7 @@ import { RegleauLogger } from '../logger/regleau.logger';
 import { RepealArreteCadreDto } from './dto/repeal_arrete_cadre.dto';
 import { ArreteRestrictionService } from '../arrete_restriction/arrete_restriction.service';
 import { S3Service } from '../shared/services/s3.service';
+import { DepartementService } from '../departement/departement.service';
 
 @Injectable()
 export class ArreteCadreService {
@@ -34,9 +35,10 @@ export class ArreteCadreService {
     private readonly uageArreteCadreService: UsageArreteCadreService,
     private readonly arreteRestrictionService: ArreteRestrictionService,
     private readonly s3Service: S3Service,
+    private readonly departementService: DepartementService,
   ) {}
 
-  findAll(
+  async findAll(
     curentUser: User,
     query: PaginateQuery,
   ): Promise<Paginated<ArreteCadre>> {
@@ -44,15 +46,31 @@ export class ArreteCadreService {
       curentUser.role === 'mte'
         ? null
         : {
-            zonesAlerte: {
-              departement: {
-                code: curentUser.role_departement,
-              },
+            departements: {
+              code: curentUser.role_departement,
             },
           };
     const paginateConfig = arreteCadrePaginateConfig;
     paginateConfig.where = whereClause ? whereClause : null;
-    return paginate(query, this.arreteCadreRepository, paginateConfig);
+    const paginateToReturn = await paginate(
+      query,
+      this.arreteCadreRepository,
+      paginateConfig,
+    );
+
+    // Récupérer tous les départements, car on filtre sur les départements
+    if (whereClause) {
+      const departements = await Promise.all(
+        paginateToReturn.data.map((ac) => {
+          return this.departementService.findByArreteCadreId(ac.id);
+        }),
+      );
+      paginateToReturn.data.forEach((ac, index) => {
+        ac.departements = departements[index];
+      });
+    }
+
+    return paginateToReturn;
   }
 
   async findOne(id: number, curentUser?: User) {
@@ -61,13 +79,11 @@ export class ArreteCadreService {
         ? { id }
         : {
             id,
-            zonesAlerte: {
-              departement: {
-                code: curentUser.role_departement,
-              },
+            departements: {
+              code: curentUser.role_departement,
             },
           };
-    const [arreteCadre, usagesArreteCadre] = await Promise.all([
+    const [arreteCadre, usagesArreteCadre, departements] = await Promise.all([
       this.arreteCadreRepository.findOne({
         select: {
           id: true,
@@ -77,7 +93,7 @@ export class ArreteCadreService {
           url: true,
           urlDdt: true,
           statut: true,
-          departements: {
+          departementPilote: {
             id: true,
             code: true,
             nom: true,
@@ -94,20 +110,37 @@ export class ArreteCadreService {
             statut: true,
           },
         },
-        relations: ['departements', 'zonesAlerte', 'arretesRestriction'],
+        relations: ['departementPilote', 'zonesAlerte', 'arretesRestriction'],
         where: whereClause,
       }),
       this.uageArreteCadreService.findByArreteCadre(id),
+      this.departementService.findByArreteCadreId(id),
     ]);
     if (arreteCadre) {
       arreteCadre.usagesArreteCadre = usagesArreteCadre;
+    }
+    if (departements) {
+      arreteCadre.departements = departements;
     }
     return arreteCadre;
   }
 
   async create(
     createArreteCadreDto: CreateUpdateArreteCadreDto,
+    currentUser?: User,
   ): Promise<ArreteCadre> {
+    // Check ACI
+    if (createArreteCadreDto.departements.length > 1) {
+      /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
+       * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
+      // @ts-ignore
+      createArreteCadreDto.departementPilote =
+        currentUser?.role === 'departement'
+          ? await this.departementService.findByCode(
+              currentUser.role_departement,
+            )
+          : createArreteCadreDto.departements[0];
+    }
     const arreteCadre =
       await this.arreteCadreRepository.save(createArreteCadreDto);
     arreteCadre.usagesArreteCadre =
@@ -230,14 +263,28 @@ export class ArreteCadreService {
     return (
       arreteCadre &&
       arreteCadre.statut !== 'abroge' &&
+      (user.role === 'mte' ||
+        arreteCadre.departements.length === 1 ||
+        arreteCadre.departementPilote.code === user.role_departement) &&
       (!containUrl || !!arreteCadre.url)
     );
   }
 
   async canRemoveArreteCadre(id: number, user: User): Promise<boolean> {
     const arrete = await this.findOne(id, user);
+    /**
+     * On peut supprimer un AC s'il est sur le département de l'utilisateur
+     * ou si le département de l'utilisateur est le département pilote de l'AC
+     * et qu'il n'est lié à aucun AR en cours ou abrogé
+     */
     return (
-      arrete && (user.role === 'mte' || arrete.arretesRestriction.length < 1)
+      arrete &&
+      !arrete.arretesRestriction.some((ar) =>
+        ['a_venir', 'publie', 'abroge'].includes(ar.statut),
+      ) &&
+      (user.role === 'mte' ||
+        arrete.departements.length === 1 ||
+        arrete.departementPilote?.code === user.role_departement)
     );
   }
 
@@ -256,7 +303,13 @@ export class ArreteCadreService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    return arrete && ['a_venir', 'publie'].includes(arrete.statut);
+    return (
+      arrete &&
+      ['a_venir', 'publie'].includes(arrete.statut) &&
+      (user.role === 'mte' ||
+        arrete.departements.length === 1 ||
+        arrete.departementPilote.code === user.role_departement)
+    );
   }
 
   /**
@@ -300,7 +353,7 @@ export class ArreteCadreService {
    */
   async populateTestData(): Promise<void> {
     testArretesCadre.forEach(async (ac: any) => {
-      await this.create(JSON.parse(JSON.stringify(ac)));
+      await this.create(JSON.parse(JSON.stringify(ac)), null);
     });
     return;
   }

@@ -85,10 +85,13 @@ export class ArreteCadreController {
     type: ArreteCadreDto,
   })
   async create(
+    @Req() req,
     @Body() createArreteCadreDto: CreateUpdateArreteCadreDto,
   ): Promise<ArreteCadreDto> {
-    const arreteCadre =
-      await this.arreteCadreService.create(createArreteCadreDto);
+    const arreteCadre = await this.arreteCadreService.create(
+      createArreteCadreDto,
+      req.session.user,
+    );
     return plainToInstance(
       ArreteCadreDto,
       camelcaseKeys(arreteCadre, { deep: true }),

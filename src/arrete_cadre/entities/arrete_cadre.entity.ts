@@ -5,6 +5,7 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -18,6 +19,7 @@ import {
 import { Departement } from '../../departement/entities/departement.entity';
 import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
+import { Region } from '../../core/entities/region.entity';
 
 @Entity()
 export class ArreteCadre extends BaseEntity {
@@ -38,6 +40,9 @@ export class ArreteCadre extends BaseEntity {
 
   @Column({ nullable: true, length: 200 })
   urlDdt: string;
+
+  @ManyToOne(() => Departement, (departement) => departement.arretesCadrePilote)
+  departementPilote: Departement;
 
   @Column('enum', {
     name: 'statut',

@@ -6,6 +6,7 @@ import { ArreteCadre } from './entities/arrete_cadre.entity';
 import { UsageArreteCadreModule } from '../usage_arrete_cadre/usage_arrete_cadre.module';
 import { ArreteRestrictionModule } from '../arrete_restriction/arrete_restriction.module';
 import { SharedModule } from '../shared/shared.module';
+import { DepartementModule } from '../departement/departement.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { SharedModule } from '../shared/shared.module';
     UsageArreteCadreModule,
     ArreteRestrictionModule,
     SharedModule,
+    DepartementModule,
   ],
   controllers: [ArreteCadreController],
   providers: [ArreteCadreService],

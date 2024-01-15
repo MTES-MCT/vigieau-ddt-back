@@ -82,6 +82,7 @@ export const arreteCadrePaginateConfig: PaginateConfig<ArreteCadre> = {
     'statut',
     'departements.id',
     'departements.nom',
+    'departementPilote.code',
     'arretesRestriction.id',
     'arretesRestriction.numero',
     'arretesRestriction.statut',
@@ -93,13 +94,9 @@ export const arreteCadrePaginateConfig: PaginateConfig<ArreteCadre> = {
     'zonesAlerte',
     'departements',
     'arretesRestriction',
-    'zonesAlerte.departement',
+    'departementPilote',
   ],
-  searchableColumns: [
-    'numero',
-    'zonesAlerte.departement.nom',
-    'zonesAlerte.departement.code',
-  ],
+  searchableColumns: ['numero', 'departements.nom', 'departements.code'],
   filterableColumns: {
     statut: [FilterOperator.IN],
   },

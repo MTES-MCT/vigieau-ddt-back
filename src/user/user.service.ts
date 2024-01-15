@@ -41,7 +41,7 @@ export class UserService {
     }
     const userExists = await this.findOne(user.email);
     if (!userExists) {
-      return this.userRepository.save(user);
+      return this.userRepository.save(this._formatUser(user));
     }
     throw new HttpException(
       'Un utilisateur avec cet email existe déjà.',
@@ -50,7 +50,7 @@ export class UserService {
   }
 
   async update(email: string, user: User) {
-    await this.userRepository.update({ email }, user);
+    await this.userRepository.update({ email }, this._formatUser(user));
     return this.findOne(email);
   }
 
@@ -68,5 +68,12 @@ export class UserService {
       }
     }
     return this.userRepository.delete({ email });
+  }
+
+  private _formatUser(user: User) {
+    if (user.role === 'mte') {
+      user.role_departement = null;
+    }
+    return user;
   }
 }

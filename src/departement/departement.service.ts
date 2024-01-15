@@ -54,6 +54,17 @@ export class DepartementService {
     });
   }
 
+  findByArreteCadreId(acId: number): Promise<Departement[]> {
+    return this.departementRepository.find({
+      select: ['id', 'code', 'nom'],
+      where: {
+        arretesCadre: {
+          id: acId,
+        },
+      },
+    });
+  }
+
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
   async updateDepartementsGeom() {
     console.log('MISE A JOUR DES DEPARTEMENTS');
