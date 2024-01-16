@@ -7,6 +7,7 @@ import { UsageArreteCadreModule } from '../usage_arrete_cadre/usage_arrete_cadre
 import { ArreteRestrictionModule } from '../arrete_restriction/arrete_restriction.module';
 import { SharedModule } from '../shared/shared.module';
 import { DepartementModule } from '../departement/departement.module';
+import { ZoneAlerteModule } from '../zone_alerte/zone_alerte.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { DepartementModule } from '../departement/departement.module';
     ArreteRestrictionModule,
     SharedModule,
     DepartementModule,
+    ZoneAlerteModule,
   ],
   controllers: [ArreteCadreController],
   providers: [ArreteCadreService],

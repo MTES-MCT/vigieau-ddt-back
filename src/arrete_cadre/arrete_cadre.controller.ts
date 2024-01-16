@@ -31,7 +31,10 @@ import {
   PaginatedSwaggerDocs,
   PaginateQuery,
 } from 'nestjs-paginate';
-import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
+import {
+  AcUpdateZoneAlerteDto,
+  CreateUpdateArreteCadreDto,
+} from './dto/create_update_arrete_cadre.dto';
 import { Dev } from '../core/decorators/dev.decorator';
 import { Public } from '../core/decorators/public.decorator';
 import { DeleteResult } from 'typeorm';
@@ -163,6 +166,32 @@ export class ArreteCadreController {
     const arreteCadre = await this.arreteCadreService.update(
       +id,
       updateArreteCadreDto,
+      req.session.user,
+    );
+    return plainToInstance(
+      ArreteCadreDto,
+      camelcaseKeys(arreteCadre, { deep: true }),
+    );
+  }
+
+  @Patch(':id/zones/:codeDep')
+  @ApiOperation({
+    summary: "Mise à jour de zones d'un arrêté cadre interdépartemental",
+  })
+  @ApiResponse({
+    status: 201,
+    type: ArreteCadreDto,
+  })
+  async updateZones(
+    @Req() req,
+    @Param('id') id: string,
+    @Param('codeDep') codeDep: string,
+    @Body() zonesAlertDto: AcUpdateZoneAlerteDto[],
+  ): Promise<ArreteCadreDto> {
+    const arreteCadre = await this.arreteCadreService.updateZones(
+      +id,
+      codeDep,
+      zonesAlertDto,
       req.session.user,
     );
     return plainToInstance(

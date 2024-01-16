@@ -18,7 +18,7 @@ class updateDepartementDto {
   id: number;
 }
 
-class updateZoneAlerteDto {
+export class AcUpdateZoneAlerteDto {
   @IsNumber()
   @ApiProperty({ example: 1, description: 'Identifiant BDD' })
   id: number;
@@ -69,9 +69,9 @@ export class CreateUpdateArreteCadreDto {
   @IsArray()
   @ValidateNested({ each: true })
   @IsOptional()
-  @Type(() => updateZoneAlerteDto)
-  @ApiProperty({ type: [updateZoneAlerteDto] })
-  zonesAlerte: updateZoneAlerteDto[];
+  @Type(() => AcUpdateZoneAlerteDto)
+  @ApiProperty({ type: [AcUpdateZoneAlerteDto] })
+  zonesAlerte: AcUpdateZoneAlerteDto[];
 
   @IsArray()
   @ValidateNested({ each: true })

@@ -9,5 +9,6 @@ import { DepartementModule } from '../departement/departement.module';
   imports: [TypeOrmModule.forFeature([ZoneAlerte]), DepartementModule],
   controllers: [ZoneAlerteController],
   providers: [ZoneAlerteService],
+  exports: [ZoneAlerteService],
 })
 export class ZoneAlerteModule {}

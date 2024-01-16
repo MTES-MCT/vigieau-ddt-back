@@ -12,7 +12,10 @@ import { ArreteCadre } from './entities/arrete_cadre.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
 import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
-import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
+import {
+  AcUpdateZoneAlerteDto,
+  CreateUpdateArreteCadreDto,
+} from './dto/create_update_arrete_cadre.dto';
 import { UsageArreteCadreService } from '../usage_arrete_cadre/usage_arrete_cadre.service';
 import { arreteCadrePaginateConfig } from './dto/arrete_cadre.dto';
 import { testArretesCadre } from '../core/test/data';
@@ -24,6 +27,7 @@ import { RepealArreteCadreDto } from './dto/repeal_arrete_cadre.dto';
 import { ArreteRestrictionService } from '../arrete_restriction/arrete_restriction.service';
 import { S3Service } from '../shared/services/s3.service';
 import { DepartementService } from '../departement/departement.service';
+import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 
 @Injectable()
 export class ArreteCadreService {
@@ -36,6 +40,7 @@ export class ArreteCadreService {
     private readonly arreteRestrictionService: ArreteRestrictionService,
     private readonly s3Service: S3Service,
     private readonly departementService: DepartementService,
+    private readonly zoneAlerteService: ZoneAlerteService,
   ) {}
 
   async findAll(
@@ -151,16 +156,25 @@ export class ArreteCadreService {
   async update(
     id: number,
     updateArreteCadreDto: CreateUpdateArreteCadreDto,
-    curentUser: User,
+    currentUser: User,
   ): Promise<ArreteCadre> {
-    const ac = await this.arreteCadreRepository.findOne({
-      where: { id },
-    });
-    if (!(await this.canUpdateArreteCadre(ac, curentUser))) {
+    const ac = await this.findOne(id, currentUser);
+    if (!(await this.canUpdateArreteCadre(ac, currentUser))) {
       throw new HttpException(
         `Vous ne pouvez éditer un arrêté cadre que si il est sur votre département et en statut brouillon.`,
         HttpStatus.FORBIDDEN,
       );
+    }
+    if (updateArreteCadreDto.departements.length > 1) {
+      /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
+       * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
+      // @ts-ignore
+      updateArreteCadreDto.departementPilote =
+        currentUser?.role === 'departement'
+          ? await this.departementService.findByCode(
+              currentUser.role_departement,
+            )
+          : updateArreteCadreDto.departements[0];
     }
     const arreteCadre = await this.arreteCadreRepository.save({
       id,
@@ -169,6 +183,38 @@ export class ArreteCadreService {
     arreteCadre.usagesArreteCadre =
       await this.uageArreteCadreService.updateAll(arreteCadre);
     return arreteCadre;
+  }
+
+  async updateZones(
+    id: number,
+    codeDep: string,
+    zonesAlerteDto: AcUpdateZoneAlerteDto[],
+    curentUser: User,
+  ): Promise<ArreteCadre> {
+    const ac = await this.findOne(id, curentUser);
+    if (!(await this.canUpdateZonesArreteCadre(ac, curentUser, codeDep))) {
+      throw new HttpException(
+        `Vous ne pouvez éditer les zones d'un arrêté cadre que si il est sur votre département et en statut brouillon.`,
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    const za = await this.zoneAlerteService.findByDepartement(codeDep);
+    const zaToDelete = za.filter(
+      (z) => !zonesAlerteDto.some((zaDto) => zaDto.id === z.id),
+    );
+    const zaToAdd = za.filter((z) =>
+      zonesAlerteDto.some((zaDto) => zaDto.id === z.id),
+    );
+    // On met à jour les zones d'alertes correspondantes dans l'objet AC
+    ac.zonesAlerte = ac.zonesAlerte.filter(
+      (z) => !zaToDelete.some((zad) => zad.id === z.id),
+    );
+    zaToAdd.forEach((z) => {
+      if (!ac.zonesAlerte.some((zad) => zad.id === z.id)) {
+        ac.zonesAlerte.push(z);
+      }
+    });
+    return this.arreteCadreRepository.save(ac);
   }
 
   async publish(
@@ -265,8 +311,25 @@ export class ArreteCadreService {
       arreteCadre.statut !== 'abroge' &&
       (user.role === 'mte' ||
         arreteCadre.departements.length === 1 ||
-        arreteCadre.departementPilote.code === user.role_departement) &&
+        arreteCadre.departementPilote?.code === user.role_departement) &&
       (!containUrl || !!arreteCadre.url)
+    );
+  }
+
+  async canUpdateZonesArreteCadre(
+    arreteCadre: ArreteCadre,
+    user: User,
+    codeDep: string,
+  ): Promise<boolean> {
+    return (
+      arreteCadre &&
+      arreteCadre.statut !== 'abroge' &&
+      (user.role === 'mte' ||
+        arreteCadre.departements.length === 1 ||
+        arreteCadre.departements.some(
+          (d) => d.code === user.role_departement,
+        )) &&
+      (user.role === 'mte' || codeDep === user.role_departement)
     );
   }
 

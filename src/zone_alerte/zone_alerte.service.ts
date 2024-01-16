@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
 import { ZoneAlerte } from './entities/zone_alerte.entity';
 import { DepartementService } from '../departement/departement.service';
 import {
   ZoneAlerteComparaisonDepartement,
   ZoneAlerteComparaisonZone,
 } from './dto/zone_alerte_verification.dto';
+import { User } from '../user/entities/user.entity';
+import { AcUpdateZoneAlerteDto } from '../arrete_cadre/dto/create_update_arrete_cadre.dto';
+import { ArreteCadre } from '../arrete_cadre/entities/arrete_cadre.entity';
 
 @Injectable()
 export class ZoneAlerteService {
