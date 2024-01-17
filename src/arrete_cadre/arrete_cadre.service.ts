@@ -98,6 +98,7 @@ export class ArreteCadreService {
           url: true,
           urlDdt: true,
           statut: true,
+          communeNiveauGraviteMax: true,
           departementPilote: {
             id: true,
             code: true,
@@ -234,9 +235,7 @@ export class ArreteCadreService {
       );
     }
     // CHECKER URL / FILE
-    const ac = await this.arreteCadreRepository.findOne({
-      where: { id },
-    });
+    const ac = await this.findOne(id, currentUser);
     if (!(await this.canUpdateArreteCadre(ac, currentUser, !arreteCadrePdf))) {
       return;
     }
@@ -274,9 +273,12 @@ export class ArreteCadreService {
     currentUser: User,
   ): Promise<ArreteCadre> {
     if (
-      await this.canRepealArreteCadre(id, repealArreteCadreDto, currentUser)
+      !(await this.canRepealArreteCadre(id, repealArreteCadreDto, currentUser))
     ) {
-      return;
+      throw new HttpException(
+        `Abrogation impossible.`,
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     let toSave = {
       id,

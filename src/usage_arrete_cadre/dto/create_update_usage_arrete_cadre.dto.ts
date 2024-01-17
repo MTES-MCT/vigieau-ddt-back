@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
@@ -101,7 +102,7 @@ export class CreateUpdateUsageArreteCadreDto {
   descriptionAlerteRenforcee: string;
 
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   @ApiProperty({
     example: 'Interdiction totale',
     description: 'Description des restrictions en situation de crise',

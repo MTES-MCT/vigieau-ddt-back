@@ -122,6 +122,10 @@ export class ArreteCadreController {
     @UploadedFile() file: Express.Multer.File,
     @Body() publishArreteCadreDto: PublishArreteCadreDto,
   ): Promise<ArreteCadreDto> {
+    // Impossible d'envoyer du null via form data
+    if (!publishArreteCadreDto.dateFin) {
+      publishArreteCadreDto.dateFin = null;
+    }
     // TODO vérifier que l'AC est bien complet (zones, usages, etc.)
     const arreteCadre = await this.arreteCadreService.publish(
       +id,
