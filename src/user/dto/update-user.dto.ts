@@ -1,9 +1,16 @@
-import { IsNotEmpty, IsString, Matches, ValidateIf } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  ValidateIf,
+} from 'class-validator';
 import { UserRole } from '../type/user-role.type';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateUserDto {
   @IsString()
+  @Matches(/^mte$|^departement$/)
   @IsNotEmpty()
   @ApiProperty({
     example: 'departement',

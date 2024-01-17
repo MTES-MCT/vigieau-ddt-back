@@ -23,6 +23,7 @@ import { RolesGuard } from '../core/guards/roles.guard';
 import { Roles } from '../core/decorators/roles.decorator';
 import { Dev } from '../core/decorators/dev.decorator';
 import { Public } from '../core/decorators/public.decorator';
+import { DeleteResult } from 'typeorm';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('user')
@@ -115,5 +116,13 @@ export class UserController {
   @ApiOperation({ summary: "Suppression d'un utilisateur" })
   remove(@Req() req, @Param('email') email: string) {
     return this.userService.remove(req.session.user, email);
+  }
+
+  @Post('clearTestData')
+  @Public()
+  @Dev()
+  @ApiOperation({ summary: 'Suppression des données générées par les tests' })
+  async clearTestData(): Promise<DeleteResult> {
+    return this.userService.removeTestData();
   }
 }

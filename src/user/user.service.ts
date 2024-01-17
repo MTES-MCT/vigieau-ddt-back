@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { DeleteResult, Like, Repository } from 'typeorm';
 
 @Injectable()
 export class UserService {
@@ -57,6 +57,12 @@ export class UserService {
   async remove(curentUser: User, email: string) {
     if (curentUser.role === 'departement') {
       const userToDelete = await this.findOne(email);
+      if (!userToDelete) {
+        throw new HttpException(
+          "Cet utilisateur n'existe pas",
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       if (
         userToDelete.role !== curentUser.role ||
         userToDelete.role_departement !== curentUser.role_departement
@@ -75,5 +81,13 @@ export class UserService {
       user.role_departement = null;
     }
     return user;
+  }
+
+  /**
+   * Suppression des données générées par les tests E2E
+   * Par convention les données générées par les tests E2E sont préfixées par CYTEST
+   */
+  removeTestData(): Promise<DeleteResult> {
+    return this.userRepository.delete({ email: Like('CYTEST%') });
   }
 }
