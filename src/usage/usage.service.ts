@@ -24,13 +24,12 @@ export class UsageService {
       .leftJoin('usage.usagesArreteCadre', 'usagesArreteCadre')
       .leftJoin('usagesArreteCadre.arreteCadre', 'arreteCadre')
       .leftJoin('arreteCadre.departements', 'departements')
-      .where('arreteCadre.statut IN (:...statut)', {
-        statut: ['publie', 'a_valider'],
-      })
-      .andWhere('departements.code = :code_dep', {
-        code_dep:
-          curentUser.role === 'mte' ? '34' : curentUser.role_departement,
-      })
+      .where(
+        curentUser.role === 'mte' ? '1=1' : 'departements.code = :code_dep',
+        {
+          code_dep: curentUser.role_departement,
+        },
+      )
       .getMany();
   }
 

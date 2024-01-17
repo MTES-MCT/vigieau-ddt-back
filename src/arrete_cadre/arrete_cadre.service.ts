@@ -415,9 +415,48 @@ export class ArreteCadreService {
    * Ajouts d'arrêtés cadres pour les tests E2E
    */
   async populateTestData(): Promise<void> {
-    testArretesCadre.forEach(async (ac: any) => {
+    for (const ac of testArretesCadre) {
+      switch (ac.numero) {
+        case 'CYTEST_001':
+          ac.departements = [await this.departementService.findByCode('2A')];
+          break;
+        case 'CYTEST_002':
+          ac.departements = [await this.departementService.findByCode('2A')];
+          ac.zonesAlerte = await this.zoneAlerteService.findByDepartement('2A');
+          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          break;
+        case 'CYTEST_003':
+          ac.departements = [await this.departementService.findByCode('2A')];
+          ac.zonesAlerte = await this.zoneAlerteService.findByDepartement('2A');
+          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          break;
+        case 'CYTEST_004':
+          ac.departements = [
+            await this.departementService.findByCode('2A'),
+            await this.departementService.findByCode('2B'),
+          ];
+          ac.zonesAlerte = await this.zoneAlerteService.findByDepartement('2A');
+          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          break;
+        case 'CYTEST_005':
+          ac.departements = [
+            await this.departementService.findByCode('2B'),
+            await this.departementService.findByCode('2A'),
+          ];
+          ac.zonesAlerte = await this.zoneAlerteService.findByDepartement('2A');
+          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          break;
+        case 'CYTEST_006':
+          ac.departements = [await this.departementService.findByCode('2A')];
+          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          break;
+        case 'CYTEST_007':
+          ac.departements = [await this.departementService.findByCode('2B')];
+          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          break;
+      }
       await this.create(JSON.parse(JSON.stringify(ac)), null);
-    });
+    }
     return;
   }
 

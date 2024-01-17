@@ -122,6 +122,7 @@ export class ArreteCadreController {
     @UploadedFile() file: Express.Multer.File,
     @Body() publishArreteCadreDto: PublishArreteCadreDto,
   ): Promise<ArreteCadreDto> {
+    // TODO vérifier que l'AC est bien complet (zones, usages, etc.)
     const arreteCadre = await this.arreteCadreService.publish(
       +id,
       file,
