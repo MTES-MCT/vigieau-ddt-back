@@ -44,39 +44,9 @@ export class ArreteCadreService {
     private readonly userService: UserService,
   ) {}
 
-  async findAll(
-    curentUser: User,
-    query: PaginateQuery,
-  ): Promise<Paginated<ArreteCadre>> {
-    const whereClause: FindOptionsWhere<ArreteCadre> | null =
-      curentUser.role === 'mte'
-        ? null
-        : {
-            departements: {
-              code: curentUser.role_departement,
-            },
-          };
+  async findAll(query: PaginateQuery): Promise<Paginated<ArreteCadre>> {
     const paginateConfig = arreteCadrePaginateConfig;
-    paginateConfig.where = whereClause ? whereClause : null;
-    const paginateToReturn = await paginate(
-      query,
-      this.arreteCadreRepository,
-      paginateConfig,
-    );
-
-    // Récupérer tous les départements, car on filtre sur les départements
-    if (whereClause) {
-      const departements = await Promise.all(
-        paginateToReturn.data.map((ac) => {
-          return this.departementService.findByArreteCadreId(ac.id);
-        }),
-      );
-      paginateToReturn.data.forEach((ac, index) => {
-        ac.departements = departements[index];
-      });
-    }
-
-    return paginateToReturn;
+    return await paginate(query, this.arreteCadreRepository, paginateConfig);
   }
 
   async findOne(id: number, curentUser?: User) {

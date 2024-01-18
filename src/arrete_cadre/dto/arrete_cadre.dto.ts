@@ -99,5 +99,6 @@ export const arreteCadrePaginateConfig: PaginateConfig<ArreteCadre> = {
   searchableColumns: ['numero', 'departements.nom', 'departements.code'],
   filterableColumns: {
     statut: [FilterOperator.IN],
+    'departements.id': [FilterOperator.EQ],
   },
 };

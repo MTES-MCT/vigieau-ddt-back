@@ -54,13 +54,9 @@ export class ArreteCadreController {
   @ApiOperation({ summary: 'Retourne les arrêtés cadres paginés' })
   @PaginatedSwaggerDocs(ArreteCadreDto, arreteCadrePaginateConfig)
   async findAll(
-    @Req() req,
     @Paginate() query: PaginateQuery,
   ): Promise<Paginated<ArreteCadreDto>> {
-    const paginated = await this.arreteCadreService.findAll(
-      req.session.user,
-      query,
-    );
+    const paginated = await this.arreteCadreService.findAll(query);
     return plainToInstance(
       Paginated<ArreteCadreDto>,
       camelcaseKeys(paginated, { deep: true }),
