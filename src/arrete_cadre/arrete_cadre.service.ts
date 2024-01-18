@@ -12,10 +12,7 @@ import { ArreteCadre } from './entities/arrete_cadre.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
 import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
-import {
-  AcUpdateZoneAlerteDto,
-  CreateUpdateArreteCadreDto,
-} from './dto/create_update_arrete_cadre.dto';
+import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
 import { UsageArreteCadreService } from '../usage_arrete_cadre/usage_arrete_cadre.service';
 import { arreteCadrePaginateConfig } from './dto/arrete_cadre.dto';
 import { testArretesCadre } from '../core/test/data';
@@ -140,7 +137,7 @@ export class ArreteCadreService {
     currentUser?: User,
   ): Promise<ArreteCadre> {
     // Check ACI
-    await this.checkAci(createArreteCadreDto, currentUser);
+    await this.checkAci(createArreteCadreDto, currentUser, false);
     const arreteCadre =
       await this.arreteCadreRepository.save(createArreteCadreDto);
     arreteCadre.usagesArreteCadre =
@@ -157,11 +154,11 @@ export class ArreteCadreService {
     const oldAc = await this.findOne(id, currentUser);
     if (!(await this.canUpdateArreteCadre(oldAc, currentUser))) {
       throw new HttpException(
-        `Vous ne pouvez éditer un arrêté cadre que si il est sur votre département et en statut brouillon.`,
+        `Vous ne pouvez éditer un arrêté cadre que si il est sur votre département et n'est pas abrogé.`,
         HttpStatus.FORBIDDEN,
       );
     }
-    await this.checkAci(updateArreteCadreDto, currentUser);
+    await this.checkAci(updateArreteCadreDto, currentUser, true);
     const arreteCadre = await this.arreteCadreRepository.save({
       id,
       ...updateArreteCadreDto,
@@ -170,38 +167,6 @@ export class ArreteCadreService {
       await this.uageArreteCadreService.updateAll(arreteCadre);
     this.sendAciMails(oldAc, arreteCadre, currentUser);
     return arreteCadre;
-  }
-
-  async updateZones(
-    id: number,
-    codeDep: string,
-    zonesAlerteDto: AcUpdateZoneAlerteDto[],
-    curentUser: User,
-  ): Promise<ArreteCadre> {
-    const ac = await this.findOne(id, curentUser);
-    if (!(await this.canUpdateZonesArreteCadre(ac, curentUser, codeDep))) {
-      throw new HttpException(
-        `Vous ne pouvez éditer les zones d'un arrêté cadre que si il est sur votre département et en statut brouillon.`,
-        HttpStatus.FORBIDDEN,
-      );
-    }
-    const za = await this.zoneAlerteService.findByDepartement(codeDep);
-    const zaToDelete = za.filter(
-      (z) => !zonesAlerteDto.some((zaDto) => zaDto.id === z.id),
-    );
-    const zaToAdd = za.filter((z) =>
-      zonesAlerteDto.some((zaDto) => zaDto.id === z.id),
-    );
-    // On met à jour les zones d'alertes correspondantes dans l'objet AC
-    ac.zonesAlerte = ac.zonesAlerte.filter(
-      (z) => !zaToDelete.some((zad) => zad.id === z.id),
-    );
-    zaToAdd.forEach((z) => {
-      if (!ac.zonesAlerte.some((zad) => zad.id === z.id)) {
-        ac.zonesAlerte.push(z);
-      }
-    });
-    return this.arreteCadreRepository.save(ac);
   }
 
   async publish(
@@ -296,28 +261,12 @@ export class ArreteCadreService {
   ): Promise<boolean> {
     return (
       arreteCadre &&
-      arreteCadre.statut !== 'abroge' &&
+      (!containUrl || !!arreteCadre.url) &&
       (user.role === 'mte' ||
-        arreteCadre.departements.length === 1 ||
-        arreteCadre.departementPilote?.code === user.role_departement) &&
-      (!containUrl || !!arreteCadre.url)
-    );
-  }
-
-  async canUpdateZonesArreteCadre(
-    arreteCadre: ArreteCadre,
-    user: User,
-    codeDep: string,
-  ): Promise<boolean> {
-    return (
-      arreteCadre &&
-      arreteCadre.statut !== 'abroge' &&
-      (user.role === 'mte' ||
-        arreteCadre.departements.length === 1 ||
-        arreteCadre.departements.some(
-          (d) => d.code === user.role_departement,
-        )) &&
-      (user.role === 'mte' || codeDep === user.role_departement)
+        (arreteCadre.statut !== 'abroge' &&
+          arreteCadre.departements.some(
+            (d) => d.code === user.role_departement,
+          )))
     );
   }
 
@@ -334,8 +283,7 @@ export class ArreteCadreService {
         ['a_venir', 'publie', 'abroge'].includes(ar.statut),
       ) &&
       (user.role === 'mte' ||
-        arrete.departements.length === 1 ||
-        arrete.departementPilote?.code === user.role_departement)
+        arrete.departements.some((d) => d.code === user.role_departement))
     );
   }
 
@@ -358,24 +306,46 @@ export class ArreteCadreService {
       arrete &&
       ['a_venir', 'publie'].includes(arrete.statut) &&
       (user.role === 'mte' ||
-        arrete.departements.length === 1 ||
-        arrete.departementPilote.code === user.role_departement)
+        arrete.departements.some((d) => d.code === user.role_departement))
     );
   }
 
   private async checkAci(
     createUpdateArreteCadreDto: CreateUpdateArreteCadreDto,
     currentUser: User,
+    isUpdate: boolean,
   ): Promise<void> {
     if (createUpdateArreteCadreDto.departements.length > 1) {
-      /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
-       * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
-      // @ts-ignore
-      createUpdateArreteCadreDto.departementPilote =
-        currentUser?.role === 'departement'
+      const userDepartement =
+        currentUser.role === 'departement'
           ? await this.departementService.findByCode(
               currentUser.role_departement,
             )
+          : null;
+      /**
+       * Si c'est un update, on vérifie seulement que le département est bien dedans
+       */
+      if (isUpdate && currentUser.role === 'departement') {
+        if (
+          !createUpdateArreteCadreDto.departements.some(
+            (d) => d.id === userDepartement.id,
+          )
+        ) {
+          throw new HttpException(
+            `Vous ne pouvez pas modifier un ACI qui ne concerne pas votre département.`,
+            HttpStatus.FORBIDDEN,
+          );
+        } else {
+          return;
+        }
+      }
+
+      /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
+       * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
+      // @ts-expect-error objet non complet
+      createUpdateArreteCadreDto.departementPilote =
+        currentUser?.role === 'departement'
+          ? userDepartement
           : createUpdateArreteCadreDto.departements[0];
     }
   }

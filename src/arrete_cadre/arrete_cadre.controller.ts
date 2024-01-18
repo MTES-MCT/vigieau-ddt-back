@@ -179,32 +179,6 @@ export class ArreteCadreController {
     );
   }
 
-  @Patch(':id/zones/:codeDep')
-  @ApiOperation({
-    summary: "Mise à jour de zones d'un arrêté cadre interdépartemental",
-  })
-  @ApiResponse({
-    status: 201,
-    type: ArreteCadreDto,
-  })
-  async updateZones(
-    @Req() req,
-    @Param('id') id: string,
-    @Param('codeDep') codeDep: string,
-    @Body() zonesAlertDto: AcUpdateZoneAlerteDto[],
-  ): Promise<ArreteCadreDto> {
-    const arreteCadre = await this.arreteCadreService.updateZones(
-      +id,
-      codeDep,
-      zonesAlertDto,
-      req.session.user,
-    );
-    return plainToInstance(
-      ArreteCadreDto,
-      camelcaseKeys(arreteCadre, { deep: true }),
-    );
-  }
-
   @Delete(':id')
   @ApiOperation({ summary: "Suppression d'un arrêté cadre" })
   remove(@Req() req, @Param('id') id: string) {
