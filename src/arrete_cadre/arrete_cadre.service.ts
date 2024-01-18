@@ -28,6 +28,8 @@ import { ArreteRestrictionService } from '../arrete_restriction/arrete_restricti
 import { S3Service } from '../shared/services/s3.service';
 import { DepartementService } from '../departement/departement.service';
 import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
+import { MailService } from '../shared/services/mail.service';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class ArreteCadreService {
@@ -41,6 +43,8 @@ export class ArreteCadreService {
     private readonly s3Service: S3Service,
     private readonly departementService: DepartementService,
     private readonly zoneAlerteService: ZoneAlerteService,
+    private readonly mailService: MailService,
+    private readonly userService: UserService,
   ) {}
 
   async findAll(
@@ -136,21 +140,12 @@ export class ArreteCadreService {
     currentUser?: User,
   ): Promise<ArreteCadre> {
     // Check ACI
-    if (createArreteCadreDto.departements.length > 1) {
-      /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
-       * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
-      // @ts-ignore
-      createArreteCadreDto.departementPilote =
-        currentUser?.role === 'departement'
-          ? await this.departementService.findByCode(
-              currentUser.role_departement,
-            )
-          : createArreteCadreDto.departements[0];
-    }
+    await this.checkAci(createArreteCadreDto, currentUser);
     const arreteCadre =
       await this.arreteCadreRepository.save(createArreteCadreDto);
     arreteCadre.usagesArreteCadre =
       await this.uageArreteCadreService.updateAll(arreteCadre);
+    this.sendAciMails(null, arreteCadre, currentUser);
     return arreteCadre;
   }
 
@@ -159,30 +154,21 @@ export class ArreteCadreService {
     updateArreteCadreDto: CreateUpdateArreteCadreDto,
     currentUser: User,
   ): Promise<ArreteCadre> {
-    const ac = await this.findOne(id, currentUser);
-    if (!(await this.canUpdateArreteCadre(ac, currentUser))) {
+    const oldAc = await this.findOne(id, currentUser);
+    if (!(await this.canUpdateArreteCadre(oldAc, currentUser))) {
       throw new HttpException(
         `Vous ne pouvez éditer un arrêté cadre que si il est sur votre département et en statut brouillon.`,
         HttpStatus.FORBIDDEN,
       );
     }
-    if (updateArreteCadreDto.departements.length > 1) {
-      /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
-       * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
-      // @ts-ignore
-      updateArreteCadreDto.departementPilote =
-        currentUser?.role === 'departement'
-          ? await this.departementService.findByCode(
-              currentUser.role_departement,
-            )
-          : updateArreteCadreDto.departements[0];
-    }
+    await this.checkAci(updateArreteCadreDto, currentUser);
     const arreteCadre = await this.arreteCadreRepository.save({
       id,
       ...updateArreteCadreDto,
     });
     arreteCadre.usagesArreteCadre =
       await this.uageArreteCadreService.updateAll(arreteCadre);
+    this.sendAciMails(oldAc, arreteCadre, currentUser);
     return arreteCadre;
   }
 
@@ -375,6 +361,56 @@ export class ArreteCadreService {
         arrete.departements.length === 1 ||
         arrete.departementPilote.code === user.role_departement)
     );
+  }
+
+  private async checkAci(
+    createUpdateArreteCadreDto: CreateUpdateArreteCadreDto,
+    currentUser: User,
+  ): Promise<void> {
+    if (createUpdateArreteCadreDto.departements.length > 1) {
+      /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
+       * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
+      // @ts-ignore
+      createUpdateArreteCadreDto.departementPilote =
+        currentUser?.role === 'departement'
+          ? await this.departementService.findByCode(
+              currentUser.role_departement,
+            )
+          : createUpdateArreteCadreDto.departements[0];
+    }
+  }
+
+  private async sendAciMails(
+    oldAc: ArreteCadre,
+    newAc: ArreteCadre,
+    user: User,
+  ) {
+    if (newAc.departements.length < 2) {
+      return;
+    }
+    /**
+     * On récupère les départements concernés par l'ACI
+     * on filtre par ceux qui étaient déjà présents avant (pour éviter les doublons)
+     * et on vérifie l'user pour savoir si on doit envoyer un mail au pilote
+     */
+    const depsToSendMail = newAc.departements.filter((d) => {
+      return (
+        !oldAc?.departements.some((od) => od.id === d.id) &&
+        !(user.role === 'mte' || d.code === user.role_departement)
+      );
+    });
+    const usersToSendMail = await this.userService.findByDepartementsId(
+      depsToSendMail.map((d) => d.id),
+    );
+    if (usersToSendMail && usersToSendMail.length > 0) {
+      usersToSendMail.forEach(async (u) => {
+        await this.mailService.sendEmail(
+          u.email,
+          `Création d'un ACI`,
+          'creation_aci',
+        );
+      });
+    }
   }
 
   /**

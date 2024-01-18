@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { DeleteResult, Like, Repository } from 'typeorm';
+import { Departement } from '../departement/entities/departement.entity';
 
 @Injectable()
 export class UserService {
@@ -26,6 +27,18 @@ export class UserService {
       return null;
     }
     return this.userRepository.findOne({ where: { email } });
+  }
+
+  findByDepartementsId(depIds: number[]): Promise<User[]> {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect(
+        Departement,
+        'departement',
+        'departement.code = user.role_departement',
+      )
+      .where('departement.id IN (:...depIds)', { depIds })
+      .getMany();
   }
 
   async create(curentUser: User, user: User): Promise<User> {

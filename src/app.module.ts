@@ -23,6 +23,9 @@ import { AppController } from './app.controller';
 import { LoggerModule } from './logger/logger.module';
 import { LoggerInterceptor } from './core/interceptor/logger.interceptor';
 import { SharedModule } from './shared/shared.module';
+import path from 'path';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 
 // @ts-ignore
 @Module({
@@ -75,6 +78,29 @@ import { SharedModule } from './shared/shared.module';
         limit: 300,
       },
     ]),
+    MailerModule.forRoot({
+      transport: {
+        host: `${process.env.MAIL_HOST}`,
+        port: Number(`${process.env.MAIL_PORT}`),
+        secure: true,
+        auth: {
+          user: `${process.env.MAIL_USER}`,
+          pass: `${process.env.MAIL_PASSWORD}`,
+        },
+        tls: {
+          // do not fail on invalid certs
+          rejectUnauthorized: false,
+        },
+      },
+      preview: process.env.NODE_ENV === 'local',
+      template: {
+        dir: __dirname + '/mail_templates',
+        adapter: new HandlebarsAdapter(),
+        options: {
+          strict: true,
+        },
+      },
+    }),
     AdminModule,
     HealthModule,
     ArreteCadreModule,
