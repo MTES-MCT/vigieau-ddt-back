@@ -10047,10 +10047,10 @@ snake-case@^3.0.4:
     dot-case "^3.0.4"
     tslib "^2.0.3"
 
-snakecase-keys@^5.5.0:
-  version "5.5.0"
-  resolved "https://registry.yarnpkg.com/snakecase-keys/-/snakecase-keys-5.5.0.tgz#fbf9ca4a47fcc37c7496d00c6d9e455da9750403"
-  integrity sha512-r3kRtnoPu3FxGJ3fny6PKNnU3pteb29o6qAa0ugzhSseKNWRkw1dw8nIjXMyyKaU9vQxxVIE62Mb3bKbdrgpiw==
+snakecase-keys@^6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/snakecase-keys/-/snakecase-keys-6.0.0.tgz#2379f9f14525ef8bbfd2079bfc08c01bcc415002"
+  integrity sha512-E5a0C3rcj+Cvq+dt41mw6tV6Wx78/JpQyR71GDiyGSXdp3jEvKxv8pIP0tOHmEMiqKVZSwflXtlWwqNn5oTbbQ==
   dependencies:
     map-obj "^4.1.0"
     snake-case "^3.0.4"
