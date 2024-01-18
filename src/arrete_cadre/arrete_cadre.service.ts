@@ -369,6 +369,9 @@ export class ArreteCadreService {
         !(user.role === 'mte' || d.code === user.role_departement)
       );
     });
+    if (depsToSendMail.length < 1) {
+      return;
+    }
     const usersToSendMail = await this.userService.findByDepartementsId(
       depsToSendMail.map((d) => d.id),
     );
