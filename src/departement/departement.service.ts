@@ -45,9 +45,18 @@ export class DepartementService {
       .getMany();
   }
 
+  find(departementId: number): Promise<Departement> {
+    return this.departementRepository.findOne({
+      select: ['id', 'code', 'nom'],
+      where: {
+        id: departementId,
+      },
+    });
+  }
+
   findByCode(departementCode: string): Promise<Departement> {
     return this.departementRepository.findOne({
-      select: ['id', 'code'],
+      select: ['id', 'code', 'nom'],
       where: {
         code: departementCode,
       },

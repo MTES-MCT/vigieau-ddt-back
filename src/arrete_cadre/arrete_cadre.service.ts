@@ -46,7 +46,23 @@ export class ArreteCadreService {
 
   async findAll(query: PaginateQuery): Promise<Paginated<ArreteCadre>> {
     const paginateConfig = arreteCadrePaginateConfig;
-    return await paginate(query, this.arreteCadreRepository, paginateConfig);
+    const paginateToReturn = await paginate(
+      query,
+      this.arreteCadreRepository,
+      paginateConfig,
+    );
+
+    // Récupérer tous les départements, car on filtre sur les départements
+    const departements = await Promise.all(
+      paginateToReturn.data.map((ac) => {
+        return this.departementService.findByArreteCadreId(ac.id);
+      }),
+    );
+    paginateToReturn.data.forEach((ac, index) => {
+      ac.departements = departements[index];
+    });
+
+    return paginateToReturn;
   }
 
   async findOne(id: number, curentUser?: User) {
@@ -93,9 +109,13 @@ export class ArreteCadreService {
       this.uageArreteCadreService.findByArreteCadre(id),
       this.departementService.findByArreteCadreId(id),
     ]);
-    if (arreteCadre) {
-      arreteCadre.usagesArreteCadre = usagesArreteCadre;
+    if (!arreteCadre) {
+      throw new HttpException(
+        `L'arrêté cadre n'existe pas ou vous n'avez pas les droits pour le consulter.`,
+        HttpStatus.NOT_FOUND,
+      );
     }
+    arreteCadre.usagesArreteCadre = usagesArreteCadre;
     if (departements) {
       arreteCadre.departements = departements;
     }
@@ -285,39 +305,35 @@ export class ArreteCadreService {
     currentUser: User,
     isUpdate: boolean,
   ): Promise<void> {
-    if (createUpdateArreteCadreDto.departements.length > 1) {
-      const userDepartement =
-        currentUser.role === 'departement'
-          ? await this.departementService.findByCode(
-              currentUser.role_departement,
-            )
-          : null;
-      /**
-       * Si c'est un update, on vérifie seulement que le département est bien dedans
-       */
-      if (isUpdate && currentUser.role === 'departement') {
-        if (
-          !createUpdateArreteCadreDto.departements.some(
-            (d) => d.id === userDepartement.id,
-          )
-        ) {
-          throw new HttpException(
-            `Vous ne pouvez pas modifier un ACI qui ne concerne pas votre département.`,
-            HttpStatus.FORBIDDEN,
-          );
-        } else {
-          return;
-        }
-      }
-
-      /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
-       * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
-      // @ts-expect-error objet non complet
-      createUpdateArreteCadreDto.departementPilote =
-        currentUser?.role === 'departement'
-          ? userDepartement
-          : createUpdateArreteCadreDto.departements[0];
+    if (createUpdateArreteCadreDto.departements.length < 2) {
+      return;
     }
+
+    /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
+     * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
+    const userDepartement =
+      currentUser.role === 'departement' && !isUpdate
+        ? await this.departementService.findByCode(currentUser.role_departement)
+        : await this.departementService.find(
+            createUpdateArreteCadreDto.departements[0].id,
+          );
+    /**
+     * Si c'est un update, on vérifie seulement que le département est bien dedans
+     */
+    if (
+      isUpdate &&
+      currentUser.role === 'departement' &&
+      !createUpdateArreteCadreDto.departements.some(
+        (d) => d.id === userDepartement.id,
+      )
+    ) {
+      throw new HttpException(
+        `Vous ne pouvez pas modifier un ACI qui ne concerne pas votre département.`,
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    // @ts-expect-error objet non complet
+    createUpdateArreteCadreDto.departementPilote = userDepartement;
   }
 
   private async sendAciMails(
@@ -349,8 +365,13 @@ export class ArreteCadreService {
       usersToSendMail.forEach(async (u) => {
         await this.mailService.sendEmail(
           u.email,
-          `Création d'un ACI`,
+          `La DDT ${newAc.departementPilote.nom} vous invite à compléter l’ACI ${newAc.numero}`,
           'creation_aci',
+          {
+            departementNom: newAc.departementPilote.nom,
+            acNumero: newAc.numero,
+            acLien: `https://${process.env.DOMAIN_NAME}/arrete-cadre/${newAc.id}/edition`,
+          },
         );
       });
     }
