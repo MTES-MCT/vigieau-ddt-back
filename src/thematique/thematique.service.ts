@@ -11,6 +11,10 @@ export class ThematiqueService {
   ) {}
 
   findAll(): Promise<Thematique[]> {
-    return this.thematiqueRepository.find();
+    return this.thematiqueRepository.find({
+      order: {
+        nom: 'ASC',
+      },
+    });
   }
 }
