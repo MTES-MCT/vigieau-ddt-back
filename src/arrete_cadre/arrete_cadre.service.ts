@@ -345,7 +345,80 @@ export class ArreteCadreService {
       return;
     }
     /**
-     * On récupère les départements concernés par l'ACI
+     * On récupère tous les départements et leurs zones associées
+     * pour vérifier le type de mail à envoyer
+     */
+    const depsInAci = await this.departementService.findByArreteCadreId(
+      newAc.id,
+      true,
+    );
+    const newDepsEnAttente = depsInAci.filter(
+      (d) =>
+        !d.zonesAlerte.some((za) =>
+          newAc.zonesAlerte.some((nza) => nza.id === za.id),
+        ),
+    );
+    const oldDepsEnAttente = depsInAci.filter(
+      (d) =>
+        !d.zonesAlerte.some((za) =>
+          oldAc?.zonesAlerte.some((nza) => nza.id === za.id),
+        ),
+    );
+    /**
+     * Si tous les départements ont rempli leurs zones
+     * Et que ce n'était pas rempli avant, on envoie le mail de finalisation
+     */
+    if (newDepsEnAttente.length < 1 && oldDepsEnAttente.length > 0) {
+      const usersDepPilote = await this.userService.findByDepartementsId([
+        newAc.departementPilote.id,
+      ]);
+      await this.mailService.sendEmails(
+        usersDepPilote.map((u) => u.email),
+        `Toutes les DDT ont finalisé leur saisie de l’ACI ${newAc.numero}`,
+        'finalisation_aci',
+        {
+          acNumero: newAc.numero,
+          acLien: `https://${process.env.DOMAIN_NAME}/arrete-cadre/${newAc.id}/edition`,
+        },
+      );
+      return;
+    }
+    /**
+     * S'il y a une différence de départements finalisés, on envoie un mail à la DDT pilote
+     */
+    const depsDifferents = [
+      ...newDepsEnAttente.filter(
+        (nd) => !oldDepsEnAttente.some((od) => nd.id === od.id),
+      ),
+      ...oldDepsEnAttente.filter(
+        (od) => !newDepsEnAttente.some((nd) => nd.id === od.id),
+      ),
+    ];
+    if (depsDifferents.length > 0) {
+      const newDepsFinalise = depsInAci.filter((d) =>
+        d.zonesAlerte.some((za) =>
+          newAc.zonesAlerte.some((nza) => nza.id === za.id),
+        ),
+      );
+      const usersDepPilote = await this.userService.findByDepartementsId([
+        newAc.departementPilote.id,
+      ]);
+      await this.mailService.sendEmails(
+        usersDepPilote.map((u) => u.email),
+        `Des DDTs ont complétés l’ACI ${newAc.numero}`,
+        'maj_aci',
+        {
+          departementNom: newAc.departementPilote.nom,
+          acNumero: newAc.numero,
+          lien: `https://${process.env.DOMAIN_NAME}/arrete-cadre/${newAc.id}/edition`,
+          departementsTermine: newDepsFinalise,
+          departementsEnAttente: newDepsEnAttente,
+        },
+      );
+    }
+
+    /**
+     * Pour prévenir les DDTs non pilote,
      * on filtre par ceux qui étaient déjà présents avant (pour éviter les doublons)
      * et on vérifie l'user pour savoir si on doit envoyer un mail au pilote
      */
@@ -361,20 +434,16 @@ export class ArreteCadreService {
     const usersToSendMail = await this.userService.findByDepartementsId(
       depsToSendMail.map((d) => d.id),
     );
-    if (usersToSendMail && usersToSendMail.length > 0) {
-      usersToSendMail.forEach(async (u) => {
-        await this.mailService.sendEmail(
-          u.email,
-          `La DDT ${newAc.departementPilote.nom} vous invite à compléter l’ACI ${newAc.numero}`,
-          'creation_aci',
-          {
-            departementNom: newAc.departementPilote.nom,
-            acNumero: newAc.numero,
-            acLien: `https://${process.env.DOMAIN_NAME}/arrete-cadre/${newAc.id}/edition`,
-          },
-        );
-      });
-    }
+    await this.mailService.sendEmails(
+      usersToSendMail.map((u) => u.email),
+      `La DDT ${newAc.departementPilote.nom} vous invite à compléter l’ACI ${newAc.numero}`,
+      'creation_aci',
+      {
+        departementNom: newAc.departementPilote.nom,
+        acNumero: newAc.numero,
+        acLien: `https://${process.env.DOMAIN_NAME}/arrete-cadre/${newAc.id}/edition`,
+      },
+    );
   }
 
   /**

@@ -5,6 +5,11 @@ import { RegleauLogger } from '../../logger/regleau.logger';
 
 @Injectable()
 export class MailService {
+  /**
+   * LIEN UTILES
+   * Preview de templates handlebars : https://handlebars-email-html-previewer.vercel.app/
+   * Template d'Email : https://github.com/leemunroe/responsive-html-email-template
+   */
   private readonly _logger = new RegleauLogger('MailService');
   private readonly _mailTemplatePath = path.resolve(`./dist/mail_template`);
 
@@ -31,7 +36,7 @@ export class MailService {
         template: `./${template}`,
         context: context,
       })
-      .then((info) => {
+      .then(() => {
         this._logger.log(
           `MAIL SEND TO: ${email} WITH SUBJECT: ${subject} WITH TEMPLATE: ${template} AND CONTEXT: ${JSON.stringify(
             context,
@@ -50,5 +55,16 @@ export class MailService {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       });
+  }
+
+  sendEmails(
+    emails: string[],
+    subject: string,
+    template: string,
+    context?: any,
+  ): Promise<any> {
+    return Promise.all(
+      emails.map((email) => this.sendEmail(email, subject, template, context)),
+    );
   }
 }

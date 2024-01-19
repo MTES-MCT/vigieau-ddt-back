@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Departement } from './entities/departement.entity';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
@@ -63,14 +63,35 @@ export class DepartementService {
     });
   }
 
-  findByArreteCadreId(acId: number): Promise<Departement[]> {
-    return this.departementRepository.find({
-      select: ['id', 'code', 'nom'],
-      where: {
-        arretesCadre: {
-          id: acId,
-        },
+  findByArreteCadreId(
+    acId: number,
+    getZones: boolean = false,
+  ): Promise<Departement[]> {
+    const select: any = {
+      id: true,
+      code: true,
+      nom: true,
+    };
+    if (getZones) {
+      select.zonesAlerte = {
+        id: true,
+      };
+    }
+    const relations = getZones ? ['zonesAlerte'] : [];
+    const where: any = {
+      arretesCadre: {
+        id: acId,
       },
+    };
+    if (getZones) {
+      where.zonesAlerte = {
+        disabled: false,
+      };
+    }
+    return this.departementRepository.find({
+      select,
+      relations,
+      where,
     });
   }
 
