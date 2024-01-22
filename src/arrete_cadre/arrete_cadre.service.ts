@@ -127,7 +127,7 @@ export class ArreteCadreService {
     currentUser?: User,
   ): Promise<ArreteCadre> {
     // Check ACI
-    await this.checkAci(createArreteCadreDto, currentUser, false);
+    await this.checkAci(createArreteCadreDto, false, currentUser);
     const arreteCadre =
       await this.arreteCadreRepository.save(createArreteCadreDto);
     arreteCadre.usagesArreteCadre =
@@ -148,7 +148,7 @@ export class ArreteCadreService {
         HttpStatus.FORBIDDEN,
       );
     }
-    await this.checkAci(updateArreteCadreDto, currentUser, true);
+    await this.checkAci(updateArreteCadreDto, true, currentUser);
     const arreteCadre = await this.arreteCadreRepository.save({
       id,
       ...updateArreteCadreDto,
@@ -302,8 +302,8 @@ export class ArreteCadreService {
 
   private async checkAci(
     createUpdateArreteCadreDto: CreateUpdateArreteCadreDto,
-    currentUser: User,
     isUpdate: boolean,
+    currentUser?: User,
   ): Promise<void> {
     if (createUpdateArreteCadreDto.departements.length < 2) {
       return;
@@ -312,7 +312,7 @@ export class ArreteCadreService {
     /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
      * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
     const userDepartement =
-      currentUser.role === 'departement' && !isUpdate
+      currentUser?.role === 'departement' && !isUpdate
         ? await this.departementService.findByCode(currentUser.role_departement)
         : await this.departementService.find(
             createUpdateArreteCadreDto.departements[0].id,
@@ -322,7 +322,7 @@ export class ArreteCadreService {
      */
     if (
       isUpdate &&
-      currentUser.role === 'departement' &&
+      currentUser?.role === 'departement' &&
       !createUpdateArreteCadreDto.departements.some(
         (d) => d.id === userDepartement.id,
       )
@@ -339,8 +339,11 @@ export class ArreteCadreService {
   private async sendAciMails(
     oldAc: ArreteCadre,
     newAc: ArreteCadre,
-    user: User,
+    user?: User,
   ) {
+    if (!user) {
+      return;
+    }
     if (newAc.departements.length < 2) {
       return;
     }
@@ -523,6 +526,7 @@ export class ArreteCadreService {
           break;
         case 'CYTEST_007':
           ac.departements = [await this.departementService.findByCode('2B')];
+          ac.zonesAlerte = await this.zoneAlerteService.findByDepartement('2B');
           // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
           break;
       }

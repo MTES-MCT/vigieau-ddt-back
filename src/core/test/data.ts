@@ -49,7 +49,7 @@ const testArretesCadre: any[] = [
   },
   {
     numero: 'CYTEST_007',
-    statut: 'a_valider',
+    statut: 'a_venir',
     dateDebut: '01/01/2024',
     usagesArreteCadre: [],
   },
