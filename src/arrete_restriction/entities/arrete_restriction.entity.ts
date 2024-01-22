@@ -3,11 +3,13 @@ import {
   Column,
   Entity,
   Index,
+  JoinTable,
   ManyToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { StatutArreteRestriction } from '../type/statut_arrete_restriction.type';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
+import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 
 @Entity()
 export class ArreteRestriction extends BaseEntity {
@@ -40,4 +42,10 @@ export class ArreteRestriction extends BaseEntity {
     { onDelete: 'CASCADE' },
   )
   arretesCadre: ArreteCadre[];
+
+  @ManyToMany(() => ZoneAlerte, (zoneAlerte) => zoneAlerte.arretesRestriction)
+  @JoinTable({
+    name: 'arrete_restriction_zone_alerte',
+  })
+  zonesAlerte: ZoneAlerte[];
 }

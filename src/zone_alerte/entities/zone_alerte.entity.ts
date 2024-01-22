@@ -12,6 +12,7 @@ import {
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { BassinVersant } from '../../core/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
+import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
 
 @Entity()
 export class ZoneAlerte extends BaseEntity {
@@ -48,6 +49,12 @@ export class ZoneAlerte extends BaseEntity {
 
   @ManyToMany(() => ArreteCadre, (arreteCadre) => arreteCadre.zonesAlerte)
   arretesCadre: ArreteCadre[];
+
+  @ManyToMany(
+    () => ArreteRestriction,
+    (arreteRestriction) => arreteRestriction.zonesAlerte,
+  )
+  arretesRestriction: ArreteRestriction[];
 
   @CreateDateColumn()
   createdAt: Date;

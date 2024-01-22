@@ -12,7 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ArreteRestriction } from './entities/arrete_restriction.entity';
 import { arreteRestrictionPaginateConfig } from './dto/arrete_restriction.dto';
 import { RegleauLogger } from '../logger/regleau.logger';
-import { ArreteCadre } from '../arrete_cadre/entities/arrete_cadre.entity';
+import { DepartementService } from '../departement/departement.service';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -21,25 +21,36 @@ export class ArreteRestrictionService {
   constructor(
     @InjectRepository(ArreteRestriction)
     private readonly arreteRestrictionRepository: Repository<ArreteRestriction>,
+    private readonly departementService: DepartementService,
   ) {}
 
-  findAll(
+  async findAll(
     curentUser: User,
     query: PaginateQuery,
   ): Promise<Paginated<ArreteRestriction>> {
-    const whereClause: FindOptionsWhere<ArreteRestriction> | null =
-      curentUser.role === 'mte'
-        ? null
-        : {
-            arretesCadre: {
-              departements: {
-                code: curentUser.role_departement,
-              },
-            },
-          };
     const paginateConfig = arreteRestrictionPaginateConfig;
-    paginateConfig.where = whereClause ? whereClause : null;
-    return paginate(query, this.arreteRestrictionRepository, paginateConfig);
+    const paginateToReturn = await paginate(
+      query,
+      this.arreteRestrictionRepository,
+      paginateConfig,
+    );
+
+    // Récupérer tous les départements, car on filtre sur les départements
+    await Promise.all(
+      paginateToReturn.data.map(async (ar) => {
+        await Promise.all(
+          ar.arretesCadre.map(async (ac) => {
+            ac.departements = await this.departementService.findByArreteCadreId(
+              ac.id,
+            );
+            return ac;
+          }),
+        );
+        return ar;
+      }),
+    );
+
+    return paginateToReturn;
   }
 
   async findOne(id: number, curentUser?: User) {
@@ -64,13 +75,32 @@ export class ArreteRestrictionService {
         dateFin: true,
         dateSignature: true,
         statut: true,
+        zonesAlerte: {
+          id: true,
+        },
         arretesCadre: {
           id: true,
           numero: true,
           statut: true,
+          zonesAlerte: {
+            id: true,
+            code: true,
+            nom: true,
+            type: true,
+            departement: {
+              id: true,
+              code: true,
+              nom: true,
+            },
+          },
         },
       },
-      relations: ['arretesCadre'],
+      relations: [
+        'zonesAlerte',
+        'arretesCadre',
+        'arretesCadre.zonesAlerte',
+        'arretesCadre.zonesAlerte.departement',
+      ],
       where: whereClause,
     });
   }
