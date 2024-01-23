@@ -86,6 +86,8 @@ export class ArreteCadreService {
           urlDdt: true,
           statut: true,
           communeNiveauGraviteMax: true,
+          niveauGraviteSpecifiqueEap: true,
+          ressourceEapCommunique: true,
           departementPilote: {
             id: true,
             code: true,
