@@ -1,4 +1,10 @@
-import { IsBoolean, IsNumber, IsObject, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsJSON,
+  IsNumber,
+  IsObject,
+  IsString,
+} from 'class-validator';
 import { DepartementDto } from '../../departement/dto/departement.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -42,4 +48,13 @@ export class ZoneAlerteDto {
 
   @IsObject()
   departement: DepartementDto;
+}
+
+export class ZoneAlertGeomDto extends ZoneAlerteDto {
+  @IsJSON()
+  @ApiProperty({
+    example: '',
+    description: "Geojson compressé de la zone d'alerte",
+  })
+  geom: any;
 }

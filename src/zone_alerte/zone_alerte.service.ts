@@ -31,6 +31,22 @@ export class ZoneAlerteService {
     });
   }
 
+  findByArreteCadre(acId: number): Promise<ZoneAlerte[]> {
+    return this.zoneAlerteRepository
+      .createQueryBuilder('zone_alerte')
+      .select('zone_alerte.id', 'id')
+      .addSelect('zone_alerte.code', 'code')
+      .addSelect('zone_alerte.nom', 'nom')
+      .addSelect('zone_alerte.type', 'type')
+      .addSelect(
+        'ST_AsGeoJSON(ST_TRANSFORM(zone_alerte.geom, 4326), 4)',
+        'geom',
+      )
+      .leftJoin('zone_alerte.arretesCadre', 'arrete_cadre')
+      .where('arrete_cadre.id = :acId', { acId })
+      .getRawMany();
+  }
+
   async importTmpZones(
     file: Express.Multer.File,
     departementCode: string,

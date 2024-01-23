@@ -12,7 +12,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ZoneAlerte } from './entities/zone_alerte.entity';
 import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
-import { ZoneAlerteDto } from './dto/zone_alerte.dto';
+import { ZoneAlerteDto, ZoneAlertGeomDto } from './dto/zone_alerte.dto';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RolesGuard } from '../core/guards/roles.guard';
@@ -40,6 +40,26 @@ export class ZoneAlerteController {
       await this.zoneAlerteService.findByDepartement(departementCode);
     return plainToInstance(
       ZoneAlerteDto,
+      camelcaseKeys(zonesAlerte, { deep: true }),
+    );
+  }
+
+  @Get('/arrete-cadre/:id')
+  @ApiOperation({
+    summary:
+      "Retourne toute les zones d'alerte avec leurs géométries d'un arrêté cadre",
+  })
+  @ApiResponse({
+    status: 201,
+    type: [ZoneAlertGeomDto],
+  })
+  async findByArreteCadreId(
+    @Param('id') arId: string,
+  ): Promise<ZoneAlertGeomDto[]> {
+    const zonesAlerte: ZoneAlerte[] =
+      await this.zoneAlerteService.findByArreteCadre(+arId);
+    return plainToInstance(
+      ZoneAlertGeomDto,
       camelcaseKeys(zonesAlerte, { deep: true }),
     );
   }
