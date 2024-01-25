@@ -29,6 +29,13 @@ export class UserService {
     return this.userRepository.findOne({ where: { email } });
   }
 
+  updateName(email: string, firstName: string, lastName: string) {
+    return this.userRepository.update(
+      { email },
+      { first_name: firstName, last_name: lastName },
+    );
+  }
+
   findByDepartementsId(depIds: number[]): Promise<User[]> {
     return this.userRepository
       .createQueryBuilder('user')

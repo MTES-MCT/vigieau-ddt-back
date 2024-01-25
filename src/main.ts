@@ -38,7 +38,7 @@ async function bootstrap() {
 
   // OpenAPI
   const options = new DocumentBuilder()
-    .setTitle('API VigiEau')
+    .setTitle('API ReglEau')
     .setVersion('0.1')
     .build();
   const document = SwaggerModule.createDocument(app, options);

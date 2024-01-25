@@ -50,10 +50,6 @@ export class MailService {
           )}`,
           error,
         );
-        throw new HttpException(
-          "Une erreur est survenue dans l'envoi du mail.",
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
       });
   }
 

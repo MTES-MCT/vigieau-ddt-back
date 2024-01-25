@@ -7,7 +7,6 @@ import {
   TokenSet,
   Issuer,
   generators,
-  errors,
 } from 'openid-client';
 import { UserService } from '../user/user.service';
 import random = generators.random;
@@ -21,6 +20,8 @@ export const buildOpenIdClient = async () => {
     client_secret: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_CLIENT_SECRET,
     acr_values: TrustIssuer.acr_values_supported,
     response_type: 'code',
+    userinfo_signed_response_alg: 'HS256',
+    id_token_signed_response_alg: 'HS256',
   });
   return client;
 };
@@ -39,27 +40,30 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
         scope: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_SCOPE,
         acr_values: client.acr_values,
       },
-      passReqToCallback: true,
       usePKCE: false,
     });
 
     this.client = client;
   }
 
-  authenticate(req, options: any = {}) {
+  async authenticate(req, options: any = {}) {
     options.nonce = random();
     super.authenticate(req, options);
   }
 
   async validate(tokenset: TokenSet): Promise<any> {
-    console.log('VALIDATE', tokenset);
     const userinfo: UserinfoResponse = await this.client.userinfo(tokenset);
     const userInDb = await this.userService.findOne(userinfo?.email);
 
     if (!userInDb) {
-      console.log('NOT USE IN DB');
       throw new UnauthorizedException();
     }
+
+    await this.userService.updateName(
+      userinfo.email,
+      <string>userinfo.given_name,
+      <string>userinfo.usual_name,
+    );
 
     try {
       const id_token = tokenset.id_token;
@@ -73,7 +77,6 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
       };
       return user;
     } catch (err) {
-      console.log('ERROR', err);
       throw new UnauthorizedException();
     }
   }
