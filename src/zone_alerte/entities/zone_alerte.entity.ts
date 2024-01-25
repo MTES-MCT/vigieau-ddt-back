@@ -6,6 +6,7 @@ import {
   Index,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   Polygon,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -13,6 +14,7 @@ import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { BassinVersant } from '../../core/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
+import { Restriction } from '../../arrete_restriction/entities/restriction.entity';
 
 @Entity()
 export class ZoneAlerte extends BaseEntity {
@@ -55,6 +57,9 @@ export class ZoneAlerte extends BaseEntity {
     (arreteRestriction) => arreteRestriction.zonesAlerte,
   )
   arretesRestriction: ArreteRestriction[];
+
+  @OneToMany(() => Restriction, (restriction) => restriction.zoneAlerte)
+  restrictions: Restriction[];
 
   @CreateDateColumn()
   createdAt: Date;

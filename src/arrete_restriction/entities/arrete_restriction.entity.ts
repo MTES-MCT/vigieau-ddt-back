@@ -1,15 +1,21 @@
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
-  Index,
   JoinTable,
   ManyToMany,
+  ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { StatutArreteRestriction } from '../type/statut_arrete_restriction.type';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
+import { Departement } from '../../departement/entities/departement.entity';
+import { RessourceEapCommunique } from '../../arrete_cadre/type/arrete_cadre.type';
+import { Restriction } from './restriction.entity';
 
 @Entity()
 export class ArreteRestriction extends BaseEntity {
@@ -36,6 +42,19 @@ export class ArreteRestriction extends BaseEntity {
   })
   statut: StatutArreteRestriction;
 
+  @Column({ nullable: true })
+  niveauGraviteSpecifiqueEap: boolean;
+
+  @Column('enum', {
+    name: 'ressourceEapCommunique',
+    enum: ['esu', 'eso', 'max'],
+    nullable: true,
+  })
+  ressourceEapCommunique: RessourceEapCommunique;
+
+  @ManyToOne(() => Departement, (departement) => departement.arretesRestriction)
+  departement: Departement;
+
   @ManyToMany(
     () => ArreteCadre,
     (arreteCadre) => arreteCadre.arretesRestriction,
@@ -48,4 +67,13 @@ export class ArreteRestriction extends BaseEntity {
     name: 'arrete_restriction_zone_alerte',
   })
   zonesAlerte: ZoneAlerte[];
+
+  @OneToMany(() => Restriction, (restriction) => restriction.arreteRestriction)
+  restrictions: Restriction[];
+
+  @CreateDateColumn({ select: false, type: 'timestamp' })
+  created_at: number;
+
+  @UpdateDateColumn({ select: false, type: 'timestamp' })
+  updated_at: number;
 }

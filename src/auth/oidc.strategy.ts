@@ -6,8 +6,11 @@ import {
   UserinfoResponse,
   TokenSet,
   Issuer,
+  generators,
+  errors,
 } from 'openid-client';
 import { UserService } from '../user/user.service';
+import random = generators.random;
 
 export const buildOpenIdClient = async () => {
   const TrustIssuer = await Issuer.discover(
@@ -17,7 +20,7 @@ export const buildOpenIdClient = async () => {
     client_id: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_CLIENT_ID,
     client_secret: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_CLIENT_SECRET,
     acr_values: TrustIssuer.acr_values_supported,
-    response_types: ['id_token'],
+    response_type: 'code',
   });
   return client;
 };
@@ -36,18 +39,26 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
         scope: process.env.OAUTH2_CLIENT_REGISTRATION_LOGIN_SCOPE,
         acr_values: client.acr_values,
       },
-      passReqToCallback: false,
-      usePKCE: true,
+      passReqToCallback: true,
+      usePKCE: false,
     });
+    console.log('plep', client);
 
     this.client = client;
   }
 
+  authenticate(req, options: any = {}) {
+    options.nonce = random();
+    super.authenticate(req, options);
+  }
+
   async validate(tokenset: TokenSet): Promise<any> {
+    console.log('VALIDATE', tokenset);
     const userinfo: UserinfoResponse = await this.client.userinfo(tokenset);
     const userInDb = await this.userService.findOne(userinfo?.email);
 
     if (!userInDb) {
+      console.log('NOT USE IN DB');
       throw new UnauthorizedException();
     }
 
@@ -63,6 +74,7 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
       };
       return user;
     } catch (err) {
+      console.log('ERROR', err);
       throw new UnauthorizedException();
     }
   }

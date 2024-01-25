@@ -19,7 +19,6 @@ import {
 import { Departement } from '../../departement/entities/departement.entity';
 import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
-import { Region } from '../../core/entities/region.entity';
 
 @Entity()
 export class ArreteCadre extends BaseEntity {

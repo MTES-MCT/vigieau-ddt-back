@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { Usage } from '../../usage/entities/usage.entity';
+import { Restriction } from '../../arrete_restriction/entities/restriction.entity';
 
 @Entity()
 @Unique(['usage', 'arreteCadre'])
@@ -29,6 +30,13 @@ export class UsageArreteCadre {
   )
   @Index()
   arreteCadre: ArreteCadre;
+
+  @ManyToOne(
+    () => Restriction,
+    (restriction) => restriction.usagesArreteCadre,
+    { nullable: true },
+  )
+  restriction: Restriction;
 
   @Column({ nullable: true })
   concerneParticulier: boolean;

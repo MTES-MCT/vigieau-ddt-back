@@ -1,7 +1,8 @@
-import { IsNumber, IsString } from 'class-validator';
+import { IsBoolean, IsIn, IsNumber, IsObject, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { FilterOperator, PaginateConfig } from 'nestjs-paginate';
 import { ArreteRestriction } from '../entities/arrete_restriction.entity';
+import { DepartementDto } from '../../departement/dto/departement.dto';
 
 export class ArreteRestrictionDto {
   @IsNumber()
@@ -35,6 +36,26 @@ export class ArreteRestrictionDto {
     description: "Date de signature de l'arrêté de restriction",
   })
   dateSignature: string;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: false,
+    description:
+      "Des niveaux de gravité spécifiques vont-ils être définis pour l'AEP ?",
+  })
+  niveauGraviteSpecifiqueEap: boolean;
+
+  @IsString()
+  @IsIn(['esu', 'eso', 'max'])
+  @ApiProperty({
+    example: 'max',
+    description:
+      "Si niveau niveauGraviteSpecifiqueEap = false, quelle ressource sera utilisée pour communiquer sur l'AEP ?",
+  })
+  ressourceEapCommunique: 'esu' | 'eso' | 'max';
+
+  @IsObject()
+  departement: DepartementDto;
 }
 
 export const arreteRestrictionPaginateConfig: PaginateConfig<ArreteRestriction> =
@@ -52,15 +73,15 @@ export const arreteRestrictionPaginateConfig: PaginateConfig<ArreteRestriction> 
     sortableColumns: ['dateDebut'],
     defaultSortBy: [['dateDebut', 'DESC']],
     nullSort: 'last',
-    relations: ['arretesCadre', 'arretesCadre.departements'],
+    relations: ['arretesCadre', 'departement'],
     searchableColumns: [
       'numero',
       'arretesCadre.numero',
-      'arretesCadre.departements.nom',
-      'arretesCadre.departements.code',
+      'departement.nom',
+      'departement.code',
     ],
     filterableColumns: {
       statut: [FilterOperator.IN],
-      'arretesCadre.departements.id': [FilterOperator.EQ],
+      'departement.id': [FilterOperator.EQ],
     },
   };

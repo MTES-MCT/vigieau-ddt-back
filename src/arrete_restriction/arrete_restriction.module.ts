@@ -4,9 +4,13 @@ import { ArreteRestrictionController } from './arrete_restriction.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ArreteRestriction } from './entities/arrete_restriction.entity';
 import { DepartementModule } from '../departement/departement.module';
+import { Restriction } from './entities/restriction.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ArreteRestriction]), DepartementModule],
+  imports: [
+    TypeOrmModule.forFeature([ArreteRestriction, Restriction]),
+    DepartementModule,
+  ],
   controllers: [ArreteRestrictionController],
   providers: [ArreteRestrictionService],
   exports: [ArreteRestrictionService],

@@ -312,15 +312,27 @@ SET "descriptionCrise" = concat_ws(',' , "descriptionCrise", (select string_agg(
 UPDATE public.usage_arrete_cadre set "descriptionCrise" = null where "descriptionCrise" = '';
 
 -- ARRETES RESTRICTIONS
-INSERT INTO public.arrete_restriction (id, numero, statut, "dateDebut", "dateFin", "dateSignature")
+INSERT INTO public.arrete_restriction (id, numero, statut, "dateDebut", "dateFin", "dateSignature", "departementId")
 SELECT id_arrete, numero_arrete, (CASE
-                                                                      WHEN id_statut=1 THEN 'a_valider'::arrete_restriction_statut_enum
-                                                                      WHEN id_statut=2 THEN 'publie'::arrete_restriction_statut_enum
-                                                                      ELSE 'abroge'::arrete_restriction_statut_enum
-                                                                    END), debut_val_arrete, fin_val_arrete, date_signature
+                                      WHEN id_statut=1 THEN 'a_valider'::arrete_restriction_statut_enum
+                                      WHEN id_statut=2 THEN 'publie'::arrete_restriction_statut_enum
+                                      ELSE 'abroge'::arrete_restriction_statut_enum
+                                    END), debut_val_arrete, fin_val_arrete, date_signature,
+                                    id_dep
 from talend_ingestion_ppluvia.arretes;
 SELECT setval('arrete_restriction_id_seq', (SELECT MAX(id) FROM public.arrete_restriction)+1);
 
 -- ARRETES RESTRICTIONS / ARRETES CADRES
 INSERT INTO public.arrete_cadre_arrete_restriction ("arreteCadreId", "arreteRestrictionId")
 SELECT DISTINCT id_arrete_cadre, id_arrete from talend_ingestion_ppluvia.arretes where id_arrete_cadre is not null;
+
+-- RESTRICTIONS
+INSERT INTO public.restriction ("arreteRestrictionId", "zoneAlerteId", "niveauGravite")
+SELECT id_arrete, id_zone, (CASE
+                                 WHEN id_niveau=17 THEN 'vigilance'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=18 THEN 'alerte'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=19 THEN 'alerte_renforcee'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=20 THEN 'crise'::restriction_niveauGravite_enum
+                               END)
+from talend_ingestion_ppluvia.composition_alertes where id_niveau >= 17;
+SELECT setval('restriction_id_seq', (SELECT MAX(id) FROM public.restriction)+1);
