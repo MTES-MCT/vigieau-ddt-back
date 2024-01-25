@@ -4,8 +4,12 @@ import { AuthGuard } from '@nestjs/passport';
 @Injectable()
 export class LoginGuard extends AuthGuard('oidc') {
   async canActivate(context: ExecutionContext) {
-    console.log('plep 1');
-    const result = (await super.canActivate(context)) as boolean;
+    console.log('plep 1', context);
+    try {
+      const result = (await super.canActivate(context)) as boolean;
+    } catch (e) {
+      console.log(e);
+    }
     console.log('plep 2');
     const request = context.switchToHttp().getRequest();
     console.log('plep 3');

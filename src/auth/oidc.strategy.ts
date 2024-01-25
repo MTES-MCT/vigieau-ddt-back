@@ -42,7 +42,6 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
       passReqToCallback: true,
       usePKCE: false,
     });
-    console.log('plep', client);
 
     this.client = client;
   }
