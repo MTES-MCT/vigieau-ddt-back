@@ -27,6 +27,7 @@ import { DepartementService } from '../departement/departement.service';
 import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { MailService } from '../shared/services/mail.service';
 import { UserService } from '../user/user.service';
+import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
 
 @Injectable()
 export class ArreteCadreService {
@@ -63,6 +64,51 @@ export class ArreteCadreService {
     });
 
     return paginateToReturn;
+  }
+
+  async find(currentUser?: User, depCode?: string): Promise<ArreteCadre[]> {
+    const whereClause: FindOptionsWhere<ArreteCadre> | null = {
+      statut: In(['a_venir', 'publie']),
+      departements: {
+        code:
+          !currentUser || currentUser.role === 'mte'
+            ? depCode
+            : currentUser.role_departement,
+      },
+    };
+    return this.arreteCadreRepository.find({
+      select: {
+        id: true,
+        numero: true,
+        dateDebut: true,
+        dateFin: true,
+        statut: true,
+        communeNiveauGraviteMax: true,
+        niveauGraviteSpecifiqueEap: true,
+        ressourceEapCommunique: true,
+        zonesAlerte: {
+          id: true,
+          code: true,
+          nom: true,
+          type: true,
+          departement: {
+            id: true,
+            code: true,
+          },
+        },
+        arretesRestriction: {
+          id: true,
+          numero: true,
+          statut: true,
+        },
+      },
+      relations: [
+        'zonesAlerte',
+        'zonesAlerte.departement',
+        'arretesRestriction',
+      ],
+      where: whereClause,
+    });
   }
 
   async findOne(id: number, curentUser?: User) {

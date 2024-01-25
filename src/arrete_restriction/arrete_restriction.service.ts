@@ -53,16 +53,71 @@ export class ArreteRestrictionService {
     return paginateToReturn;
   }
 
-  async findOne(id: number, curentUser?: User) {
+  async find(
+    currentUser?: User,
+    depCode?: string,
+  ): Promise<ArreteRestriction[]> {
+    const whereClause: FindOptionsWhere<ArreteRestriction> | null = {
+      statut: In(['a_venir', 'publie']),
+      arretesCadre: {
+        zonesAlerte: {
+          departement: {
+            code:
+              !currentUser || currentUser.role === 'mte'
+                ? depCode
+                : currentUser.role_departement,
+          },
+        },
+      },
+    };
+    return this.arreteRestrictionRepository.find({
+      select: {
+        id: true,
+        numero: true,
+        dateDebut: true,
+        dateFin: true,
+        dateSignature: true,
+        statut: true,
+        zonesAlerte: {
+          id: true,
+        },
+        arretesCadre: {
+          id: true,
+          numero: true,
+          statut: true,
+          zonesAlerte: {
+            id: true,
+            code: true,
+            nom: true,
+            type: true,
+            departement: {
+              id: true,
+              code: true,
+              nom: true,
+            },
+          },
+        },
+      },
+      relations: [
+        'zonesAlerte',
+        'arretesCadre',
+        'arretesCadre.zonesAlerte',
+        'arretesCadre.zonesAlerte.departement',
+      ],
+      where: whereClause,
+    });
+  }
+
+  async findOne(id: number, currentUser?: User) {
     const whereClause: FindOptionsWhere<ArreteRestriction> | null =
-      !curentUser || curentUser.role === 'mte'
+      !currentUser || currentUser.role === 'mte'
         ? { id }
         : {
             id,
             arretesCadre: {
               zonesAlerte: {
                 departement: {
-                  code: curentUser.role_departement,
+                  code: currentUser.role_departement,
                 },
               },
             },

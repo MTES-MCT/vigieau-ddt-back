@@ -10,6 +10,7 @@ import {
   Delete,
   UseInterceptors,
   UploadedFile,
+  Query,
 } from '@nestjs/common';
 import { ArreteCadreService } from './arrete_cadre.service';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
@@ -31,10 +32,7 @@ import {
   PaginatedSwaggerDocs,
   PaginateQuery,
 } from 'nestjs-paginate';
-import {
-  AcUpdateZoneAlerteDto,
-  CreateUpdateArreteCadreDto,
-} from './dto/create_update_arrete_cadre.dto';
+import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
 import { Dev } from '../core/decorators/dev.decorator';
 import { Public } from '../core/decorators/public.decorator';
 import { DeleteResult } from 'typeorm';
@@ -60,6 +58,26 @@ export class ArreteCadreController {
     return plainToInstance(
       Paginated<ArreteCadreDto>,
       camelcaseKeys(paginated, { deep: true }),
+    );
+  }
+
+  @Get('')
+  @ApiOperation({ summary: 'Retourne des arrêtés cadre' })
+  @ApiResponse({
+    status: 201,
+    type: [ArreteCadreDto],
+  })
+  async find(
+    @Req() req,
+    @Query('depCode') depCode?: string,
+  ): Promise<ArreteCadreDto[]> {
+    const arretesCadre = await this.arreteCadreService.find(
+      req.session.user,
+      depCode,
+    );
+    return plainToInstance(
+      ArreteCadreDto,
+      camelcaseKeys(arretesCadre, { deep: true }),
     );
   }
 
