@@ -311,6 +311,20 @@ SET "descriptionCrise" = concat_ws(',' , "descriptionCrise", (select string_agg(
                                                      and u.id = uac."usageId" and r.id_arrete_cadre = uac."arreteCadreId"));
 UPDATE public.usage_arrete_cadre set "descriptionCrise" = null where "descriptionCrise" = '';
 
+-- USAGES CONCERNE
+UPDATE public.usage as u
+set "concerneParticulier" = (select bool_or("concerneParticulier")
+                             from public.usage_arrete_cadre as uac where uac."usageId" = u.id);
+UPDATE public.usage as u
+set "concerneEntreprise" = (select bool_or("concerneEntreprise")
+                             from public.usage_arrete_cadre as uac where uac."usageId" = u.id);
+UPDATE public.usage as u
+set "concerneCollectivite" = (select bool_or("concerneCollectivite")
+                             from public.usage_arrete_cadre as uac where uac."usageId" = u.id);
+UPDATE public.usage as u
+set "concerneExploitation" = (select bool_or("concerneExploitation")
+                             from public.usage_arrete_cadre as uac where uac."usageId" = u.id);
+
 -- ARRETES RESTRICTIONS
 INSERT INTO public.arrete_restriction (id, numero, statut, "dateDebut", "dateFin", "dateSignature", "departementId")
 SELECT id_arrete, numero_arrete, (CASE

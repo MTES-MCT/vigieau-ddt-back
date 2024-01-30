@@ -27,7 +27,6 @@ import { DepartementService } from '../departement/departement.service';
 import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { MailService } from '../shared/services/mail.service';
 import { UserService } from '../user/user.service';
-import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
 
 @Injectable()
 export class ArreteCadreService {
@@ -251,7 +250,10 @@ export class ArreteCadreService {
     }
     toSave =
       new Date(publishArreteCadreDto.dateDebut) <= new Date()
-        ? { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
+        ? publishArreteCadreDto.dateFin &&
+          new Date(publishArreteCadreDto.dateFin) <= new Date()
+          ? { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } }
+          : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
     return this.arreteCadreRepository.save(toSave);
   }
