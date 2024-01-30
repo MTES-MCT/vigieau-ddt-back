@@ -255,7 +255,9 @@ export class ArreteCadreService {
           ? { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } }
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
-    return this.arreteCadreRepository.save(toSave);
+    const toReturn = await this.arreteCadreRepository.save(toSave);
+    await this.arreteRestrictionService.updateArreteRestrictionStatut();
+    return toReturn;
   }
 
   async repeal(
@@ -278,7 +280,9 @@ export class ArreteCadreService {
     if (new Date(repealArreteCadreDto.dateFin) <= new Date()) {
       toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
     }
-    return this.arreteCadreRepository.save(toSave);
+    const toReturn = await this.arreteCadreRepository.save(toSave);
+    await this.arreteRestrictionService.updateArreteRestrictionStatut();
+    return toReturn;
   }
 
   async remove(id: number, curentUser: User) {
