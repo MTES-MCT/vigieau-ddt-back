@@ -63,42 +63,4 @@ export class ZoneAlerteController {
       camelcaseKeys(zonesAlerte, { deep: true }),
     );
   }
-
-  @Post(':departementCode/:typeZone/check')
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiOperation({
-    summary: "Vérifie les zones d'alerte d'un département",
-  })
-  @UseGuards(RolesGuard)
-  @Roles(['mte'])
-  async verifyZones(
-    @UploadedFile() file: Express.Multer.File,
-    @Param('departementCode') departementCode: string,
-    @Param('typeZone') typeZone: 'SUP' | 'SOU',
-  ) {
-    return this.zoneAlerteService.importTmpZones(
-      file,
-      departementCode,
-      typeZone,
-    );
-  }
-
-  @Get(':departementCode/:typeZone/check')
-  @ApiOperation({
-    summary: "Vérification des zones d'alertes temporaires d'un département",
-  })
-  @UseGuards(RolesGuard)
-  @Roles(['mte'])
-  async checkByDepartement(
-    @Param('departementCode') departementCode: string,
-    @Param('typeZone') typeZone: 'SUP' | 'SOU',
-  ): Promise<ZoneAlerteVerificationDto> {
-    return plainToInstance(
-      ZoneAlerteVerificationDto,
-      camelcaseKeys(
-        await this.zoneAlerteService.verifyZones(departementCode, typeZone),
-        { deep: true },
-      ),
-    );
-  }
 }
