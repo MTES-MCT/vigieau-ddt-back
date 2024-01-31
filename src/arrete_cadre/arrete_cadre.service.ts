@@ -537,6 +537,50 @@ export class ArreteCadreService {
     this.arreteRestrictionService.updateArreteRestrictionStatut();
   }
 
+  /**
+   * Vérification s'il faut envoyer des mails de relance tous les jours à 8h du matin
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_8AM)
+  async sendArreteCadreEmails() {
+    const [ac15ARelancer, ac2ARelancer] = await Promise.all([
+      this.getAcAtXDays(15),
+      this.getAcAtXDays(2),
+    ]);
+    for (const ac of ac15ARelancer.concat(ac2ARelancer)) {
+      const usersToSendMail = await this.userService.findByDepartementsId(
+        ac.departements.map((d) => d.id),
+      );
+      const nbJoursFin = ac15ARelancer.some((a) => a.id === ac.id) ? 15 : 2;
+      await this.mailService.sendEmails(
+        usersToSendMail.map((u) => u.email),
+        `L'arrêté ${ac.numero} se termine dans ${nbJoursFin} jours`,
+        'relance_arrete',
+        {
+          arreteNumero: ac.numero,
+          arreteDateFin: ac.dateFin,
+          joursFin: nbJoursFin,
+          isAc: true,
+          arreteLien: `https://${process.env.DOMAIN_NAME}/arrete-cadre/${ac.id}/edition`,
+        },
+      );
+    }
+  }
+
+  private getAcAtXDays(days: number) {
+    return this.arreteCadreRepository
+      .createQueryBuilder('arrete_cadre')
+      .leftJoinAndSelect('arrete_cadre.departements', 'departement')
+      .where('arrete_cadre.statut IN (:...statuts)', {
+        statuts: ['a_venir', 'publie'],
+      })
+      .having(
+        `DATE_PART('day', "dateFin"::timestamp - CURRENT_DATE::timestamp) = ${days}`,
+      )
+      .groupBy('arrete_cadre.id')
+      .addGroupBy('departement.id')
+      .getMany();
+  }
+
   /************************************************************************************ TEST FUNCTIONS ************************************************************************************/
 
   /**
