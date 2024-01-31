@@ -1,8 +1,14 @@
 import { Departement } from 'src/departement/entities/departement.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  BaseEntity,
+  Column,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity()
-export class Region {
+export class Region extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

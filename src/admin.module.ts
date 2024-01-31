@@ -3,6 +3,9 @@ import { User } from './user/entities/user.entity';
 import { Thematique } from './thematique/entities/thematique.entity';
 import { Usage } from './usage/entities/usage.entity';
 import { ZoneAlerte } from './zone_alerte/entities/zone_alerte.entity';
+import { Departement } from './departement/entities/departement.entity';
+import { BassinVersant } from './core/entities/bassin_versant.entity';
+import { Region } from './core/entities/region.entity';
 
 const DEFAULT_ADMIN = {
   email: process.env.ADMINJS_USER,
@@ -29,7 +32,15 @@ const authenticate = async (email: string, password: string) => {
         useFactory: () => ({
           adminJsOptions: {
             rootPath: '/admin',
-            resources: [User, Thematique, Usage, ZoneAlerte],
+            resources: [
+              User,
+              Thematique,
+              Usage,
+              ZoneAlerte,
+              Departement,
+              BassinVersant,
+              Region,
+            ],
           },
           auth: {
             authenticate,
