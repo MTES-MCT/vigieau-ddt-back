@@ -83,6 +83,8 @@ export const arreteCadrePaginateConfig: PaginateConfig<ArreteCadre> = {
     'arretesRestriction.id',
     'arretesRestriction.numero',
     'arretesRestriction.statut',
+    'zonesAlerte.id',
+    'zonesAlerte.disabled',
   ],
   sortableColumns: ['dateDebut'],
   defaultSortBy: [['dateDebut', 'DESC']],

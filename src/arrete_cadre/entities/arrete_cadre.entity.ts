@@ -96,9 +96,6 @@ export class ArreteCadre extends BaseEntity {
   )
   usagesArreteCadre: UsageArreteCadre[];
 
-  @Column({ default: true })
-  isLastZoneVersion: boolean;
-
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
 

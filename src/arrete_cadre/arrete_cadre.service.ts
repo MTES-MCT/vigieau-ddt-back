@@ -75,7 +75,7 @@ export class ArreteCadreService {
             : currentUser.role_departement,
       },
     };
-    return this.arreteCadreRepository.find({
+    const acToReturn = await this.arreteCadreRepository.find({
       select: {
         id: true,
         numero: true,
@@ -90,6 +90,7 @@ export class ArreteCadreService {
           code: true,
           nom: true,
           type: true,
+          disabled: true,
           departement: {
             id: true,
             code: true,
@@ -108,6 +109,7 @@ export class ArreteCadreService {
       ],
       where: whereClause,
     });
+    return acToReturn.filter((ac) => !ac.zonesAlerte.some((za) => za.disabled));
   }
 
   async findOne(id: number, curentUser?: User) {
@@ -143,6 +145,7 @@ export class ArreteCadreService {
             code: true,
             nom: true,
             type: true,
+            disabled: true,
           },
           arretesRestriction: {
             id: true,
@@ -310,7 +313,8 @@ export class ArreteCadreService {
         (arreteCadre.statut !== 'abroge' &&
           arreteCadre.departements.some(
             (d) => d.code === user.role_departement,
-          )))
+          ) &&
+          !arreteCadre.zonesAlerte.some((za) => za.disabled)))
     );
   }
 

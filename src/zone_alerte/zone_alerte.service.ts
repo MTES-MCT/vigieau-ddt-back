@@ -1,12 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { ZoneAlerte } from './entities/zone_alerte.entity';
-import { DepartementService } from '../departement/departement.service';
-import {
-  ZoneAlerteComparaisonDepartement,
-  ZoneAlerteComparaisonZone,
-} from './dto/zone_alerte_verification.dto';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
@@ -14,7 +9,6 @@ export class ZoneAlerteService {
   constructor(
     @InjectRepository(ZoneAlerte)
     private readonly zoneAlerteRepository: Repository<ZoneAlerte>,
-    private readonly departementService: DepartementService,
   ) {}
 
   findByDepartement(departementCode: string): Promise<ZoneAlerte[]> {
@@ -46,10 +40,19 @@ export class ZoneAlerteService {
   }
 
   /**
-   * Vérification régulière si il n'y a pas de nouvelles zones
+   * Vérification régulière s'il n'y a pas de nouvelles zones
    */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async updateZones() {
-    // TODO appel à l'API SANDRE
+    /**
+     * TODO
+     * Appel à l'API SANDRE
+     * Vérifier si des nouvelles ZA sont présentes
+     * Si non, RAS
+     * Si oui, les ajouter en BDD et désactiver les anciennes
+     * Récupérer les codes des ZA qui ne peuvent pas être migrées
+     * Récupérer les AC qui n'ont QUE des ZAs pouvant être migrées
+     * Pour les AC ne comportant que des ZA pouvant être migrées, les migrer
+     */
   }
 }

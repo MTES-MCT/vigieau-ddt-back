@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { User } from './user/entities/user.entity';
 import { Thematique } from './thematique/entities/thematique.entity';
 import { Usage } from './usage/entities/usage.entity';
+import { ZoneAlerte } from './zone_alerte/entities/zone_alerte.entity';
 
 const DEFAULT_ADMIN = {
   email: process.env.ADMINJS_USER,
@@ -28,7 +29,7 @@ const authenticate = async (email: string, password: string) => {
         useFactory: () => ({
           adminJsOptions: {
             rootPath: '/admin',
-            resources: [User, Thematique, Usage],
+            resources: [User, Thematique, Usage, ZoneAlerte],
           },
           auth: {
             authenticate,
