@@ -146,6 +146,10 @@ export class ArreteCadreService {
             nom: true,
             type: true,
             disabled: true,
+            departement: {
+              id: true,
+              code: true,
+            },
           },
           arretesRestriction: {
             id: true,
@@ -153,7 +157,12 @@ export class ArreteCadreService {
             statut: true,
           },
         },
-        relations: ['departementPilote', 'zonesAlerte', 'arretesRestriction'],
+        relations: [
+          'departementPilote',
+          'zonesAlerte',
+          'zonesAlerte.departement',
+          'arretesRestriction',
+        ],
         where: whereClause,
       }),
       this.uageArreteCadreService.findByArreteCadre(id),
