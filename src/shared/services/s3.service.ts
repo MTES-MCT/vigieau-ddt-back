@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { RegleauLogger } from '../../logger/regleau.logger';
-import { DeleteObjectCommand, S3 } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
+  S3,
+} from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import process from 'node:process';
 
@@ -17,9 +22,51 @@ export class S3Service {
   });
   constructor() {}
 
+  // async deleteAllFiles() {
+  //   const client = this.client;
+  //   let count = 0; // number of files deleted
+  //   async function recursiveDelete(token: string = null) {
+  //     // get the files
+  //     const listCommand = new ListObjectsV2Command({
+  //       Bucket: process.env.S3_BUCKET,
+  //       Prefix: 'dev/',
+  //       ContinuationToken: token,
+  //     });
+  //     const list = await client.send(listCommand);
+  //     if (list.KeyCount) {
+  //       // if items to delete
+  //       // delete the files
+  //       const deleteCommand = new DeleteObjectsCommand({
+  //         Bucket: process.env.S3_BUCKET,
+  //         Delete: {
+  //           Objects: list.Contents.map((item) => ({ Key: item.Key })),
+  //           Quiet: false,
+  //         },
+  //       });
+  //       const deleted = await client.send(deleteCommand);
+  //       count += deleted.Deleted.length;
+  //       // log any errors deleting files
+  //       if (deleted.Errors) {
+  //         deleted.Errors.map((error) =>
+  //           console.log(`${error.Key} could not be deleted - ${error.Code}`),
+  //         );
+  //       }
+  //     }
+  //     // repeat if more files to delete
+  //     if (list.NextContinuationToken) {
+  //       recursiveDelete(list.NextContinuationToken);
+  //     }
+  //     // return total deleted count when finished
+  //     return `${count} files deleted.`;
+  //   }
+  //   // start the recursive function
+  //   return recursiveDelete();
+  // }
+
   async uploadFile(file: Express.Multer.File, prefix: string = '') {
     const { originalname } = file;
 
+    console.log('UPLOADING ', prefix, originalname);
     return await this.s3_upload(
       file.buffer,
       process.env.S3_BUCKET,

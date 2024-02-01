@@ -72,7 +72,7 @@ export const arreteRestrictionPaginateConfig: PaginateConfig<ArreteRestriction> 
     ],
     sortableColumns: ['dateDebut'],
     defaultSortBy: [['dateDebut', 'DESC']],
-    nullSort: 'last',
+    nullSort: 'first',
     relations: ['arretesCadre', 'departement'],
     searchableColumns: [
       'numero',

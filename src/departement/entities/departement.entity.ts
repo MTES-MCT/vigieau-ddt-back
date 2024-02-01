@@ -41,7 +41,7 @@ export class Departement extends BaseEntity {
   @ManyToMany(() => ArreteCadre, (arreteCadre) => arreteCadre.departements)
   arretesCadre: ArreteCadre[];
 
-  @OneToMany(() => ArreteCadre, (arreteCadre) => arreteCadre.departements)
+  @OneToMany(() => ArreteCadre, (arreteCadre) => arreteCadre.departementPilote)
   arretesCadrePilote: ArreteCadre[];
 
   @OneToMany(

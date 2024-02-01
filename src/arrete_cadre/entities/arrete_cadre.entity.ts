@@ -3,10 +3,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -19,6 +21,7 @@ import {
 import { Departement } from '../../departement/entities/departement.entity';
 import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
+import { Fichier } from '../../fichier/entities/fichier.entity';
 
 @Entity()
 export class ArreteCadre extends BaseEntity {
@@ -34,11 +37,9 @@ export class ArreteCadre extends BaseEntity {
   @Column({ type: 'date', nullable: true })
   dateFin: string;
 
-  @Column({ nullable: true, length: 200 })
-  url: string;
-
-  @Column({ nullable: true, length: 200 })
-  urlDdt: string;
+  @OneToOne(() => Fichier, (fichier) => fichier.arreteCadre)
+  @JoinColumn()
+  fichier: Fichier;
 
   @ManyToOne(() => Departement, (departement) => departement.arretesCadrePilote)
   departementPilote: Departement;

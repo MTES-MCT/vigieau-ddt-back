@@ -3,10 +3,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -16,6 +18,7 @@ import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 import { RessourceEapCommunique } from '../../arrete_cadre/type/arrete_cadre.type';
 import { Restriction } from './restriction.entity';
+import { Fichier } from '../../fichier/entities/fichier.entity';
 
 @Entity()
 export class ArreteRestriction extends BaseEntity {
@@ -33,6 +36,10 @@ export class ArreteRestriction extends BaseEntity {
 
   @Column({ type: 'date', nullable: true })
   dateFin: string;
+
+  @OneToOne(() => Fichier, (fichier) => fichier.arreteRestriction)
+  @JoinColumn()
+  fichier: Fichier;
 
   @Column('enum', {
     name: 'statut',

@@ -6,6 +6,7 @@ import { ZoneAlerte } from './zone_alerte/entities/zone_alerte.entity';
 import { Departement } from './departement/entities/departement.entity';
 import { BassinVersant } from './core/entities/bassin_versant.entity';
 import { Region } from './core/entities/region.entity';
+import { FichierModule } from './fichier/fichier.module';
 
 const DEFAULT_ADMIN = {
   email: process.env.ADMINJS_USER,
@@ -55,6 +56,7 @@ const authenticate = async (email: string, password: string) => {
         }),
       });
     }),
+    FichierModule,
   ],
   controllers: [],
   providers: [],

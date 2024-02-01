@@ -1,4 +1,11 @@
-import { IsArray, IsBoolean, IsIn, IsNumber, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsNumber,
+  IsObject,
+  IsString,
+} from 'class-validator';
 import { DepartementDto } from '../../departement/dto/departement.dto';
 import { ZoneAlerteDto } from '../../zone_alerte/dto/zone_alerte.dto';
 import { UsageArreteCadreDto } from '../../usage_arrete_cadre/dto/usage_arrete_cadre.dto';
@@ -6,6 +13,7 @@ import { ArreteRestrictionDto } from '../../arrete_restriction/dto/arrete_restri
 import { FilterOperator, PaginateConfig } from 'nestjs-paginate';
 import { ArreteCadre } from '../entities/arrete_cadre.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { FichierDto } from '../../fichier/dto/fichier.dto';
 
 export class ArreteCadreDto {
   @IsNumber()
@@ -55,6 +63,14 @@ export class ArreteCadreDto {
       "Si niveau niveauGraviteSpecifiqueEap = false, quelle ressource sera utilisée pour communiquer sur l'AEP ?",
   })
   ressourceEapCommunique: 'esu' | 'eso' | 'max';
+
+  @IsObject()
+  @ApiProperty({ type: FichierDto })
+  fichier: FichierDto;
+
+  @IsObject()
+  @ApiProperty({ type: DepartementDto })
+  departementPilote: DepartementDto;
 
   @IsArray()
   @ApiProperty({ type: [DepartementDto] })

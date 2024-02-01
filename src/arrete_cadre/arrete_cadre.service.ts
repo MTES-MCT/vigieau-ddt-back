@@ -22,11 +22,11 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { RepealArreteCadreDto } from './dto/repeal_arrete_cadre.dto';
 import { ArreteRestrictionService } from '../arrete_restriction/arrete_restriction.service';
-import { S3Service } from '../shared/services/s3.service';
 import { DepartementService } from '../departement/departement.service';
 import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { MailService } from '../shared/services/mail.service';
 import { UserService } from '../user/user.service';
+import { FichierService } from '../fichier/fichier.service';
 
 @Injectable()
 export class ArreteCadreService {
@@ -37,11 +37,11 @@ export class ArreteCadreService {
     private readonly arreteCadreRepository: Repository<ArreteCadre>,
     private readonly uageArreteCadreService: UsageArreteCadreService,
     private readonly arreteRestrictionService: ArreteRestrictionService,
-    private readonly s3Service: S3Service,
     private readonly departementService: DepartementService,
     private readonly zoneAlerteService: ZoneAlerteService,
     private readonly mailService: MailService,
     private readonly userService: UserService,
+    private readonly fichierService: FichierService,
   ) {}
 
   async findAll(query: PaginateQuery): Promise<Paginated<ArreteCadre>> {
@@ -129,12 +129,16 @@ export class ArreteCadreService {
           numero: true,
           dateDebut: true,
           dateFin: true,
-          url: true,
-          urlDdt: true,
           statut: true,
           communeNiveauGraviteMax: true,
           niveauGraviteSpecifiqueEap: true,
           ressourceEapCommunique: true,
+          fichier: {
+            id: true,
+            nom: true,
+            url: true,
+            size: true,
+          },
           departementPilote: {
             id: true,
             code: true,
@@ -162,6 +166,7 @@ export class ArreteCadreService {
           'zonesAlerte',
           'zonesAlerte.departement',
           'arretesRestriction',
+          'fichier',
         ],
         where: whereClause,
       }),
@@ -239,7 +244,7 @@ export class ArreteCadreService {
     if (!(await this.canUpdateArreteCadre(ac, currentUser, !arreteCadrePdf))) {
       return;
     }
-    if (!arreteCadrePdf && !ac.url) {
+    if (!arreteCadrePdf && !ac.fichier) {
       throw new HttpException(
         `Le PDF de l'arrêté cadre est obligatoire.`,
         HttpStatus.BAD_REQUEST,
@@ -251,14 +256,14 @@ export class ArreteCadreService {
     };
     // Upload du PDF de l'arrêté cadre
     if (arreteCadrePdf) {
-      if (ac.url) {
-        await this.s3Service.deleteFile(ac.url);
+      if (ac.fichier) {
+        await this.fichierService.deleteById(ac.fichier.id);
       }
-      const s3Response = await this.s3Service.uploadFile(
+      const newFile = await this.fichierService.create(
         arreteCadrePdf,
         `arrete-cadre/${ac.id}/`,
       );
-      toSave.url = s3Response.Location;
+      toSave.fichier = { id: newFile.id };
     }
     toSave =
       new Date(publishArreteCadreDto.dateDebut) <= new Date()
@@ -317,7 +322,7 @@ export class ArreteCadreService {
   ): Promise<boolean> {
     return (
       arreteCadre &&
-      (!containUrl || !!arreteCadre.url) &&
+      (!containUrl || !!arreteCadre.fichier) &&
       (user.role === 'mte' ||
         (arreteCadre.statut !== 'abroge' &&
           arreteCadre.departements.some(

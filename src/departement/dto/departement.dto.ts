@@ -1,7 +1,6 @@
 import { IsArray, IsNumber, IsString } from 'class-validator';
 import { ZoneAlerteDto } from '../../zone_alerte/dto/zone_alerte.dto';
 import { ApiProperty } from '@nestjs/swagger';
-import { ArreteRestrictionDto } from '../../arrete_restriction/dto/arrete_restriction.dto';
 
 export class DepartementDto {
   @IsNumber()

@@ -27,13 +27,9 @@ export class ArreteRestrictionController {
   @ApiOperation({ summary: 'Retourne les arrêtés de restrictions paginés' })
   @PaginatedSwaggerDocs(ArreteRestrictionDto, arreteRestrictionPaginateConfig)
   async findAll(
-    @Req() req,
     @Paginate() query: PaginateQuery,
   ): Promise<Paginated<ArreteRestrictionDto>> {
-    const paginated = await this.arreteRestrictionService.findAll(
-      req.session.user,
-      query,
-    );
+    const paginated = await this.arreteRestrictionService.findAll(query);
     return plainToInstance(
       Paginated<ArreteRestrictionDto>,
       camelcaseKeys(paginated, { deep: true }),

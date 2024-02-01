@@ -24,10 +24,7 @@ export class ArreteRestrictionService {
     private readonly departementService: DepartementService,
   ) {}
 
-  async findAll(
-    curentUser: User,
-    query: PaginateQuery,
-  ): Promise<Paginated<ArreteRestriction>> {
+  async findAll(query: PaginateQuery): Promise<Paginated<ArreteRestriction>> {
     const paginateConfig = arreteRestrictionPaginateConfig;
     const paginateToReturn = await paginate(
       query,
@@ -133,6 +130,12 @@ export class ArreteRestrictionService {
         zonesAlerte: {
           id: true,
         },
+        fichier: {
+          id: true,
+          nom: true,
+          url: true,
+          size: true,
+        },
         arretesCadre: {
           id: true,
           numero: true,
@@ -152,6 +155,7 @@ export class ArreteRestrictionService {
       },
       relations: [
         'zonesAlerte',
+        'fichier',
         'arretesCadre',
         'arretesCadre.zonesAlerte',
         'arretesCadre.zonesAlerte.departement',

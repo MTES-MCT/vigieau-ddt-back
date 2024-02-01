@@ -9,6 +9,7 @@ import { SharedModule } from '../shared/shared.module';
 import { DepartementModule } from '../departement/departement.module';
 import { ZoneAlerteModule } from '../zone_alerte/zone_alerte.module';
 import { UserModule } from '../user/user.module';
+import { FichierModule } from '../fichier/fichier.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { UserModule } from '../user/user.module';
     DepartementModule,
     forwardRef(() => ZoneAlerteModule),
     UserModule,
+    FichierModule,
   ],
   controllers: [ArreteCadreController],
   providers: [ArreteCadreService],
