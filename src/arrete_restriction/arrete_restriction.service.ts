@@ -75,9 +75,6 @@ export class ArreteRestrictionService {
         dateFin: true,
         dateSignature: true,
         statut: true,
-        zonesAlerte: {
-          id: true,
-        },
         arretesCadre: {
           id: true,
           numero: true,
@@ -96,7 +93,6 @@ export class ArreteRestrictionService {
         },
       },
       relations: [
-        'zonesAlerte',
         'arretesCadre',
         'arretesCadre.zonesAlerte',
         'arretesCadre.zonesAlerte.departement',
@@ -127,9 +123,6 @@ export class ArreteRestrictionService {
         dateFin: true,
         dateSignature: true,
         statut: true,
-        zonesAlerte: {
-          id: true,
-        },
         fichier: {
           id: true,
           nom: true,
@@ -152,13 +145,28 @@ export class ArreteRestrictionService {
             },
           },
         },
+        restrictions: {
+          id: true,
+          zoneAlerte: {
+            id: true,
+            code: true,
+            nom: true,
+            type: true,
+          },
+          niveauGravite: true,
+        },
+        departement: {
+          id: true,
+        },
       },
       relations: [
-        'zonesAlerte',
         'fichier',
         'arretesCadre',
         'arretesCadre.zonesAlerte',
         'arretesCadre.zonesAlerte.departement',
+        'restrictions',
+        'restrictions.zoneAlerte',
+        'departement',
       ],
       where: whereClause,
     });

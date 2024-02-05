@@ -2,6 +2,7 @@ import {
   Column,
   Entity,
   Index,
+  ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
@@ -31,12 +32,8 @@ export class UsageArreteCadre {
   @Index()
   arreteCadre: ArreteCadre;
 
-  @ManyToOne(
-    () => Restriction,
-    (restriction) => restriction.usagesArreteCadre,
-    { nullable: true },
-  )
-  restriction: Restriction;
+  @ManyToMany(() => Restriction, (restriction) => restriction.usagesArreteCadre)
+  restrictions: Restriction[];
 
   @Column({ nullable: true })
   concerneParticulier: boolean;

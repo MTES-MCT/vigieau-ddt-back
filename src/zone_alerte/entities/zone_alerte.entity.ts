@@ -51,12 +51,6 @@ export class ZoneAlerte extends BaseEntity {
   @ManyToMany(() => ArreteCadre, (arreteCadre) => arreteCadre.zonesAlerte)
   arretesCadre: ArreteCadre[];
 
-  @ManyToMany(
-    () => ArreteRestriction,
-    (arreteRestriction) => arreteRestriction.zonesAlerte,
-  )
-  arretesRestriction: ArreteRestriction[];
-
   @OneToMany(() => Restriction, (restriction) => restriction.zoneAlerte)
   restrictions: Restriction[];
 

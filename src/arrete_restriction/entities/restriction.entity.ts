@@ -2,8 +2,9 @@ import {
   BaseEntity,
   Column,
   Entity,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
@@ -32,9 +33,12 @@ export class Restriction extends BaseEntity {
   })
   niveauGravite: NiveauGravite;
 
-  @OneToMany(
+  @ManyToMany(
     () => UsageArreteCadre,
-    (usagesArreteCadre) => usagesArreteCadre.restriction,
+    (usagesArreteCadre) => usagesArreteCadre.restrictions,
   )
+  @JoinTable({
+    name: 'restriction_usage_arrete_cadre',
+  })
   usagesArreteCadre: UsageArreteCadre[];
 }

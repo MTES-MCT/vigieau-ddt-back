@@ -96,6 +96,9 @@ where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as pp
 INSERT INTO public.fichier (nom, size, url, created_at) SELECT nom, size, url, created_at from public.fichier where id = 74264 ; UPDATE public.arrete_restriction as ar set "fichierId" = 74264
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 74264 order by ppar.id_arrete ASC LIMIT 1); UPDATE public.arrete_restriction as ar set "fichierId" = (select MAX(f.id) from public.fichier as f)
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 74264 order by ppar.id_arrete DESC LIMIT 1);
+INSERT INTO public.fichier (nom, size, url, created_at) SELECT nom, size, url, created_at from public.fichier where id = 74264 ; UPDATE public.arrete_restriction as ar set "fichierId" = 74264
+where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 74264 order by ppar.id_arrete ASC LIMIT 1); UPDATE public.arrete_restriction as ar set "fichierId" = (select MAX(f.id) from public.fichier as f)
+where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 74264 order by ppar.id_arrete DESC LIMIT 1 OFFSET 1);
 INSERT INTO public.fichier (nom, size, url, created_at) SELECT nom, size, url, created_at from public.fichier where id = 90632 ; UPDATE public.arrete_restriction as ar set "fichierId" = 90632
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 90632 order by ppar.id_arrete ASC LIMIT 1); UPDATE public.arrete_restriction as ar set "fichierId" = (select MAX(f.id) from public.fichier as f)
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 90632 order by ppar.id_arrete DESC LIMIT 1);
@@ -225,6 +228,9 @@ where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as pp
 INSERT INTO public.fichier (nom, size, url, created_at) SELECT nom, size, url, created_at from public.fichier where id = 73332 ; UPDATE public.arrete_restriction as ar set "fichierId" = 73332
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 73332 order by ppar.id_arrete ASC LIMIT 1); UPDATE public.arrete_restriction as ar set "fichierId" = (select MAX(f.id) from public.fichier as f)
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 73332 order by ppar.id_arrete DESC LIMIT 1);
+INSERT INTO public.fichier (nom, size, url, created_at) SELECT nom, size, url, created_at from public.fichier where id = 73332 ; UPDATE public.arrete_restriction as ar set "fichierId" = 73332
+where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 73332 order by ppar.id_arrete ASC LIMIT 1); UPDATE public.arrete_restriction as ar set "fichierId" = (select MAX(f.id) from public.fichier as f)
+where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 73332 order by ppar.id_arrete DESC LIMIT 1 OFFSET 1);
 INSERT INTO public.fichier (nom, size, url, created_at) SELECT nom, size, url, created_at from public.fichier where id = 119900 ; UPDATE public.arrete_restriction as ar set "fichierId" = 119900
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 119900 order by ppar.id_arrete ASC LIMIT 1); UPDATE public.arrete_restriction as ar set "fichierId" = (select MAX(f.id) from public.fichier as f)
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 119900 order by ppar.id_arrete DESC LIMIT 1);
@@ -327,6 +333,9 @@ where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as pp
 INSERT INTO public.fichier (nom, size, url, created_at) SELECT nom, size, url, created_at from public.fichier where id = 74614 ; UPDATE public.arrete_restriction as ar set "fichierId" = 74614
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 74614 order by ppar.id_arrete ASC LIMIT 1); UPDATE public.arrete_restriction as ar set "fichierId" = (select MAX(f.id) from public.fichier as f)
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 74614 order by ppar.id_arrete DESC LIMIT 1);
+INSERT INTO public.fichier (nom, size, url, created_at) SELECT nom, size, url, created_at from public.fichier where id = 74614 ; UPDATE public.arrete_restriction as ar set "fichierId" = 74614
+where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 74614 order by ppar.id_arrete ASC LIMIT 1); UPDATE public.arrete_restriction as ar set "fichierId" = (select MAX(f.id) from public.fichier as f)
+where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 74614 order by ppar.id_arrete DESC LIMIT 1 OFFSET 1);
 INSERT INTO public.fichier (nom, size, url, created_at) SELECT nom, size, url, created_at from public.fichier where id = 73072 ; UPDATE public.arrete_restriction as ar set "fichierId" = 73072
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 73072 order by ppar.id_arrete ASC LIMIT 1); UPDATE public.arrete_restriction as ar set "fichierId" = (select MAX(f.id) from public.fichier as f)
 where ar.id = (SELECT ppar.id_arrete FROM talend_ingestion_ppluvia.arretes as ppar where ppar.fd_cdn = 73072 order by ppar.id_arrete DESC LIMIT 1);

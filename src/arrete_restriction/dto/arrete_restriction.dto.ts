@@ -1,8 +1,17 @@
-import { IsBoolean, IsIn, IsNumber, IsObject, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsNumber,
+  IsObject,
+  IsString,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { FilterOperator, PaginateConfig } from 'nestjs-paginate';
 import { ArreteRestriction } from '../entities/arrete_restriction.entity';
 import { DepartementDto } from '../../departement/dto/departement.dto';
+import { ZoneAlerteDto } from '../../zone_alerte/dto/zone_alerte.dto';
+import { RestrictionDto } from './restriction.dto';
 
 export class ArreteRestrictionDto {
   @IsNumber()
@@ -56,6 +65,14 @@ export class ArreteRestrictionDto {
 
   @IsObject()
   departement: DepartementDto;
+
+  @IsArray()
+  @ApiProperty({ type: [ZoneAlerteDto] })
+  zonesAlerte: ZoneAlerteDto[];
+
+  @IsArray()
+  @ApiProperty({ type: [RestrictionDto] })
+  restrictions: RestrictionDto[];
 }
 
 export const arreteRestrictionPaginateConfig: PaginateConfig<ArreteRestriction> =

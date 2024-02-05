@@ -335,17 +335,6 @@ SELECT setval('arrete_restriction_id_seq', (SELECT MAX(id) FROM public.arrete_re
 INSERT INTO public.arrete_cadre_arrete_restriction ("arreteCadreId", "arreteRestrictionId")
 SELECT DISTINCT id_arrete_cadre, id_arrete from talend_ingestion_ppluvia.arretes where id_arrete_cadre is not null;
 
--- RESTRICTIONS
-INSERT INTO public.restriction ("arreteRestrictionId", "zoneAlerteId", "niveauGravite")
-SELECT id_arrete, id_zone, (CASE
-                                 WHEN id_niveau=17 THEN 'vigilance'::restriction_niveauGravite_enum
-                                 WHEN id_niveau=18 THEN 'alerte'::restriction_niveauGravite_enum
-                                 WHEN id_niveau=19 THEN 'alerte_renforcee'::restriction_niveauGravite_enum
-                                 WHEN id_niveau=20 THEN 'crise'::restriction_niveauGravite_enum
-                               END)
-from talend_ingestion_ppluvia.composition_alertes where id_niveau >= 17;
-SELECT setval('restriction_id_seq', (SELECT MAX(id) FROM public.restriction)+1);
-
 -- FICHIERS /!\ modifier le suffix
 INSERT INTO public.fichier (id, nom, size, url, created_at)
 SELECT fd_cdn, file_name, file_size, CONCAT('https://regleau-dev.s3.gra.io.cloud.ovh.net/dev/', file_path), last_updated
@@ -361,3 +350,22 @@ UPDATE public.arrete_restriction as ar set "fichierId" =
 (select ppar.fd_cdn from talend_ingestion_ppluvia.arretes as ppar where ppar.id_arrete = ar.id and ppar.fd_cdn not in (
 73424, 92704, 80411, 169041, 72977, 169499, 74426, 73264, 90623, 72978, 119554, 73232, 90621, 145176, 208074, 73211, 146525, 73402, 146523, 73473, 74609, 90624, 203986, 95777, 147389, 91608, 89927, 74284, 90625, 74327, 73142, 74264, 90632, 144815, 73157, 74603, 151155, 81257, 73289, 73341, 90630, 146268, 73246, 73276, 73482, 73004, 73277, 93615, 90631, 147388, 192739, 90635, 73025, 90633, 145177, 73129, 73081, 73031, 90627, 119842, 96190, 80152, 146760, 169012, 119041, 144956, 73278, 119568, 73084, 73392, 146133, 73088, 74414, 74399, 73332, 119900, 119901, 144303, 73309, 73236, 74022, 74341, 73216, 80420, 204213, 117465, 90626, 73184, 143974, 74318, 73399, 196105, 90622, 73323, 74389, 92703, 74281, 73180, 118659, 74511, 73369, 74637, 73013, 73249, 90629, 73385, 72983, 145457, 74614, 73072, 73152));
 -- Lancer migration_fichier.sql
+
+-- ARRETES RESTRICTIONS / ZONES
+INSERT INTO public.restriction ("arreteRestrictionId", "zoneAlerteId", "niveauGravite")
+SELECT id_arrete, id_zone, (CASE
+                                 WHEN id_niveau=1 THEN 'alerte_renforcee'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=2 THEN 'vigilance'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=4 THEN 'alerte'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=5 THEN 'alerte_renforcee'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=6 THEN 'crise'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=7 THEN 'crise'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=8 THEN 'crise'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=17 THEN 'vigilance'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=18 THEN 'alerte'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=19 THEN 'alerte_renforcee'::restriction_niveauGravite_enum
+                                 WHEN id_niveau=20 THEN 'crise'::restriction_niveauGravite_enum
+                               END)
+from talend_ingestion_ppluvia.composition_alertes;
+SELECT setval('restriction_id_seq', (SELECT MAX(id) FROM public.restriction)+1);
+-- TODO, récupérer le champ comments pour l'historique

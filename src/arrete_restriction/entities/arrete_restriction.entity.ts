@@ -69,12 +69,6 @@ export class ArreteRestriction extends BaseEntity {
   )
   arretesCadre: ArreteCadre[];
 
-  @ManyToMany(() => ZoneAlerte, (zoneAlerte) => zoneAlerte.arretesRestriction)
-  @JoinTable({
-    name: 'arrete_restriction_zone_alerte',
-  })
-  zonesAlerte: ZoneAlerte[];
-
   @OneToMany(() => Restriction, (restriction) => restriction.arreteRestriction)
   restrictions: Restriction[];
 
