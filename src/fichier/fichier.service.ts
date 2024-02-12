@@ -15,7 +15,7 @@ export class FichierService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
-    this.migrateFiles();
+    // this.migrateFiles();
   }
 
   find(id: number): Promise<Fichier> {

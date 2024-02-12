@@ -8,9 +8,9 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { CreateUpdateUsageArreteCadreDto } from '../../usage_arrete_cadre/dto/create_update_usage_arrete_cadre.dto';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { CreateUpdateUsageArreteCadreDto } from '../../usage_arrete_cadre/dto/create_update_usage_arrete_cadre.dto';
 
 class updateDepartementDto {
   @IsNumber()

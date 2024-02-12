@@ -6,16 +6,16 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
-import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { Usage } from '../../usage/entities/usage.entity';
+import { Restriction } from '../../arrete_restriction/entities/restriction.entity';
 
 @Entity()
-@Unique(['usage', 'arreteCadre'])
-export class UsageArreteCadre {
+@Unique(['usage', 'restriction'])
+export class UsageArreteRestriction {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Usage, (usage) => usage.usagesArreteCadre, {
+  @ManyToOne(() => Usage, (usage) => usage.usagesArreteRestriction, {
     nullable: false,
     persistence: false,
   })
@@ -23,12 +23,11 @@ export class UsageArreteCadre {
   usage: Usage;
 
   @ManyToOne(
-    () => ArreteCadre,
-    (arreteCadre) => arreteCadre.usagesArreteCadre,
-    { nullable: false, persistence: false, onDelete: 'CASCADE' },
+    () => Restriction,
+    (restriction) => restriction.usagesArreteRestriction,
   )
   @Index()
-  arreteCadre: ArreteCadre;
+  restriction: Restriction;
 
   @Column({ nullable: true })
   concerneParticulier: boolean;

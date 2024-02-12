@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { User } from '../user/entities/user.entity';
 import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 import {
@@ -13,6 +13,7 @@ import { ArreteRestriction } from './entities/arrete_restriction.entity';
 import { arreteRestrictionPaginateConfig } from './dto/arrete_restriction.dto';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { DepartementService } from '../departement/departement.service';
+import { ArreteCadreService } from '../arrete_cadre/arrete_cadre.service';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -22,6 +23,8 @@ export class ArreteRestrictionService {
     @InjectRepository(ArreteRestriction)
     private readonly arreteRestrictionRepository: Repository<ArreteRestriction>,
     private readonly departementService: DepartementService,
+    @Inject(forwardRef(() => ArreteCadreService))
+    private readonly arreteCadreService: ArreteCadreService,
   ) {}
 
   async findAll(query: PaginateQuery): Promise<Paginated<ArreteRestriction>> {
@@ -115,61 +118,72 @@ export class ArreteRestrictionService {
               },
             },
           };
-    return this.arreteRestrictionRepository.findOne({
-      select: {
-        id: true,
-        numero: true,
-        dateDebut: true,
-        dateFin: true,
-        dateSignature: true,
-        statut: true,
-        fichier: {
-          id: true,
-          nom: true,
-          url: true,
-          size: true,
-        },
-        arretesCadre: {
+    const [ar, acs] = await Promise.all([
+      this.arreteRestrictionRepository.findOne({
+        select: {
           id: true,
           numero: true,
+          dateDebut: true,
+          dateFin: true,
+          dateSignature: true,
           statut: true,
-          zonesAlerte: {
+          fichier: {
             id: true,
-            code: true,
             nom: true,
-            type: true,
-            departement: {
+            url: true,
+            size: true,
+          },
+          restrictions: {
+            id: true,
+            zoneAlerte: {
               id: true,
               code: true,
               nom: true,
+              type: true,
+            },
+            niveauGravite: true,
+            usagesArreteRestriction: {
+              id: true,
+              concerneParticulier: true,
+              concerneEntreprise: true,
+              concerneCollectivite: true,
+              concerneExploitation: true,
+              concerneEso: true,
+              concerneEsu: true,
+              concerneAep: true,
+              descriptionVigilance: true,
+              descriptionAlerte: true,
+              descriptionAlerteRenforcee: true,
+              descriptionCrise: true,
+              usage: {
+                id: true,
+                nom: true,
+                thematique: {
+                  id: true,
+                  nom: true,
+                },
+              },
             },
           },
-        },
-        restrictions: {
-          id: true,
-          zoneAlerte: {
+          departement: {
             id: true,
-            code: true,
-            nom: true,
-            type: true,
           },
-          niveauGravite: true,
         },
-        departement: {
-          id: true,
-        },
-      },
-      relations: [
-        'fichier',
-        'arretesCadre',
-        'arretesCadre.zonesAlerte',
-        'arretesCadre.zonesAlerte.departement',
-        'restrictions',
-        'restrictions.zoneAlerte',
-        'departement',
-      ],
-      where: whereClause,
-    });
+        relations: [
+          'fichier',
+          'restrictions',
+          'restrictions.zoneAlerte',
+          'restrictions.usagesArreteRestriction',
+          'restrictions.usagesArreteRestriction.usage',
+          'restrictions.usagesArreteRestriction.usage.thematique',
+          'departement',
+        ],
+        where: whereClause,
+      }),
+      this.arreteCadreService.findByArreteRestrictionId(id),
+    ]);
+    ar.arretesCadre = acs;
+    return ar;
   }
 
   async deleteByArreteCadreId(acId: number) {

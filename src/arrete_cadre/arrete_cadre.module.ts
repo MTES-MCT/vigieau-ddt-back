@@ -15,7 +15,7 @@ import { FichierModule } from '../fichier/fichier.module';
   imports: [
     TypeOrmModule.forFeature([ArreteCadre]),
     UsageArreteCadreModule,
-    ArreteRestrictionModule,
+    forwardRef(() => ArreteRestrictionModule),
     SharedModule,
     DepartementModule,
     forwardRef(() => ZoneAlerteModule),
@@ -24,5 +24,6 @@ import { FichierModule } from '../fichier/fichier.module';
   ],
   controllers: [ArreteCadreController],
   providers: [ArreteCadreService],
+  exports: [ArreteCadreService],
 })
 export class ArreteCadreModule {}

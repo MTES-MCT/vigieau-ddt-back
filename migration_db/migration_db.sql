@@ -333,7 +333,7 @@ SELECT setval('arrete_restriction_id_seq', (SELECT MAX(id) FROM public.arrete_re
 
 -- ARRETES RESTRICTIONS / ARRETES CADRES
 INSERT INTO public.arrete_cadre_arrete_restriction ("arreteCadreId", "arreteRestrictionId")
-SELECT DISTINCT id_arrete_cadre, id_arrete from talend_ingestion_ppluvia.arretes where id_arrete_cadre is not null;
+SELECT id_arrete_cadre, id_arrete from talend_ingestion_ppluvia.arretes where id_arrete_cadre is not null;
 
 -- FICHIERS /!\ modifier le suffix
 INSERT INTO public.fichier (id, nom, size, url, created_at)
@@ -352,20 +352,55 @@ UPDATE public.arrete_restriction as ar set "fichierId" =
 -- Lancer migration_fichier.sql
 
 -- ARRETES RESTRICTIONS / ZONES
+-- On ne récupère pas l'historique avant 2012, pas fiable
 INSERT INTO public.restriction ("arreteRestrictionId", "zoneAlerteId", "niveauGravite")
 SELECT id_arrete, id_zone, (CASE
-                                 WHEN id_niveau=1 THEN 'alerte_renforcee'::restriction_niveauGravite_enum
-                                 WHEN id_niveau=2 THEN 'vigilance'::restriction_niveauGravite_enum
-                                 WHEN id_niveau=4 THEN 'alerte'::restriction_niveauGravite_enum
-                                 WHEN id_niveau=5 THEN 'alerte_renforcee'::restriction_niveauGravite_enum
-                                 WHEN id_niveau=6 THEN 'crise'::restriction_niveauGravite_enum
-                                 WHEN id_niveau=7 THEN 'crise'::restriction_niveauGravite_enum
-                                 WHEN id_niveau=8 THEN 'crise'::restriction_niveauGravite_enum
                                  WHEN id_niveau=17 THEN 'vigilance'::restriction_niveauGravite_enum
                                  WHEN id_niveau=18 THEN 'alerte'::restriction_niveauGravite_enum
                                  WHEN id_niveau=19 THEN 'alerte_renforcee'::restriction_niveauGravite_enum
                                  WHEN id_niveau=20 THEN 'crise'::restriction_niveauGravite_enum
                                END)
-from talend_ingestion_ppluvia.composition_alertes;
+from talend_ingestion_ppluvia.composition_alertes where id_niveau >= 17;
 SELECT setval('restriction_id_seq', (SELECT MAX(id) FROM public.restriction)+1);
--- TODO, récupérer le champ comments pour l'historique
+
+-- USAGE ARRETE RESTRICTION
+INSERT INTO public.usage_arrete_restriction ("usageId", "restrictionId")
+-- USAGES ARRETE CADRE GUIDE SECHERESSE
+select z.uid, z.rid
+from (
+select u.id as uid, r.id as rid
+from talend_ingestion_ppluvia.usage_composition as uc_old
+left join talend_ingestion_ppluvia.composition_alertes as ca_old on ca_old.id_composition = uc_old.id_composition
+left join public.restriction as r on r."arreteRestrictionId" = ca_old.id_arrete and r."zoneAlerteId" = ca_old.id_zone
+left join talend_ingestion_ppluvia.arretes as ar_old on ar_old.id_arrete = ca_old.id_arrete
+left join talend_ingestion_ppluvia.restriction as r_old on r_old.id_arrete_cadre = ar_old.id_arrete_cadre and r_old.id_usage = uc_old.id_usage
+left join talend_ingestion_ppluvia.usage as u_old on u_old.id_usage = uc_old.id_usage
+left join public.usage as u on u.nom = u_old.nom_usage
+where (r_old.libelle_usage_ddt is null or r_old.libelle_usage_ddt = '')
+and u.id is not null and r.id is not null
+group by u.id, r.id union
+-- USAGES ARRETE CADRE CUSTOM LIBELLE
+select u.id, r.id
+from talend_ingestion_ppluvia.usage_composition as uc_old
+left join talend_ingestion_ppluvia.composition_alertes as ca_old on ca_old.id_composition = uc_old.id_composition
+left join public.restriction as r on r."arreteRestrictionId" = ca_old.id_arrete and r."zoneAlerteId" = ca_old.id_zone
+left join talend_ingestion_ppluvia.arretes as ar_old on ar_old.id_arrete = ca_old.id_arrete
+left join talend_ingestion_ppluvia.restriction as r_old on r_old.id_arrete_cadre = ar_old.id_arrete_cadre and r_old.id_usage = uc_old.id_usage
+left join talend_ingestion_ppluvia.usage as u_old on u_old.id_usage = uc_old.id_usage
+left join public.usage as u on u.nom = r_old.libelle_usage_ddt
+where r_old.libelle_usage_ddt is not null and r_old.libelle_usage_ddt <> ''
+and u.id is not null and r.id is not null
+group by u.id, r.id) z
+group by z.uid, z.rid;
+
+-- REMPLISSAGE DES AUTRES INFOS USAGE ARRETE RESTRICTION
+UPDATE public.usage_arrete_restriction uar
+set "concerneParticulier" = uac."concerneParticulier", "concerneCollectivite" = uac."concerneCollectivite", "concerneEntreprise" = uac."concerneEntreprise", "concerneExploitation" = uac."concerneExploitation",
+"concerneEso" = uac."concerneEso", "concerneEsu" = uac."concerneEsu", "concerneAep" = uac."concerneAep",
+"descriptionVigilance" = uac."descriptionVigilance", "descriptionAlerte" = uac."descriptionAlerte", "descriptionAlerteRenforcee" = uac."descriptionAlerteRenforcee", "descriptionCrise" = uac."descriptionCrise"
+FROM public.usage_arrete_restriction as uar2
+LEFT JOIN public.restriction as r ON r.id = uar2."restrictionId"
+LEFT JOIN public.arrete_restriction as ar ON ar.id = r."arreteRestrictionId"
+LEFT JOIN public.arrete_cadre_arrete_restriction as acar ON acar."arreteRestrictionId" = ar.id
+LEFT JOIN public.usage_arrete_cadre as uac ON uac."arreteCadreId" = acar."arreteCadreId" and uac."usageId" = uar2."usageId"
+where uar.id = uar2.id;

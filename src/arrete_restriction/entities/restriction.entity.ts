@@ -2,17 +2,18 @@ import {
   BaseEntity,
   Column,
   Entity,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { NiveauGravite } from '../type/niveau_gravite.type';
-import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
+import { UsageArreteRestriction } from '../../usage_arrete_restriction/entities/usage_arrete_restriction.entity';
 import { ArreteRestriction } from './arrete_restriction.entity';
 
 @Entity()
+@Unique(['arreteRestriction', 'zoneAlerte'])
 export class Restriction extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -33,12 +34,9 @@ export class Restriction extends BaseEntity {
   })
   niveauGravite: NiveauGravite;
 
-  @ManyToMany(
-    () => UsageArreteCadre,
-    (usagesArreteCadre) => usagesArreteCadre.restrictions,
+  @OneToMany(
+    () => UsageArreteRestriction,
+    (usagesArreteRestriction) => usagesArreteRestriction.restriction,
   )
-  @JoinTable({
-    name: 'restriction_usage_arrete_cadre',
-  })
-  usagesArreteCadre: UsageArreteCadre[];
+  usagesArreteRestriction: UsageArreteRestriction[];
 }

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Not, Repository } from 'typeorm';
-import { UsageArreteCadre } from './entities/usage_arrete_cadre.entity';
 import { ArreteCadre } from '../arrete_cadre/entities/arrete_cadre.entity';
+import { UsageArreteCadre } from './entities/usage_arrete_cadre.entity';
 
 @Injectable()
 export class UsageArreteCadreService {

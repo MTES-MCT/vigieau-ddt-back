@@ -186,6 +186,51 @@ export class ArreteCadreService {
     return arreteCadre;
   }
 
+  findByArreteRestrictionId(id: number): Promise<ArreteCadre[]> {
+    return this.arreteCadreRepository.find({
+      select: {
+        id: true,
+        numero: true,
+        statut: true,
+        zonesAlerte: {
+          id: true,
+          code: true,
+          nom: true,
+          type: true,
+          departement: {
+            id: true,
+            code: true,
+            nom: true,
+          },
+        },
+        usagesArreteCadre: {
+          id: true,
+          usage: {
+            id: true,
+            nom: true,
+            thematique: {
+              id: true,
+              nom: true,
+            },
+          },
+        },
+      },
+      relations: [
+        'zonesAlerte',
+        'zonesAlerte.departement',
+        'arretesRestriction',
+        'usagesArreteCadre',
+        'usagesArreteCadre.usage',
+        'usagesArreteCadre.usage.thematique',
+      ],
+      where: {
+        arretesRestriction: {
+          id: id,
+        },
+      },
+    });
+  }
+
   async create(
     createArreteCadreDto: CreateUpdateArreteCadreDto,
     currentUser?: User,
