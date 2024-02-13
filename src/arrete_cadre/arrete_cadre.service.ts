@@ -205,6 +205,10 @@ export class ArreteCadreService {
         },
         usagesArreteCadre: {
           id: true,
+          descriptionVigilance: true,
+          descriptionAlerte: true,
+          descriptionAlerteRenforcee: true,
+          descriptionCrise: true,
           usage: {
             id: true,
             nom: true,
