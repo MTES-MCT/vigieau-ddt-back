@@ -4,7 +4,6 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
-  JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
@@ -14,10 +13,9 @@ import {
 } from 'typeorm';
 import { StatutArreteRestriction } from '../type/statut_arrete_restriction.type';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
-import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 import { RessourceEapCommunique } from '../../arrete_cadre/type/arrete_cadre.type';
-import { Restriction } from './restriction.entity';
+import { Restriction } from '../../restriction/entities/restriction.entity';
 import { Fichier } from '../../fichier/entities/fichier.entity';
 
 @Entity()
@@ -69,7 +67,11 @@ export class ArreteRestriction extends BaseEntity {
   )
   arretesCadre: ArreteCadre[];
 
-  @OneToMany(() => Restriction, (restriction) => restriction.arreteRestriction)
+  @OneToMany(
+    () => Restriction,
+    (restriction) => restriction.arreteRestriction,
+    { persistence: false },
+  )
   restrictions: Restriction[];
 
   @CreateDateColumn({ select: false, type: 'timestamp' })

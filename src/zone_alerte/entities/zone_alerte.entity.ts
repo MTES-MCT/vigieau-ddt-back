@@ -13,7 +13,7 @@ import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { BassinVersant } from '../../core/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
-import { Restriction } from '../../arrete_restriction/entities/restriction.entity';
+import { Restriction } from '../../restriction/entities/restriction.entity';
 
 @Entity()
 export class ZoneAlerte extends BaseEntity {

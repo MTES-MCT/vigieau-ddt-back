@@ -1,10 +1,4 @@
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsString,
-  Matches,
-  ValidateIf,
-} from 'class-validator';
+import { IsNotEmpty, IsString, Matches, ValidateIf } from 'class-validator';
 import { UserRole } from '../type/user-role.type';
 import { ApiProperty } from '@nestjs/swagger';
 

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Not, Repository } from 'typeorm';
 import { UsageArreteRestriction } from '../usage_arrete_restriction/entities/usage_arrete_restriction.entity';
+import { Restriction } from '../restriction/entities/restriction.entity';
 
 @Injectable()
 export class UsageArreteRestrictionService {
@@ -10,28 +11,28 @@ export class UsageArreteRestrictionService {
     private readonly usageArreteRestrictionRepository: Repository<UsageArreteRestriction>,
   ) {}
 
-  // async updateAll(arreteCadre: ArreteCadre) {
-  //   const usagesId = arreteCadre.usagesArreteCadre
-  //     .map((u) => u.usage.id)
-  //     .flat();
-  //   // SUPPRESSION DES ANCIENS USAGES
-  //   await this.usageArreteRestrictionRepository.delete({
-  //     arreteCadre: {
-  //       id: arreteCadre.id,
-  //     },
-  //     usage: {
-  //       id: Not(In(usagesId)),
-  //     },
-  //   });
-  //   const usagesArreteCadre: UsageArreteRestriction[] =
-  //     arreteCadre.usagesArreteCadre.map((u) => {
-  //       // @ts-expect-error on ajoute seulement l'id
-  //       u.arreteCadre = { id: arreteCadre.id };
-  //       return u;
-  //     });
-  //   return this.usageArreteRestrictionRepository.save(usagesArreteCadre);
-  // }
-  //
+  async updateAll(restriction: Restriction): Promise<UsageArreteRestriction[]> {
+    const usagesId = restriction.usagesArreteRestriction
+      .map((u) => u.usage.id)
+      .flat();
+    // SUPPRESSION DES ANCIENS USAGES
+    await this.usageArreteRestrictionRepository.delete({
+      restriction: {
+        id: restriction.id,
+      },
+      usage: {
+        id: Not(In(usagesId)),
+      },
+    });
+    const usagesArreteRestriction: UsageArreteRestriction[] =
+      restriction.usagesArreteRestriction.map((u) => {
+        // @ts-expect-error on ajoute seulement l'id
+        u.restriction = { id: restriction.id };
+        return u;
+      });
+    return this.usageArreteRestrictionRepository.save(usagesArreteRestriction);
+  }
+
   // findByArreteCadre(arreteCadreId: number) {
   //   return this.usageArreteRestrictionRepository.find({
   //     select: {

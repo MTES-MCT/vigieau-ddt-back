@@ -7,7 +7,7 @@ import {
   Unique,
 } from 'typeorm';
 import { Usage } from '../../usage/entities/usage.entity';
-import { Restriction } from '../../arrete_restriction/entities/restriction.entity';
+import { Restriction } from '../../restriction/entities/restriction.entity';
 
 @Entity()
 @Unique(['usage', 'restriction'])
@@ -25,6 +25,7 @@ export class UsageArreteRestriction {
   @ManyToOne(
     () => Restriction,
     (restriction) => restriction.usagesArreteRestriction,
+    { nullable: false, persistence: false, onDelete: 'CASCADE' },
   )
   @Index()
   restriction: Restriction;

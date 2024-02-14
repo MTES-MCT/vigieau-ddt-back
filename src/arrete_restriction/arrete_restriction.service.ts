@@ -1,4 +1,10 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { User } from '../user/entities/user.entity';
 import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 import {
@@ -14,6 +20,10 @@ import { arreteRestrictionPaginateConfig } from './dto/arrete_restriction.dto';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { DepartementService } from '../departement/departement.service';
 import { ArreteCadreService } from '../arrete_cadre/arrete_cadre.service';
+import { CreateUpdateArreteCadreDto } from '../arrete_cadre/dto/create_update_arrete_cadre.dto';
+import { ArreteCadre } from '../arrete_cadre/entities/arrete_cadre.entity';
+import { CreateUpdateArreteRestrictionDto } from './dto/create_update_arrete_restriction.dto';
+import { RestrictionService } from '../restriction/restriction.service';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -25,6 +35,7 @@ export class ArreteRestrictionService {
     private readonly departementService: DepartementService,
     @Inject(forwardRef(() => ArreteCadreService))
     private readonly arreteCadreService: ArreteCadreService,
+    private readonly restrictionService: RestrictionService,
   ) {}
 
   async findAll(query: PaginateQuery): Promise<Paginated<ArreteRestriction>> {
@@ -87,6 +98,7 @@ export class ArreteRestrictionService {
             code: true,
             nom: true,
             type: true,
+            disabled: true,
             departement: {
               id: true,
               code: true,
@@ -127,6 +139,7 @@ export class ArreteRestrictionService {
           dateFin: true,
           dateSignature: true,
           statut: true,
+          niveauGraviteSpecifiqueEap: true,
           fichier: {
             id: true,
             nom: true,
@@ -140,6 +153,7 @@ export class ArreteRestrictionService {
               code: true,
               nom: true,
               type: true,
+              disabled: true,
             },
             niveauGravite: true,
             usagesArreteRestriction: {
@@ -167,6 +181,7 @@ export class ArreteRestrictionService {
           },
           departement: {
             id: true,
+            code: true,
           },
         },
         relations: [
@@ -186,6 +201,41 @@ export class ArreteRestrictionService {
     return ar;
   }
 
+  async create(
+    createArreteRestrictionDto: CreateUpdateArreteRestrictionDto,
+    currentUser?: User,
+  ): Promise<ArreteRestriction> {
+    // Check ACI
+    // await this.checkAci(createArreteRestrictionDto, false, currentUser);
+    const arreteRestriction: ArreteRestriction =
+      await this.arreteRestrictionRepository.save(createArreteRestrictionDto);
+    arreteRestriction.restrictions =
+      await this.restrictionService.updateAll(arreteRestriction);
+    return arreteRestriction;
+  }
+
+  async update(
+    id: number,
+    updateArreteRestrictionDto: CreateUpdateArreteRestrictionDto,
+    currentUser: User,
+  ): Promise<ArreteRestriction> {
+    const oldAr = await this.findOne(id, currentUser);
+    if (!(await this.canUpdateArreteRestriction(oldAr, currentUser))) {
+      throw new HttpException(
+        `Vous ne pouvez éditer un arrêté de restriction que si il est sur votre département et n'est pas abrogé.`,
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    // await this.checkAci(updateArreteRestrictionDto, true, currentUser);
+    const arreteRestriction = await this.arreteRestrictionRepository.save({
+      id,
+      ...updateArreteRestrictionDto,
+    });
+    arreteRestriction.restrictions =
+      await this.restrictionService.updateAll(arreteRestriction);
+    return arreteRestriction;
+  }
+
   async deleteByArreteCadreId(acId: number) {
     const arIds = await this.arreteRestrictionRepository
       .createQueryBuilder('arreteRestriction')
@@ -196,6 +246,21 @@ export class ArreteRestrictionService {
     return this.arreteRestrictionRepository.delete({
       id: In(arIds.map((ar) => ar.id)),
     });
+  }
+
+  async canUpdateArreteRestriction(
+    arreteRestriction: ArreteRestriction,
+    user: User,
+    containUrl: boolean = false,
+  ): Promise<boolean> {
+    return (
+      arreteRestriction &&
+      (!containUrl || !!arreteRestriction.fichier) &&
+      (user.role === 'mte' ||
+        (arreteRestriction.statut !== 'abroge' &&
+          arreteRestriction.departement.code === user.role_departement &&
+          !arreteRestriction.restrictions.some((r) => r.zoneAlerte.disabled)))
+    );
   }
 
   /**

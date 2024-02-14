@@ -11,7 +11,7 @@ import { FilterOperator, PaginateConfig } from 'nestjs-paginate';
 import { ArreteRestriction } from '../entities/arrete_restriction.entity';
 import { DepartementDto } from '../../departement/dto/departement.dto';
 import { ZoneAlerteDto } from '../../zone_alerte/dto/zone_alerte.dto';
-import { RestrictionDto } from './restriction.dto';
+import { RestrictionDto } from '../../restriction/dto/restriction.dto';
 
 export class ArreteRestrictionDto {
   @IsNumber()

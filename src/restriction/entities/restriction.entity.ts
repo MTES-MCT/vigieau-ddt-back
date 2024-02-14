@@ -8,9 +8,9 @@ import {
   Unique,
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
-import { NiveauGravite } from '../type/niveau_gravite.type';
+import { NiveauGravite } from '../../arrete_restriction/type/niveau_gravite.type';
 import { UsageArreteRestriction } from '../../usage_arrete_restriction/entities/usage_arrete_restriction.entity';
-import { ArreteRestriction } from './arrete_restriction.entity';
+import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
 
 @Entity()
 @Unique(['arreteRestriction', 'zoneAlerte'])
@@ -21,6 +21,7 @@ export class Restriction extends BaseEntity {
   @ManyToOne(
     () => ArreteRestriction,
     (arreteRestriction) => arreteRestriction.restrictions,
+    { nullable: false, persistence: false, onDelete: 'CASCADE' },
   )
   arreteRestriction: ArreteRestriction;
 
@@ -37,6 +38,7 @@ export class Restriction extends BaseEntity {
   @OneToMany(
     () => UsageArreteRestriction,
     (usagesArreteRestriction) => usagesArreteRestriction.restriction,
+    { persistence: false },
   )
   usagesArreteRestriction: UsageArreteRestriction[];
 }

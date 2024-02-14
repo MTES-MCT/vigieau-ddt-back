@@ -1,4 +1,14 @@
-import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ArreteRestrictionService } from './arrete_restriction.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
@@ -14,6 +24,7 @@ import {
   arreteRestrictionPaginateConfig,
 } from './dto/arrete_restriction.dto';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
+import { CreateUpdateArreteRestrictionDto } from './dto/create_update_arrete_restriction.dto';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('arrete-restriction')
@@ -64,6 +75,48 @@ export class ArreteRestrictionController {
   })
   async findOne(@Param('id') id: string): Promise<ArreteRestrictionDto> {
     const arreteRestriction = await this.arreteRestrictionService.findOne(+id);
+    return plainToInstance(
+      ArreteRestrictionDto,
+      camelcaseKeys(arreteRestriction, { deep: true }),
+    );
+  }
+
+  @Post()
+  @ApiOperation({ summary: "Création d'un arrêté de restriction" })
+  @ApiResponse({
+    status: 201,
+    type: ArreteRestrictionDto,
+  })
+  async create(
+    @Req() req,
+    @Body() createArreteRestrictionDto: CreateUpdateArreteRestrictionDto,
+  ): Promise<ArreteRestrictionDto> {
+    const arreteRestriction = await this.arreteRestrictionService.create(
+      createArreteRestrictionDto,
+      req.session.user,
+    );
+    return plainToInstance(
+      ArreteRestrictionDto,
+      camelcaseKeys(arreteRestriction, { deep: true }),
+    );
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: "Edition d'un arrêté de restriction" })
+  @ApiResponse({
+    status: 201,
+    type: ArreteRestrictionDto,
+  })
+  async update(
+    @Req() req,
+    @Param('id') id: string,
+    @Body() updateArreteRestrictionDto: CreateUpdateArreteRestrictionDto,
+  ): Promise<ArreteRestrictionDto> {
+    const arreteRestriction = await this.arreteRestrictionService.update(
+      +id,
+      updateArreteRestrictionDto,
+      req.session.user,
+    );
     return plainToInstance(
       ArreteRestrictionDto,
       camelcaseKeys(arreteRestriction, { deep: true }),
