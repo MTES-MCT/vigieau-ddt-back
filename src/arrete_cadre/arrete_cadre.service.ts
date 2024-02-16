@@ -456,14 +456,10 @@ export class ArreteCadreService {
       return;
     }
 
-    /** Si c'est un ACI, on met le département pilote suivant le rôle de l'utilisateur,
-     * si l'utilisateur est un rôle MTE, on met le premier département en tant que département pilote **/
-    const userDepartement =
-      currentUser?.role === 'departement' && !isUpdate
-        ? await this.departementService.findByCode(currentUser.role_departement)
-        : await this.departementService.find(
-            createUpdateArreteCadreDto.departements[0].id,
-          );
+    /** Si c'est un ACI, on met le premier département en tant que département pilote **/
+    const depPilote = await this.departementService.find(
+      createUpdateArreteCadreDto.departements[0].id,
+    );
     /**
      * Si c'est un update, on vérifie seulement que le département est bien dedans
      */
@@ -471,7 +467,7 @@ export class ArreteCadreService {
       isUpdate &&
       currentUser?.role === 'departement' &&
       !createUpdateArreteCadreDto.departements.some(
-        (d) => d.id === userDepartement.id,
+        (d) => d.id === depPilote.id,
       )
     ) {
       throw new HttpException(
@@ -480,7 +476,7 @@ export class ArreteCadreService {
       );
     }
     // @ts-expect-error objet non complet
-    createUpdateArreteCadreDto.departementPilote = userDepartement;
+    createUpdateArreteCadreDto.departementPilote = depPilote;
   }
 
   private async sendAciMails(
@@ -518,7 +514,7 @@ export class ArreteCadreService {
      * Si tous les départements ont rempli leurs zones
      * Et que ce n'était pas rempli avant, on envoie le mail de finalisation
      */
-    if (newDepsEnAttente.length < 1 && oldDepsEnAttente.length > 0) {
+    if (newDepsEnAttente.length < 1 && oldDepsEnAttente.length > 0 && oldAc) {
       const usersDepPilote = await this.userService.findByDepartementsId([
         newAc.departementPilote.id,
       ]);
@@ -544,7 +540,7 @@ export class ArreteCadreService {
         (od) => !newDepsEnAttente.some((nd) => nd.id === od.id),
       ),
     ];
-    if (depsDifferents.length > 0) {
+    if (depsDifferents.length > 0 && oldAc) {
       const newDepsFinalise = depsInAci.filter((d) =>
         d.zonesAlerte.some((za) =>
           newAc.zonesAlerte.some((nza) => nza.id === za.id),
