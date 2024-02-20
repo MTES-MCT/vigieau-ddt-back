@@ -87,6 +87,10 @@ export class ArreteCadreDto {
   @IsArray()
   @ApiProperty({ type: [ArreteRestrictionDto] })
   arretesRestriction: ArreteRestrictionDto[];
+
+  @IsObject()
+  @ApiProperty({ type: ArreteCadreDto })
+  arreteCadreAbroge: ArreteCadreDto;
 }
 
 export const arreteCadrePaginateConfig: PaginateConfig<ArreteCadre> = {

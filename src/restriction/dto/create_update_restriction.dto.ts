@@ -1,6 +1,5 @@
 import {
   IsArray,
-  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
@@ -10,8 +9,13 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { AcUpdateZoneAlerteDto } from '../../arrete_cadre/dto/create_update_arrete_cadre.dto';
 import { CreateUpdateUsageArreteRestrictionDto } from '../../usage_arrete_restriction/dto/create_update_usage_arrete_restriction.dto';
+
+class UpdateLinkNestedObjectDto {
+  @IsNumber()
+  @ApiProperty({ example: 1, description: 'Identifiant BDD' })
+  id: number;
+}
 
 export class CreateUpdateRestrictionDto {
   @IsNumber()
@@ -21,9 +25,9 @@ export class CreateUpdateRestrictionDto {
 
   @IsObject()
   @ValidateNested()
-  @Type(() => AcUpdateZoneAlerteDto)
-  @ApiProperty({ type: AcUpdateZoneAlerteDto })
-  zoneAlerte: AcUpdateZoneAlerteDto;
+  @Type(() => UpdateLinkNestedObjectDto)
+  @ApiProperty({ type: UpdateLinkNestedObjectDto })
+  zoneAlerte: UpdateLinkNestedObjectDto;
 
   @IsString()
   @Matches(/^vigilance$|^alerte$|^alerte_renforcee$|^crise$/)

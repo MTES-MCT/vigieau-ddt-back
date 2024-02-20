@@ -183,6 +183,10 @@ export class ArreteRestrictionService {
             id: true,
             code: true,
           },
+          arreteRestrictionAbroge: {
+            id: true,
+            numero: true,
+          },
         },
         relations: [
           'fichier',
@@ -192,6 +196,7 @@ export class ArreteRestrictionService {
           'restrictions.usagesArreteRestriction.usage',
           'restrictions.usagesArreteRestriction.usage.thematique',
           'departement',
+          'arreteRestrictionAbroge',
         ],
         where: whereClause,
       }),

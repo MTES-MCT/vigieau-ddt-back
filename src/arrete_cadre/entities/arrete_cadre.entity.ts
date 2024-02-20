@@ -97,6 +97,12 @@ export class ArreteCadre extends BaseEntity {
   )
   usagesArreteCadre: UsageArreteCadre[];
 
+  @ManyToOne(() => ArreteCadre, (arreteCadre) => arreteCadre.arretesCadre)
+  arreteCadreAbroge: ArreteCadre;
+
+  @OneToMany(() => ArreteCadre, (arreteCadre) => arreteCadre.arreteCadreAbroge)
+  arretesCadre: ArreteCadre[];
+
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
 

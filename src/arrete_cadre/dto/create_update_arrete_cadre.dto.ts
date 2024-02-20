@@ -4,6 +4,7 @@ import {
   IsIn,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   ValidateNested,
@@ -12,13 +13,7 @@ import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { CreateUpdateUsageArreteCadreDto } from '../../usage_arrete_cadre/dto/create_update_usage_arrete_cadre.dto';
 
-class updateDepartementDto {
-  @IsNumber()
-  @ApiProperty({ example: 1, description: 'Identifiant BDD' })
-  id: number;
-}
-
-export class AcUpdateZoneAlerteDto {
+class UpdateLinkNestedObjectDto {
   @IsNumber()
   @ApiProperty({ example: 1, description: 'Identifiant BDD' })
   id: number;
@@ -62,16 +57,16 @@ export class CreateUpdateArreteCadreDto {
   @IsArray()
   @ValidateNested({ each: true })
   @IsOptional()
-  @Type(() => updateDepartementDto)
-  @ApiProperty({ type: [updateDepartementDto] })
-  departements: updateDepartementDto[];
+  @Type(() => UpdateLinkNestedObjectDto)
+  @ApiProperty({ type: [UpdateLinkNestedObjectDto] })
+  departements: UpdateLinkNestedObjectDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
   @IsOptional()
-  @Type(() => AcUpdateZoneAlerteDto)
-  @ApiProperty({ type: [AcUpdateZoneAlerteDto] })
-  zonesAlerte: AcUpdateZoneAlerteDto[];
+  @Type(() => UpdateLinkNestedObjectDto)
+  @ApiProperty({ type: [UpdateLinkNestedObjectDto] })
+  zonesAlerte: UpdateLinkNestedObjectDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -79,4 +74,10 @@ export class CreateUpdateArreteCadreDto {
   @Type(() => CreateUpdateUsageArreteCadreDto)
   @ApiProperty({ type: [CreateUpdateUsageArreteCadreDto] })
   usagesArreteCadre: CreateUpdateUsageArreteCadreDto[];
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => UpdateLinkNestedObjectDto)
+  @ApiProperty({ type: UpdateLinkNestedObjectDto })
+  arreteCadreAbroge: UpdateLinkNestedObjectDto;
 }

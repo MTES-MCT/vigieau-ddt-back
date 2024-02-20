@@ -13,13 +13,7 @@ import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { CreateUpdateRestrictionDto } from '../../restriction/dto/create_update_restriction.dto';
 
-class updateDepartementDto {
-  @IsNumber()
-  @ApiProperty({ example: 1, description: 'Identifiant BDD' })
-  id: number;
-}
-
-export class ArUpdateArreteCadreDto {
+class UpdateLinkNestedObjectDto {
   @IsNumber()
   @ApiProperty({ example: 1, description: 'Identifiant BDD' })
   id: number;
@@ -33,9 +27,9 @@ export class CreateUpdateArreteRestrictionDto {
 
   @IsObject()
   @ValidateNested()
-  @Type(() => updateDepartementDto)
-  @ApiProperty({ type: updateDepartementDto })
-  departement: updateDepartementDto;
+  @Type(() => UpdateLinkNestedObjectDto)
+  @ApiProperty({ type: UpdateLinkNestedObjectDto })
+  departement: UpdateLinkNestedObjectDto;
 
   @IsBoolean()
   @IsOptional()
@@ -59,9 +53,9 @@ export class CreateUpdateArreteRestrictionDto {
   @IsArray()
   @ValidateNested({ each: true })
   @IsOptional()
-  @Type(() => ArUpdateArreteCadreDto)
-  @ApiProperty({ type: [ArUpdateArreteCadreDto] })
-  arretesCadre: ArUpdateArreteCadreDto[];
+  @Type(() => UpdateLinkNestedObjectDto)
+  @ApiProperty({ type: [UpdateLinkNestedObjectDto] })
+  arretesCadre: UpdateLinkNestedObjectDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -69,4 +63,10 @@ export class CreateUpdateArreteRestrictionDto {
   @Type(() => CreateUpdateRestrictionDto)
   @ApiProperty({ type: [CreateUpdateRestrictionDto] })
   restrictions: CreateUpdateRestrictionDto[];
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => UpdateLinkNestedObjectDto)
+  @ApiProperty({ type: UpdateLinkNestedObjectDto })
+  arreteRestrictionAbroge: UpdateLinkNestedObjectDto;
 }

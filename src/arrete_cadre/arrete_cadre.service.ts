@@ -179,6 +179,10 @@ export class ArreteCadreService {
             numero: true,
             statut: true,
           },
+          arreteCadreAbroge: {
+            id: true,
+            numero: true,
+          },
         },
         relations: [
           'departementPilote',
@@ -186,6 +190,7 @@ export class ArreteCadreService {
           'zonesAlerte.departement',
           'arretesRestriction',
           'fichier',
+          'arreteCadreAbroge',
         ],
         where: whereClause,
       }),

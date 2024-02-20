@@ -74,6 +74,18 @@ export class ArreteRestriction extends BaseEntity {
   )
   restrictions: Restriction[];
 
+  @ManyToOne(
+    () => ArreteRestriction,
+    (arreteRestriction) => arreteRestriction.arretesRestriction,
+  )
+  arreteRestrictionAbroge: ArreteRestriction;
+
+  @OneToMany(
+    () => ArreteRestriction,
+    (arreteRestriction) => arreteRestriction.arreteRestrictionAbroge,
+  )
+  arretesRestriction: ArreteRestriction[];
+
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
 

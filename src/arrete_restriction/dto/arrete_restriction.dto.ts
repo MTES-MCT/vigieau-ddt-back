@@ -73,6 +73,10 @@ export class ArreteRestrictionDto {
   @IsArray()
   @ApiProperty({ type: [RestrictionDto] })
   restrictions: RestrictionDto[];
+
+  @IsObject()
+  @ApiProperty({ type: ArreteRestrictionDto })
+  arreteRestrictionAbroge: ArreteRestrictionDto;
 }
 
 export const arreteRestrictionPaginateConfig: PaginateConfig<ArreteRestriction> =
