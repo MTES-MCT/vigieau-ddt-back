@@ -77,6 +77,7 @@ export class CreateUpdateArreteCadreDto {
 
   @IsObject()
   @ValidateNested()
+  @IsOptional()
   @Type(() => UpdateLinkNestedObjectDto)
   @ApiProperty({ type: UpdateLinkNestedObjectDto })
   arreteCadreAbroge: UpdateLinkNestedObjectDto;

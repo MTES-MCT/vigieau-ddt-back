@@ -66,6 +66,7 @@ export class CreateUpdateArreteRestrictionDto {
 
   @IsObject()
   @ValidateNested()
+  @IsOptional()
   @Type(() => UpdateLinkNestedObjectDto)
   @ApiProperty({ type: UpdateLinkNestedObjectDto })
   arreteRestrictionAbroge: UpdateLinkNestedObjectDto;
