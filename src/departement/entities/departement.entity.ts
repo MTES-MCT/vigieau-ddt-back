@@ -2,7 +2,6 @@ import {
   BaseEntity,
   Column,
   Entity,
-  Index,
   ManyToMany,
   ManyToOne,
   OneToMany,
@@ -13,6 +12,7 @@ import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { Region } from '../../core/entities/region.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
+import { Commune } from '../../commune/entities/commune.entity';
 
 @Entity()
 export class Departement extends BaseEntity {
@@ -34,6 +34,9 @@ export class Departement extends BaseEntity {
 
   @ManyToOne(() => Region, (region) => region.departements)
   region: Region;
+
+  @OneToMany(() => Commune, (communes) => communes.departement)
+  communes: Commune[];
 
   @OneToMany(() => ZoneAlerte, (zoneAlerte) => zoneAlerte.departement)
   zonesAlerte: ZoneAlerte[];

@@ -45,6 +45,14 @@ export class DepartementService {
       .getMany();
   }
 
+  findAllLight(): Promise<Departement[]> {
+    return this.departementRepository
+      .createQueryBuilder('departement')
+      .select(['departement.id', 'departement.code', 'departement.nom'])
+      .orderBy('departement.code', 'ASC')
+      .getMany();
+  }
+
   find(departementId: number): Promise<Departement> {
     return this.departementRepository.findOne({
       select: ['id', 'code', 'nom'],

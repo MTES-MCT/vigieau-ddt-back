@@ -26,6 +26,7 @@ import { SharedModule } from './shared/shared.module';
 import path from 'path';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { CommuneModule } from './commune/commune.module';
 
 // @ts-ignore
 @Module({
@@ -115,6 +116,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
     ArreteRestrictionModule,
     LoggerModule,
     SharedModule,
+    CommuneModule,
   ],
   controllers: [AppController],
   providers: [
