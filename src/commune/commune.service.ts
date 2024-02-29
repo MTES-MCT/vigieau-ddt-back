@@ -17,8 +17,18 @@ export class CommuneService {
     @InjectRepository(Commune)
     private readonly communeRepository: Repository<Commune>,
     private readonly departementService: DepartementService,
-  ) {
-    this.updateCommuneRef();
+  ) {}
+
+  async find(depCode?: string): Promise<Commune[]> {
+    return this.communeRepository
+      .createQueryBuilder('commune')
+      .select('commune.id', 'id')
+      .addSelect('commune.code', 'code')
+      .addSelect('commune.nom', 'nom')
+      .addSelect('ST_AsGeoJSON(ST_TRANSFORM(commune.geom, 4326), 4)', 'geom')
+      .leftJoin('commune.departement', 'departement')
+      .where('departement.code = :depCode', { depCode })
+      .getRawMany();
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_4AM)

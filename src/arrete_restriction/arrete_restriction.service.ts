@@ -148,12 +148,18 @@ export class ArreteRestrictionService {
           },
           restrictions: {
             id: true,
+            nomGroupementAep: true,
             zoneAlerte: {
               id: true,
               code: true,
               nom: true,
               type: true,
               disabled: true,
+            },
+            communes: {
+              id: true,
+              nom: true,
+              code: true,
             },
             niveauGravite: true,
             usagesArreteRestriction: {
@@ -192,6 +198,7 @@ export class ArreteRestrictionService {
           'fichier',
           'restrictions',
           'restrictions.zoneAlerte',
+          'restrictions.communes',
           'restrictions.usagesArreteRestriction',
           'restrictions.usagesArreteRestriction.usage',
           'restrictions.usagesArreteRestriction.usage.thematique',
@@ -236,6 +243,7 @@ export class ArreteRestrictionService {
       id,
       ...updateArreteRestrictionDto,
     });
+    // @ts-expect-error dto != entity
     arreteRestriction.restrictions =
       await this.restrictionService.updateAll(arreteRestriction);
     return arreteRestriction;

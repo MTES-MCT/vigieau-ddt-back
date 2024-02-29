@@ -3,11 +3,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToMany,
   ManyToOne,
   Polygon,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Departement } from '../../departement/entities/departement.entity';
+import { Restriction } from '../../restriction/entities/restriction.entity';
 
 @Entity()
 export class Commune extends BaseEntity {
@@ -32,6 +34,11 @@ export class Commune extends BaseEntity {
 
   @ManyToOne(() => Departement, (departement) => departement.communes)
   departement: Departement;
+
+  @ManyToMany(() => Restriction, (restriction) => restriction.communes, {
+    persistence: false,
+  })
+  restrictions: Restriction[];
 
   @Column({ nullable: false, default: false })
   disabled: boolean;

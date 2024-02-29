@@ -4,11 +4,12 @@ import { HttpModule } from '@nestjs/axios';
 import { Commune } from './entities/commune.entity';
 import { DepartementModule } from '../departement/departement.module';
 import { CommuneService } from './commune.service';
+import { CommuneController } from './commune.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Commune]), HttpModule, DepartementModule],
   providers: [CommuneService],
   exports: [],
-  controllers: [],
+  controllers: [CommuneController],
 })
 export class CommuneModule {}

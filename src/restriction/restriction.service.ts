@@ -4,6 +4,8 @@ import { In, Not, Repository } from 'typeorm';
 import { Restriction } from './entities/restriction.entity';
 import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
 import { UsageArreteRestrictionService } from '../usage_arrete_restriction/usage_arrete_restriction.service';
+import { RestrictionDto } from './dto/restriction.dto';
+import { CreateUpdateRestrictionDto } from './dto/create_update_restriction.dto';
 
 @Injectable()
 export class RestrictionService {
@@ -26,11 +28,19 @@ export class RestrictionService {
     });
     const restrictions: Restriction[] = arreteRestriction.restrictions.map(
       (r) => {
+        // @ts-expect-error test
+        if (r.isAep) {
+          r.zoneAlerte = null;
+        } else {
+          r.communes = null;
+        }
         // @ts-expect-error on ajoute seulement l'id
         r.arreteRestriction = { id: arreteRestriction.id };
         return r;
       },
     );
+    console.log('UPDATE RESTRICTIONS');
+    console.log(restrictions);
     const rToReturn: Restriction[] =
       await this.restrictionRepository.save(restrictions);
     await Promise.all(

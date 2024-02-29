@@ -1,5 +1,7 @@
 import {
   IsArray,
+  IsBoolean,
+  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
@@ -23,8 +25,25 @@ export class CreateUpdateRestrictionDto {
   @ApiProperty({ example: 1, description: 'Identifiant BDD' })
   id: number;
 
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    example: false,
+    description: 'Indique si la restriction envoyée est une zone AEP',
+  })
+  isAep: boolean;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    example: 'Agglomération de Marseille',
+    description: 'Nom du groupement de la zone AEP',
+  })
+  nomGroupementAep: string;
+
   @IsObject()
   @ValidateNested()
+  @IsOptional()
   @Type(() => UpdateLinkNestedObjectDto)
   @ApiProperty({ type: UpdateLinkNestedObjectDto })
   zoneAlerte: UpdateLinkNestedObjectDto;
@@ -45,4 +64,11 @@ export class CreateUpdateRestrictionDto {
   @Type(() => CreateUpdateUsageArreteRestrictionDto)
   @ApiProperty({ type: [CreateUpdateUsageArreteRestrictionDto] })
   usagesArreteRestriction: CreateUpdateUsageArreteRestrictionDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @IsOptional()
+  @Type(() => UpdateLinkNestedObjectDto)
+  @ApiProperty({ type: [UpdateLinkNestedObjectDto] })
+  communes: UpdateLinkNestedObjectDto[];
 }
