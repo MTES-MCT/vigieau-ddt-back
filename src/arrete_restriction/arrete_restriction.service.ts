@@ -77,15 +77,11 @@ export class ArreteRestrictionService {
   ): Promise<ArreteRestriction[]> {
     const whereClause: FindOptionsWhere<ArreteRestriction> | null = {
       statut: In(['a_venir', 'publie']),
-      arretesCadre: {
-        zonesAlerte: {
-          departement: {
-            code:
-              !currentUser || currentUser.role === 'mte'
-                ? depCode
-                : currentUser.role_departement,
-          },
-        },
+      departement: {
+        code:
+          !currentUser || currentUser.role === 'mte'
+            ? depCode
+            : currentUser.role_departement,
       },
     };
     return this.arreteRestrictionRepository.find({
@@ -129,12 +125,8 @@ export class ArreteRestrictionService {
         ? { id }
         : {
             id,
-            arretesCadre: {
-              zonesAlerte: {
-                departement: {
-                  code: currentUser.role_departement,
-                },
-              },
+            departement: {
+              code: currentUser.role_departement,
             },
           };
     const [ar, acs] = await Promise.all([
@@ -224,8 +216,6 @@ export class ArreteRestrictionService {
     createArreteRestrictionDto: CreateUpdateArreteRestrictionDto,
     currentUser?: User,
   ): Promise<ArreteRestriction> {
-    // Check ACI
-    // await this.checkAci(createArreteRestrictionDto, false, currentUser);
     const arreteRestriction: ArreteRestriction =
       await this.arreteRestrictionRepository.save(createArreteRestrictionDto);
     arreteRestriction.restrictions =
