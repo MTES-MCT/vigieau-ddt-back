@@ -368,7 +368,7 @@ export class ArreteRestrictionService {
       (user.role === 'mte' ||
         (arreteRestriction.statut !== 'abroge' &&
           arreteRestriction.departement.code === user.role_departement &&
-          !arreteRestriction.restrictions.some((r) => r.zoneAlerte.disabled)))
+          !arreteRestriction.restrictions.some((r) => r.zoneAlerte?.disabled)))
     );
   }
 
