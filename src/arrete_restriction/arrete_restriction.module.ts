@@ -6,6 +6,7 @@ import { ArreteRestriction } from './entities/arrete_restriction.entity';
 import { DepartementModule } from '../departement/departement.module';
 import { ArreteCadreModule } from '../arrete_cadre/arrete_cadre.module';
 import { RestrictionModule } from '../restriction/restriction.module';
+import { FichierModule } from '../fichier/fichier.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { RestrictionModule } from '../restriction/restriction.module';
     DepartementModule,
     forwardRef(() => ArreteCadreModule),
     RestrictionModule,
+    FichierModule,
   ],
   controllers: [ArreteRestrictionController],
   providers: [ArreteRestrictionService],

@@ -24,6 +24,12 @@ import { CreateUpdateArreteCadreDto } from '../arrete_cadre/dto/create_update_ar
 import { ArreteCadre } from '../arrete_cadre/entities/arrete_cadre.entity';
 import { CreateUpdateArreteRestrictionDto } from './dto/create_update_arrete_restriction.dto';
 import { RestrictionService } from '../restriction/restriction.service';
+import { RepealArreteCadreDto } from '../arrete_cadre/dto/repeal_arrete_cadre.dto';
+import { StatutArreteCadre } from '../arrete_cadre/type/arrete_cadre.type';
+import { RepealArreteRestrictionDto } from './dto/repeal_arrete_restriction.dto';
+import { PublishArreteCadreDto } from '../arrete_cadre/dto/publish_arrete_cadre.dto';
+import { PublishArreteRestrictionDto } from './dto/publish_arrete_restriction.dto';
+import { FichierService } from '../fichier/fichier.service';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -36,6 +42,7 @@ export class ArreteRestrictionService {
     @Inject(forwardRef(() => ArreteCadreService))
     private readonly arreteCadreService: ArreteCadreService,
     private readonly restrictionService: RestrictionService,
+    private readonly fichierService: FichierService,
   ) {}
 
   async findAll(query: PaginateQuery): Promise<Paginated<ArreteRestriction>> {
@@ -249,6 +256,105 @@ export class ArreteRestrictionService {
     return arreteRestriction;
   }
 
+  async publish(
+    id: number,
+    arreteRestrictionPdf: Express.Multer.File,
+    publishArreteRestrictionDto: PublishArreteRestrictionDto,
+    currentUser: User,
+  ): Promise<ArreteRestriction> {
+    if (
+      publishArreteRestrictionDto.dateFin &&
+      new Date(publishArreteRestrictionDto.dateFin) <
+        new Date(publishArreteRestrictionDto.dateDebut)
+    ) {
+      throw new HttpException(
+        `La date de fin doit être postérieure à la date de début.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    // CHECKER URL / FILE
+    const ar = await this.findOne(id, currentUser);
+    if (
+      !(await this.canUpdateArreteRestriction(
+        ar,
+        currentUser,
+        !arreteRestrictionPdf,
+      ))
+    ) {
+      return;
+    }
+    if (!arreteRestrictionPdf && !ar.fichier) {
+      throw new HttpException(
+        `Le PDF de l'arrêté de restriction est obligatoire.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    let toSave: any = {
+      id,
+      ...publishArreteRestrictionDto,
+    };
+    // Upload du PDF de l'arrêté cadre
+    if (arreteRestrictionPdf) {
+      if (ar.fichier) {
+        await this.fichierService.deleteById(ar.fichier.id);
+      }
+      const newFile = await this.fichierService.create(
+        arreteRestrictionPdf,
+        `arrete-restriction/${ar.id}/`,
+      );
+      toSave.fichier = { id: newFile.id };
+    }
+    toSave =
+      new Date(publishArreteRestrictionDto.dateDebut) <= new Date()
+        ? publishArreteRestrictionDto.dateFin &&
+          new Date(publishArreteRestrictionDto.dateFin) <= new Date()
+          ? { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } }
+          : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
+        : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
+    return await this.arreteRestrictionRepository.save(toSave);
+  }
+
+  async repeal(
+    id: number,
+    repealArreteRestrictionDto: RepealArreteRestrictionDto,
+    currentUser: User,
+  ): Promise<ArreteRestriction> {
+    if (
+      !(await this.canRepealArreteRestriction(
+        id,
+        repealArreteRestrictionDto,
+        currentUser,
+      ))
+    ) {
+      throw new HttpException(
+        `Abrogation impossible.`,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    let toSave = {
+      id,
+      ...repealArreteRestrictionDto,
+    };
+    if (new Date(repealArreteRestrictionDto.dateFin) <= new Date()) {
+      toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
+    }
+    const toReturn = await this.arreteRestrictionRepository.save(toSave);
+    // TODO si tout les AR associés à un AC sont abrogés, il faut abroger l'AC
+    return toReturn;
+  }
+
+  async remove(id: number, curentUser: User) {
+    if (!(await this.canRemoveArreteRestriction(id, curentUser))) {
+      throw new HttpException(
+        `Vous ne pouvez supprimer un arrêté de restriction que si il est sur votre département.`,
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    await this.arreteRestrictionRepository.delete(id);
+    return;
+  }
+
   async deleteByArreteCadreId(acId: number) {
     const arIds = await this.arreteRestrictionRepository
       .createQueryBuilder('arreteRestriction')
@@ -273,6 +379,43 @@ export class ArreteRestrictionService {
         (arreteRestriction.statut !== 'abroge' &&
           arreteRestriction.departement.code === user.role_departement &&
           !arreteRestriction.restrictions.some((r) => r.zoneAlerte.disabled)))
+    );
+  }
+
+  async canRemoveArreteRestriction(id: number, user: User): Promise<boolean> {
+    const arrete = await this.findOne(id, user);
+    /**
+     * On peut supprimer un AR s'il est sur le département de l'utilisateur
+     * ou si le département de l'utilisateur est le département pilote de l'AC
+     * et qu'il n'est lié à aucun AR en cours ou abrogé
+     */
+    return (
+      arrete &&
+      (user.role === 'mte' ||
+        (arrete.departement.code === user.role_departement &&
+          ['a_valider'].includes(arrete.statut)))
+    );
+  }
+
+  async canRepealArreteRestriction(
+    id: number,
+    repealArreteRestriction: RepealArreteRestrictionDto,
+    user: User,
+  ): Promise<boolean> {
+    const arrete = await this.findOne(id, user);
+    if (
+      repealArreteRestriction.dateFin &&
+      new Date(repealArreteRestriction.dateFin) < new Date(arrete.dateDebut)
+    ) {
+      throw new HttpException(
+        `La date de fin doit être postérieure à la date de début.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return (
+      arrete &&
+      ['a_venir', 'publie'].includes(arrete.statut) &&
+      (user.role === 'mte' || arrete.departement.code === user.role_departement)
     );
   }
 
