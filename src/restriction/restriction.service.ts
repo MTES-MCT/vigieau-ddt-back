@@ -18,6 +18,7 @@ export class RestrictionService {
   async updateAll(
     arreteRestriction: ArreteRestriction,
   ): Promise<Restriction[]> {
+    // console.log(arreteRestriction.restrictions);
     const restrictionsId = arreteRestriction.restrictions.map((r) => r.id);
     // SUPPRESSION DES ANCIENNES RESTRICTIONS
     await this.restrictionRepository.delete({
@@ -39,8 +40,6 @@ export class RestrictionService {
         return r;
       },
     );
-    console.log('UPDATE RESTRICTIONS');
-    console.log(restrictions);
     const rToReturn: Restriction[] =
       await this.restrictionRepository.save(restrictions);
     await Promise.all(

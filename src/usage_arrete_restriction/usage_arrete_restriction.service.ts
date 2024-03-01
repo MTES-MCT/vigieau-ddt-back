@@ -30,7 +30,10 @@ export class UsageArreteRestrictionService {
         u.restriction = { id: restriction.id };
         return u;
       });
-    return this.usageArreteRestrictionRepository.save(usagesArreteRestriction);
+    const toReturn = this.usageArreteRestrictionRepository.save(
+      usagesArreteRestriction,
+    );
+    return toReturn;
   }
 
   // findByArreteCadre(arreteCadreId: number) {
