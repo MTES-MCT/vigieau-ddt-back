@@ -19,8 +19,9 @@ export class RestrictionService {
     arreteRestriction: ArreteRestriction,
   ): Promise<Restriction[]> {
     // console.log(arreteRestriction.restrictions);
-    const restrictionsId = arreteRestriction.restrictions.map((r) => r.id);
-    // SUPPRESSION DES ANCIENNES RESTRICTIONS
+    const restrictionsId = arreteRestriction.restrictions
+      .filter((r) => r.id)
+      .map((r) => r.id);
     await this.restrictionRepository.delete({
       arreteRestriction: {
         id: arreteRestriction.id,
