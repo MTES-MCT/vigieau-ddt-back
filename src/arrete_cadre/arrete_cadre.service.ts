@@ -118,6 +118,9 @@ export class ArreteCadreService {
             },
           },
         },
+        arretesRestriction: {
+          id: true,
+        },
       },
       relations: [
         'zonesAlerte',
@@ -128,6 +131,16 @@ export class ArreteCadreService {
       ],
       where: whereClause,
     });
+    await Promise.all(
+      acToReturn.map(async (ac) => {
+        ac.arretesRestriction =
+          await this.arreteRestrictionService.findByArreteCadreAndDepartement(
+            ac.id,
+            depCode,
+          );
+        return ac;
+      }),
+    );
     return acToReturn.filter((ac) => !ac.zonesAlerte.some((za) => za.disabled));
   }
 

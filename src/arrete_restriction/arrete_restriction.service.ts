@@ -212,6 +212,49 @@ export class ArreteRestrictionService {
     return ar;
   }
 
+  async findByArreteCadreAndDepartement(
+    acId: number,
+    depCode: string,
+  ): Promise<ArreteRestriction[]> {
+    return this.arreteRestrictionRepository.find({
+      select: {
+        id: true,
+        statut: true,
+        restrictions: {
+          id: true,
+          nomGroupementAep: true,
+          zoneAlerte: {
+            id: true,
+            code: true,
+            nom: true,
+            type: true,
+            disabled: true,
+          },
+          communes: {
+            id: true,
+            nom: true,
+            code: true,
+          },
+        },
+      },
+      relations: [
+        'restrictions',
+        'restrictions.zoneAlerte',
+        'restrictions.communes',
+        'departement',
+      ],
+      where: {
+        arretesCadre: {
+          id: acId,
+        },
+        departement: {
+          code: depCode,
+        },
+        statut: In(['a_venir', 'publie']),
+      },
+    });
+  }
+
   async create(
     createArreteRestrictionDto: CreateUpdateArreteRestrictionDto,
     currentUser?: User,
