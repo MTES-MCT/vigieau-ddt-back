@@ -35,7 +35,7 @@ export class ArreteCadreService {
   constructor(
     @InjectRepository(ArreteCadre)
     private readonly arreteCadreRepository: Repository<ArreteCadre>,
-    private readonly uageArreteCadreService: UsageArreteCadreService,
+    private readonly usageArreteCadreService: UsageArreteCadreService,
     private readonly arreteRestrictionService: ArreteRestrictionService,
     private readonly departementService: DepartementService,
     private readonly zoneAlerteService: ZoneAlerteService,
@@ -194,7 +194,7 @@ export class ArreteCadreService {
         ],
         where: whereClause,
       }),
-      this.uageArreteCadreService.findByArreteCadre(id),
+      this.usageArreteCadreService.findByArreteCadre(id),
       this.departementService.findByArreteCadreId(id),
     ]);
     if (!arreteCadre) {
@@ -275,7 +275,7 @@ export class ArreteCadreService {
     const arreteCadre =
       await this.arreteCadreRepository.save(createArreteCadreDto);
     arreteCadre.usagesArreteCadre =
-      await this.uageArreteCadreService.updateAll(arreteCadre);
+      await this.usageArreteCadreService.updateAll(arreteCadre);
     this.sendAciMails(null, arreteCadre, currentUser);
     return arreteCadre;
   }
@@ -298,7 +298,7 @@ export class ArreteCadreService {
       ...updateArreteCadreDto,
     });
     arreteCadre.usagesArreteCadre =
-      await this.uageArreteCadreService.updateAll(arreteCadre);
+      await this.usageArreteCadreService.updateAll(arreteCadre);
     this.sendAciMails(oldAc, arreteCadre, currentUser);
     return arreteCadre;
   }
@@ -689,12 +689,12 @@ export class ArreteCadreService {
         case 'CYTEST_002':
           ac.departements = [await this.departementService.findByCode('2A')];
           ac.zonesAlerte = await this.zoneAlerteService.findByDepartement('2A');
-          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          // ac.usagesArreteCadre = await this.usageArreteCadreService.findByArreteCadre();
           break;
         case 'CYTEST_003':
           ac.departements = [await this.departementService.findByCode('2A')];
           ac.zonesAlerte = await this.zoneAlerteService.findByDepartement('2A');
-          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          // ac.usagesArreteCadre = await this.usageArreteCadreService.findByArreteCadre();
           break;
         case 'CYTEST_004':
           ac.departements = [
@@ -702,7 +702,7 @@ export class ArreteCadreService {
             await this.departementService.findByCode('2B'),
           ];
           ac.zonesAlerte = await this.zoneAlerteService.findByDepartement('2A');
-          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          // ac.usagesArreteCadre = await this.usageArreteCadreService.findByArreteCadre();
           break;
         case 'CYTEST_005':
           ac.departements = [
@@ -710,16 +710,16 @@ export class ArreteCadreService {
             await this.departementService.findByCode('2A'),
           ];
           ac.zonesAlerte = await this.zoneAlerteService.findByDepartement('2A');
-          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          // ac.usagesArreteCadre = await this.usageArreteCadreService.findByArreteCadre();
           break;
         case 'CYTEST_006':
           ac.departements = [await this.departementService.findByCode('2A')];
-          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          // ac.usagesArreteCadre = await this.usageArreteCadreService.findByArreteCadre();
           break;
         case 'CYTEST_007':
           ac.departements = [await this.departementService.findByCode('2B')];
           ac.zonesAlerte = await this.zoneAlerteService.findByDepartement('2B');
-          // ac.usagesArreteCadre = await this.uageArreteCadreService.findByArreteCadre();
+          // ac.usagesArreteCadre = await this.usageArreteCadreService.findByArreteCadre();
           break;
       }
       await this.create(JSON.parse(JSON.stringify(ac)), null);
