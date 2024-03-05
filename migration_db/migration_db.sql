@@ -404,3 +404,11 @@ LEFT JOIN public.arrete_restriction as ar ON ar.id = r."arreteRestrictionId"
 LEFT JOIN public.arrete_cadre_arrete_restriction as acar ON acar."arreteRestrictionId" = ar.id
 LEFT JOIN public.usage_arrete_cadre as uac ON uac."arreteCadreId" = acar."arreteCadreId" and uac."usageId" = uar2."usageId"
 where uar.id = uar2.id;
+
+-- Abreuvement animaux qui n'ont jamais de descriptionCrise
+UPDATE public.usage_arrete_restriction
+set "descriptionCrise" = 'Pas de restrictions.'
+where "descriptionCrise" is null or "descriptionCrise" = '';
+UPDATE public.usage_arrete_cadre
+set "descriptionCrise" = 'Pas de restrictions.'
+where "descriptionCrise" is null or "descriptionCrise" = '';
