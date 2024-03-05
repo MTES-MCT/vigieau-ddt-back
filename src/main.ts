@@ -10,6 +10,7 @@ import { Session } from './core/entities/session.entity';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { RegleauLogger } from './logger/regleau.logger';
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -35,6 +36,8 @@ async function bootstrap() {
     }),
   );
   app.setGlobalPrefix('api');
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ extended: true, limit: '10mb' }));
 
   // OpenAPI
   const options = new DocumentBuilder()
