@@ -36,9 +36,6 @@ import { CreateUpdateArreteRestrictionDto } from './dto/create_update_arrete_res
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Utils } from '../core/utils';
 import { FileUploadDto } from '../core/dto/file_upload.dto';
-import { PublishArreteCadreDto } from '../arrete_cadre/dto/publish_arrete_cadre.dto';
-import { ArreteCadreDto } from '../arrete_cadre/dto/arrete_cadre.dto';
-import { RepealArreteCadreDto } from '../arrete_cadre/dto/repeal_arrete_cadre.dto';
 import { RepealArreteRestrictionDto } from './dto/repeal_arrete_restriction.dto';
 import { PublishArreteRestrictionDto } from './dto/publish_arrete_restriction.dto';
 

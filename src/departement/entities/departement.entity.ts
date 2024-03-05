@@ -5,6 +5,7 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
+  OneToOne,
   Polygon,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -13,6 +14,7 @@ import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { Region } from '../../core/entities/region.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
 import { Commune } from '../../commune/entities/commune.entity';
+import { Parametres } from '../../parametres/entities/parametres.entity';
 
 @Entity()
 export class Departement extends BaseEntity {
@@ -52,4 +54,7 @@ export class Departement extends BaseEntity {
     (arreteRestriction) => arreteRestriction.departement,
   )
   arretesRestriction: ArreteRestriction[];
+
+  @OneToOne(() => Parametres, (parametres) => parametres.departement)
+  parametres: Parametres;
 }
