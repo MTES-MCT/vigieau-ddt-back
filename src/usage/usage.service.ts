@@ -50,10 +50,11 @@ export class UsageService {
       );
     }
     const usageExists = await this.findOne(usage.nom);
-    if (!usageExists) {
-      await this.usageRepository.save(usage);
-      return this.findOne(usage.nom);
+    if (usageExists) {
+      // @ts-expect-error-expect-error id
+      usage.id = usageExists.id;
     }
-    return usageExists;
+    await this.usageRepository.save(usage);
+    return this.findOne(usage.nom);
   }
 }
