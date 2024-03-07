@@ -419,8 +419,7 @@ export class ArreteRestrictionService {
     const arrete = await this.findOne(id, user);
     /**
      * On peut supprimer un AR s'il est sur le département de l'utilisateur
-     * ou si le département de l'utilisateur est le département pilote de l'AC
-     * et qu'il n'est lié à aucun AR en cours ou abrogé
+     * ou que l'utilisateur a un rôle MTE
      */
     return (
       arrete &&
