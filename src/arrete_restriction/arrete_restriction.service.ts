@@ -155,6 +155,9 @@ export class ArreteRestrictionService {
               type: true,
               disabled: true,
             },
+            arreteCadre: {
+              id: true,
+            },
             communes: {
               id: true,
               nom: true,
@@ -197,6 +200,7 @@ export class ArreteRestrictionService {
           'fichier',
           'restrictions',
           'restrictions.zoneAlerte',
+          'restrictions.arreteCadre',
           'restrictions.communes',
           'restrictions.usagesArreteRestriction',
           'restrictions.usagesArreteRestriction.usage',
@@ -230,6 +234,9 @@ export class ArreteRestrictionService {
             type: true,
             disabled: true,
           },
+          arreteCadre: {
+            id: true,
+          },
           communes: {
             id: true,
             nom: true,
@@ -240,6 +247,7 @@ export class ArreteRestrictionService {
       relations: [
         'restrictions',
         'restrictions.zoneAlerte',
+        'restrictions.arreteCadre',
         'restrictions.communes',
         'departement',
       ],

@@ -4,8 +4,6 @@ import { In, Not, Repository } from 'typeorm';
 import { Restriction } from './entities/restriction.entity';
 import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
 import { UsageArreteRestrictionService } from '../usage_arrete_restriction/usage_arrete_restriction.service';
-import { RestrictionDto } from './dto/restriction.dto';
-import { CreateUpdateRestrictionDto } from './dto/create_update_restriction.dto';
 
 @Injectable()
 export class RestrictionService {
@@ -18,7 +16,6 @@ export class RestrictionService {
   async updateAll(
     arreteRestriction: ArreteRestriction,
   ): Promise<Restriction[]> {
-    // console.log(arreteRestriction.restrictions);
     const restrictionsId = arreteRestriction.restrictions
       .filter((r) => r.id)
       .map((r) => r.id);

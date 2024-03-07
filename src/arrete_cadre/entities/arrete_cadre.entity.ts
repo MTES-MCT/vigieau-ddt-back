@@ -22,6 +22,7 @@ import { Departement } from '../../departement/entities/departement.entity';
 import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
 import { Fichier } from '../../fichier/entities/fichier.entity';
+import { Restriction } from '../../restriction/entities/restriction.entity';
 
 @Entity()
 export class ArreteCadre extends BaseEntity {
@@ -102,6 +103,9 @@ export class ArreteCadre extends BaseEntity {
 
   @OneToMany(() => ArreteCadre, (arreteCadre) => arreteCadre.arreteCadreAbroge)
   arretesCadre: ArreteCadre[];
+
+  @OneToMany(() => Restriction, (restriction) => restriction.arreteCadre)
+  restrictions: Restriction[];
 
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;

@@ -412,3 +412,17 @@ where "descriptionCrise" is null or "descriptionCrise" = '';
 UPDATE public.usage_arrete_cadre
 set "descriptionCrise" = 'Pas de restrictions.'
 where "descriptionCrise" is null or "descriptionCrise" = '';
+
+-- AJOUT DES ARRETES ABROGES
+UPDATE public.arrete_restriction ar
+SET "arreteRestrictionAbrogeId" =
+(select a.id_arrete from talend_ingestion_ppluvia.abrogation as a where a.id_arrete_abrogeant = ar.id);
+
+-- AJOUT DES AC DANS LES RESTRICTIONS
+UPDATE public.restriction r
+set "arreteCadreId" = ac."id"
+FROM public.restriction as r2
+LEFT JOIN public.arrete_restriction as ar ON ar.id = r2."arreteRestrictionId"
+LEFT JOIN public.arrete_cadre_arrete_restriction as acar ON acar."arreteRestrictionId" = ar.id
+LEFT JOIN public.arrete_cadre as ac ON ac."id" = acar."arreteCadreId"
+where r.id = r2.id;

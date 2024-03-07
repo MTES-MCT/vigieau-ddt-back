@@ -1,7 +1,6 @@
 import {
   IsArray,
   IsBoolean,
-  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
@@ -47,6 +46,13 @@ export class CreateUpdateRestrictionDto {
   @Type(() => UpdateLinkNestedObjectDto)
   @ApiProperty({ type: UpdateLinkNestedObjectDto })
   zoneAlerte: UpdateLinkNestedObjectDto;
+
+  @IsObject()
+  @ValidateNested()
+  @IsOptional()
+  @Type(() => UpdateLinkNestedObjectDto)
+  @ApiProperty({ type: UpdateLinkNestedObjectDto })
+  arreteCadre: UpdateLinkNestedObjectDto;
 
   @IsString()
   @Matches(/^vigilance$|^alerte$|^alerte_renforcee$|^crise$/)

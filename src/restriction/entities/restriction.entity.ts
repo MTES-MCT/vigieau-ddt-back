@@ -14,6 +14,7 @@ import { NiveauGravite } from '../../arrete_restriction/type/niveau_gravite.type
 import { UsageArreteRestriction } from '../../usage_arrete_restriction/entities/usage_arrete_restriction.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
 import { Commune } from '../../commune/entities/commune.entity';
+import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 
 @Entity()
 @Unique(['arreteRestriction', 'zoneAlerte'])
@@ -33,6 +34,9 @@ export class Restriction extends BaseEntity {
 
   @ManyToOne(() => ZoneAlerte, (zoneAlerte) => zoneAlerte.restrictions)
   zoneAlerte: ZoneAlerte;
+
+  @ManyToOne(() => ArreteCadre, (arreteCadre) => arreteCadre.restrictions)
+  arreteCadre: ArreteCadre;
 
   @Column('enum', {
     name: 'niveauGravite',
