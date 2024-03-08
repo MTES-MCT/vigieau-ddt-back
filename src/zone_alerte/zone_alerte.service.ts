@@ -31,7 +31,7 @@ export class ZoneAlerteService {
       .addSelect('zone_alerte.nom', 'nom')
       .addSelect('zone_alerte.type', 'type')
       .addSelect(
-        'ST_AsGeoJSON(ST_TRANSFORM(zone_alerte.geom, 4326), 4)',
+        'ST_AsGeoJSON(ST_TRANSFORM(zone_alerte.geom, 4326), 3)',
         'geom',
       )
       .leftJoin('zone_alerte.arretesCadre', 'arrete_cadre')

@@ -25,7 +25,7 @@ export class CommuneService {
       .select('commune.id', 'id')
       .addSelect('commune.code', 'code')
       .addSelect('commune.nom', 'nom')
-      .addSelect('ST_AsGeoJSON(ST_TRANSFORM(commune.geom, 4326), 4)', 'geom')
+      .addSelect('ST_AsGeoJSON(ST_TRANSFORM(commune.geom, 4326), 3)', 'geom')
       .leftJoin('commune.departement', 'departement')
       .where('departement.code = :depCode', { depCode })
       .getRawMany();
