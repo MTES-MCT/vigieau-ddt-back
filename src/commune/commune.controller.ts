@@ -18,8 +18,14 @@ export class CommuneController {
     status: 201,
     type: [CommuneDto],
   })
-  async find(@Query('depCode') depCode?: string): Promise<CommuneDto[]> {
-    const communes = await this.communeService.find(depCode);
+  async find(
+    @Query('depCode') depCode?: string,
+    @Query('withGeom') withGeom?: string,
+  ): Promise<CommuneDto[]> {
+    const communes = await this.communeService.find(
+      depCode,
+      withGeom === 'true',
+    );
     return plainToInstance(CommuneDto, camelcaseKeys(communes, { deep: true }));
   }
 }

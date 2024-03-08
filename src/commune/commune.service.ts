@@ -19,13 +19,18 @@ export class CommuneService {
     private readonly departementService: DepartementService,
   ) {}
 
-  async find(depCode?: string): Promise<Commune[]> {
-    return this.communeRepository
+  async find(depCode?: string, withGeom?: boolean): Promise<Commune[]> {
+    const qb = this.communeRepository
       .createQueryBuilder('commune')
       .select('commune.id', 'id')
       .addSelect('commune.code', 'code')
-      .addSelect('commune.nom', 'nom')
-      .addSelect('ST_AsGeoJSON(ST_TRANSFORM(commune.geom, 4326), 3)', 'geom')
+      .addSelect('commune.nom', 'nom');
+
+    if (withGeom) {
+      qb.addSelect('ST_AsGeoJSON(ST_TRANSFORM(commune.geom, 4326), 3)', 'geom');
+    }
+
+    return qb
       .leftJoin('commune.departement', 'departement')
       .where('departement.code = :depCode', { depCode })
       .getRawMany();
