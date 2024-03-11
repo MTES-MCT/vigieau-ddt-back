@@ -229,6 +229,8 @@ export class ArreteCadreService {
         id: true,
         numero: true,
         statut: true,
+        dateDebut: true,
+        dateFin: true,
         zonesAlerte: {
           id: true,
           code: true,

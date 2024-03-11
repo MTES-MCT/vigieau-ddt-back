@@ -195,6 +195,15 @@ export class ArreteRestrictionController {
     );
   }
 
+  @Get(':id/check')
+  @ApiOperation({
+    summary: "Check d'un arrêté de restriction avant sa publication",
+  })
+  async check(@Param('id') id: string): Promise<any> {
+    const ar = await this.arreteRestrictionService.findOne(+id);
+    return this.arreteRestrictionService.checkBeforePublish(ar);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: "Suppression d'un arrêté de restriction" })
   remove(@Req() req, @Param('id') id: string) {

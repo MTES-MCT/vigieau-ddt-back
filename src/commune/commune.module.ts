@@ -9,7 +9,7 @@ import { CommuneController } from './commune.controller';
 @Module({
   imports: [TypeOrmModule.forFeature([Commune]), HttpModule, DepartementModule],
   providers: [CommuneService],
-  exports: [],
+  exports: [CommuneService],
   controllers: [CommuneController],
 })
 export class CommuneModule {}
