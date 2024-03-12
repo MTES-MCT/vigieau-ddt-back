@@ -7,6 +7,8 @@ import { DepartementModule } from '../departement/departement.module';
 import { ArreteCadreModule } from '../arrete_cadre/arrete_cadre.module';
 import { RestrictionModule } from '../restriction/restriction.module';
 import { FichierModule } from '../fichier/fichier.module';
+import { UserModule } from '../user/user.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { FichierModule } from '../fichier/fichier.module';
     forwardRef(() => ArreteCadreModule),
     RestrictionModule,
     FichierModule,
+    UserModule,
+    SharedModule,
   ],
   controllers: [ArreteRestrictionController],
   providers: [ArreteRestrictionService],

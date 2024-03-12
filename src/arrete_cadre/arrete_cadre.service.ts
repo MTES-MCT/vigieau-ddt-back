@@ -669,6 +669,7 @@ export class ArreteCadreService {
           arreteDateFin: ac.dateFin,
           joursFin: nbJoursFin,
           isAc: true,
+          isAr: false,
           arreteLien: `https://${process.env.DOMAIN_NAME}/arrete-cadre/${ac.id}/edition`,
         },
       );

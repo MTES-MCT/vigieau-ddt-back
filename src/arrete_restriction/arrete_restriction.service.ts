@@ -27,6 +27,9 @@ import { StatutArreteCadre } from '../arrete_cadre/type/arrete_cadre.type';
 import { RepealArreteRestrictionDto } from './dto/repeal_arrete_restriction.dto';
 import { PublishArreteRestrictionDto } from './dto/publish_arrete_restriction.dto';
 import { FichierService } from '../fichier/fichier.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { UserService } from '../user/user.service';
+import { MailService } from '../shared/services/mail.service';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -40,6 +43,8 @@ export class ArreteRestrictionService {
     private readonly arreteCadreService: ArreteCadreService,
     private readonly restrictionService: RestrictionService,
     private readonly fichierService: FichierService,
+    private readonly userService: UserService,
+    private readonly mailService: MailService,
   ) {}
 
   async findAll(query: PaginateQuery): Promise<Paginated<ArreteRestriction>> {
@@ -662,5 +667,91 @@ export class ArreteRestrictionService {
       { statut: 'abroge' },
     );
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
+  }
+
+  /**
+   * Vérification s'il faut envoyer des mails de relance tous les jours à 8h du matin
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_8AM)
+  async sendArreteRestrictionEmails() {
+    const [ar15ARelancer, ar2ARelancer] = await Promise.all([
+      this.getArAtXDays(15),
+      this.getArAtXDays(2),
+    ]);
+    for (const ar of ar15ARelancer.concat(ar2ARelancer)) {
+      const usersToSendMail = await this.userService.findByDepartementsId([
+        ar.departement.id,
+      ]);
+      const nbJoursFin = ar15ARelancer.some((a) => a.id === ar.id) ? 15 : 2;
+      await this.mailService.sendEmails(
+        usersToSendMail.map((u) => u.email),
+        `L'arrêté ${ar.numero} se termine dans ${nbJoursFin} jours`,
+        'relance_arrete',
+        {
+          arreteNumero: ar.numero,
+          arreteDateFin: ar.dateFin,
+          joursFin: nbJoursFin,
+          isAc: false,
+          isAr: true,
+          arreteLien: `https://${process.env.DOMAIN_NAME}/arrete-restriction/${ar.id}/edition`,
+        },
+      );
+    }
+
+    const arARelancer = await this.getArByMonth();
+    for (const ar of arARelancer) {
+      const usersToSendMail = await this.userService.findByDepartementsId([
+        ar.departement.id,
+      ]);
+      const nbMonths =
+        new Date().getMonth() -
+        new Date(ar.dateDebut).getMonth() +
+        12 * (new Date().getFullYear() - new Date(ar.dateDebut).getFullYear());
+      await this.mailService.sendEmails(
+        usersToSendMail.map((u) => u.email),
+        `L'arrêté ${ar.numero} est actif depuis ${nbMonths} mois`,
+        'relance_arrete',
+        {
+          arreteNumero: ar.numero,
+          arreteDateDebut: ar.dateDebut,
+          arreteDateFin: ar.dateFin,
+          nbMonths: nbMonths,
+          arreteLien: `https://${process.env.DOMAIN_NAME}/arrete-restriction/${ar.id}/edition`,
+        },
+      );
+    }
+  }
+
+  private getArAtXDays(days: number) {
+    return this.arreteRestrictionRepository
+      .createQueryBuilder('arrete_restriction')
+      .leftJoinAndSelect('arrete_restriction.departement', 'departement')
+      .where('arrete_restriction.statut IN (:...statuts)', {
+        statuts: ['a_venir', 'publie'],
+      })
+      .having(
+        `DATE_PART('day', "dateFin"::timestamp - CURRENT_DATE::timestamp) = ${days}`,
+      )
+      .groupBy('arrete_restriction.id')
+      .addGroupBy('departement.id')
+      .getMany();
+  }
+
+  private getArByMonth() {
+    return this.arreteRestrictionRepository
+      .createQueryBuilder('arrete_restriction')
+      .leftJoinAndSelect('arrete_restriction.departement', 'departement')
+      .where('arrete_restriction.statut IN (:...statuts)', {
+        statuts: ['publie'],
+      })
+      .andWhere(
+        `DATE_PART('day', "dateDebut"::timestamp) = DATE_PART('day', current_date)`,
+      )
+      .having(
+        `DATE_PART('day', CURRENT_DATE::timestamp - "dateDebut"::timestamp) > 27`,
+      )
+      .groupBy('arrete_restriction.id')
+      .addGroupBy('departement.id')
+      .getMany();
   }
 }
