@@ -404,6 +404,7 @@ export class ArreteRestrictionService {
             dateFin: dateToSave.toDateString(),
           },
         );
+        await this.updateArreteRestrictionStatut();
       }
     }
     return toRerturn;
