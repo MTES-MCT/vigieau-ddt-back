@@ -142,7 +142,6 @@ export class ArreteRestrictionController {
     if (!publishArreteRestrictionDto.dateSignature) {
       publishArreteRestrictionDto.dateSignature = null;
     }
-    // TODO vérifier que l'AR est bien complet (zones, usages, etc.)
     const arreteRestriction = await this.arreteRestrictionService.publish(
       +id,
       file,

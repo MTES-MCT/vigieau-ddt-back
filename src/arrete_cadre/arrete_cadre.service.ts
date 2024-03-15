@@ -27,6 +27,8 @@ import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { MailService } from '../shared/services/mail.service';
 import { UserService } from '../user/user.service';
 import { FichierService } from '../fichier/fichier.service';
+import { RestrictionService } from '../restriction/restriction.service';
+import { UsageArreteRestrictionService } from '../usage_arrete_restriction/usage_arrete_restriction.service';
 
 @Injectable()
 export class ArreteCadreService {
@@ -42,7 +44,10 @@ export class ArreteCadreService {
     private readonly mailService: MailService,
     private readonly userService: UserService,
     private readonly fichierService: FichierService,
-  ) {}
+    private readonly restrictionService: RestrictionService,
+    private readonly usageArreteRestrictionService: UsageArreteRestrictionService,
+  ) {
+  }
 
   async findAll(query: PaginateQuery): Promise<Paginated<ArreteCadre>> {
     const paginateConfig = arreteCadrePaginateConfig;
@@ -149,11 +154,11 @@ export class ArreteCadreService {
       !curentUser || curentUser.role === 'mte'
         ? { id }
         : {
-            id,
-            departements: {
-              code: curentUser.role_departement,
-            },
-          };
+          id,
+          departements: {
+            code: curentUser.role_departement,
+          },
+        };
     const [arreteCadre, usagesArreteCadre, departements] = await Promise.all([
       this.arreteCadreRepository.findOne({
         select: {
@@ -206,6 +211,11 @@ export class ArreteCadreService {
           'arreteCadreAbroge',
         ],
         where: whereClause,
+        order: {
+          zonesAlerte: {
+            code: 'ASC',
+          },
+        },
       }),
       this.usageArreteCadreService.findByArreteCadre(id),
       this.departementService.findByArreteCadreId(id),
@@ -236,6 +246,7 @@ export class ArreteCadreService {
           code: true,
           nom: true,
           type: true,
+          disabled: true,
           departement: {
             id: true,
             code: true,
@@ -314,6 +325,8 @@ export class ArreteCadreService {
     });
     arreteCadre.usagesArreteCadre =
       await this.usageArreteCadreService.updateAll(arreteCadre);
+
+    await this.repercussionOnAr(oldAc, arreteCadre);
     this.sendAciMails(oldAc, arreteCadre, currentUser);
     return arreteCadre;
   }
@@ -327,7 +340,7 @@ export class ArreteCadreService {
     if (
       publishArreteCadreDto.dateFin &&
       new Date(publishArreteCadreDto.dateFin) <
-        new Date(publishArreteCadreDto.dateDebut)
+      new Date(publishArreteCadreDto.dateDebut)
     ) {
       throw new HttpException(
         `La date de fin doit être postérieure à la date de début.`,
@@ -363,7 +376,7 @@ export class ArreteCadreService {
     toSave =
       new Date(publishArreteCadreDto.dateDebut) <= new Date()
         ? publishArreteCadreDto.dateFin &&
-          new Date(publishArreteCadreDto.dateFin) <= new Date()
+        new Date(publishArreteCadreDto.dateFin) <= new Date()
           ? { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } }
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
@@ -408,6 +421,30 @@ export class ArreteCadreService {
     await this.arreteRestrictionService.deleteByArreteCadreId(id);
     await this.arreteCadreRepository.delete(id);
     return;
+  }
+
+  async repercussionOnAr(oldAc: ArreteCadre, newAc: ArreteCadre) {
+    // Supprimer / modifier les zones / usages de l'AC
+    if (oldAc.statut === 'a_valider') {
+      return;
+    }
+    const zonesDeleted = oldAc.zonesAlerte.filter(
+      (za) => !newAc.zonesAlerte.some((nza) => nza.id === za.id),
+    );
+    const usagesDeleted = oldAc.usagesArreteCadre.filter(
+      (uac) =>
+        !newAc.usagesArreteCadre.some((nuac) => nuac.usage.id === uac.usage.id),
+    );
+    await Promise.all([
+      this.restrictionService.deleteZonesByArreteCadreId(
+        zonesDeleted.map((z) => z.id),
+        oldAc.id,
+      ),
+      this.usageArreteRestrictionService.deleteUsagesByArreteCadreId(
+        usagesDeleted.map((u) => u.usage.id),
+        oldAc.id,
+      ),
+    ]);
   }
 
   async canUpdateArreteCadre(

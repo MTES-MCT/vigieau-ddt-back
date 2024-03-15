@@ -63,6 +63,11 @@ export class UsageArreteCadreService {
           id: arreteCadreId,
         },
       },
+      order: {
+        usage: {
+          nom: 'ASC',
+        },
+      },
     });
   }
 }

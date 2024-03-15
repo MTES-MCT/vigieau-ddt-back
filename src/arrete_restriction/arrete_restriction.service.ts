@@ -45,7 +45,8 @@ export class ArreteRestrictionService {
     private readonly fichierService: FichierService,
     private readonly userService: UserService,
     private readonly mailService: MailService,
-  ) {}
+  ) {
+  }
 
   async findAll(query: PaginateQuery): Promise<Paginated<ArreteRestriction>> {
     const paginateConfig = arreteRestrictionPaginateConfig;
@@ -126,11 +127,11 @@ export class ArreteRestrictionService {
       !currentUser || currentUser.role === 'mte'
         ? { id }
         : {
-            id,
-            departement: {
-              code: currentUser.role_departement,
-            },
-          };
+          id,
+          departement: {
+            code: currentUser.role_departement,
+          },
+        };
     const [ar, acs] = await Promise.all([
       this.arreteRestrictionRepository.findOne({
         select: {
@@ -196,6 +197,7 @@ export class ArreteRestrictionService {
           arreteRestrictionAbroge: {
             id: true,
             numero: true,
+            dateFin: true,
           },
         },
         relations: [
@@ -211,6 +213,18 @@ export class ArreteRestrictionService {
           'arreteRestrictionAbroge',
         ],
         where: whereClause,
+        order: {
+          restrictions: {
+            zoneAlerte: {
+              code: 'ASC',
+            },
+            usagesArreteRestriction: {
+              usage: {
+                nom: 'ASC',
+              },
+            },
+          },
+        },
       }),
       this.arreteCadreService.findByArreteRestrictionId(id),
     ]);
@@ -308,7 +322,7 @@ export class ArreteRestrictionService {
     if (
       publishArreteRestrictionDto.dateFin &&
       new Date(publishArreteRestrictionDto.dateFin) <
-        new Date(publishArreteRestrictionDto.dateDebut)
+      new Date(publishArreteRestrictionDto.dateDebut)
     ) {
       throw new HttpException(
         `La date de fin doit être postérieure à la date de début.`,
@@ -330,11 +344,17 @@ export class ArreteRestrictionService {
         ar,
         currentUser,
         !arreteRestrictionPdf,
-      )) ||
-      (await this.checkBeforePublish(arBis)).errors.length > 0
+      ))
     ) {
       throw new HttpException(
         `Impossible de publier l'arrête de restriction.`,
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    const checkReturn = await this.checkBeforePublish(arBis);
+    if (checkReturn.errors.length > 0) {
+      throw new HttpException(
+        `Impossible de publier l'arrête de restriction.\n${checkReturn.errors.join('\n')}`,
         HttpStatus.FORBIDDEN,
       );
     }
@@ -362,11 +382,31 @@ export class ArreteRestrictionService {
     toSave =
       new Date(publishArreteRestrictionDto.dateDebut) <= new Date()
         ? publishArreteRestrictionDto.dateFin &&
-          new Date(publishArreteRestrictionDto.dateFin) <= new Date()
+        new Date(publishArreteRestrictionDto.dateFin) <= new Date()
           ? { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } }
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
-    return await this.arreteRestrictionRepository.save(toSave);
+    const toRerturn = await this.arreteRestrictionRepository.save(toSave);
+    if (ar.arreteRestrictionAbroge) {
+      const dateDebutAr = new Date(publishArreteRestrictionDto.dateDebut);
+      const dateFinArAbroge = ar.arreteRestrictionAbroge.dateFin ? new Date(ar.arreteRestrictionAbroge.dateFin) : null;
+      if (
+        !dateFinArAbroge ||
+        dateFinArAbroge.getTime() >= dateDebutAr.getTime()
+      ) {
+        const dateToSave = dateDebutAr;
+        dateToSave.setDate(dateToSave.getDate() - 1);
+        await this.arreteRestrictionRepository.update(
+          {
+            id: ar.arreteRestrictionAbroge.id,
+          },
+          {
+            dateFin: dateToSave.toDateString(),
+          },
+        );
+      }
+    }
+    return toRerturn;
   }
 
   async repeal(
@@ -412,11 +452,11 @@ export class ArreteRestrictionService {
     );
     const minDateFin = ar.arretesCadre.some((ac) => ac.dateFin)
       ? new Date(
-          Math.min.apply(
-            null,
-            ar.arretesCadre.map((ac) => new Date(ac.dateFin).getTime()),
-          ),
-        )
+        Math.min.apply(
+          null,
+          ar.arretesCadre.map((ac) => new Date(ac.dateFin).getTime()),
+        ),
+      )
       : null;
     // TODO cas de l'AC gelé
     ar.arretesCadre.forEach((ac) => {
@@ -433,6 +473,12 @@ export class ArreteRestrictionService {
           break;
       }
     });
+    const acFreeze = ar.arretesCadre.find((ac) => ac.zonesAlerte.some(z => z.disabled));
+    if (acFreeze) {
+      errors.push(
+        `L'arrête cadre ${acFreeze.numero} est gelé, il n'est pas possible de publier un AR dessus.`,
+      );
+    }
     if (
       ar.arretesCadre.some((ac) => ['a_venir', 'publie'].includes(ac.statut))
     ) {
@@ -498,23 +544,26 @@ export class ArreteRestrictionService {
       });
     const minDateDebut = arsWithSameZonesOrCommunes.some((ar) => ar.dateDebut)
       ? new Date(
-          Math.min.apply(
-            null,
-            arsWithSameZonesOrCommunes.map((ar) =>
-              new Date(ar.dateDebut).getTime(),
-            ),
+        Math.min.apply(
+          null,
+          arsWithSameZonesOrCommunes.map((ar) =>
+            new Date(ar.dateDebut).getTime(),
           ),
-        )
+        ),
+      )
       : null;
-    const maxDateFin = arsWithSameZonesOrCommunes.some((ar) => ar.dateFin)
+    // On enlève le check de la date de fin sur l'AR abrogé
+    const maxDateFin = arsWithSameZonesOrCommunes
+      .filter((a) => a.id !== ar.arreteRestrictionAbroge.id)
+      .some((ar) => ar.dateFin)
       ? new Date(
-          Math.max.apply(
-            null,
-            arsWithSameZonesOrCommunes.map((ar) =>
-              new Date(ar.dateFin).getTime(),
-            ),
+        Math.max.apply(
+          null,
+          arsWithSameZonesOrCommunes.map((ar) =>
+            new Date(ar.dateFin).getTime(),
           ),
-        )
+        ),
+      )
       : null;
     if (arsWithSameZonesOrCommunes.length > 0) {
       let message = `D'autres arrêtés de restrictions sont à venir ou en vigueur sur des zones ou communes similaires (${arsWithSameZonesOrCommunes.map((ar) => ar.numero).join(', ')}).`;

@@ -11,7 +11,8 @@ export class RestrictionService {
     @InjectRepository(Restriction)
     private readonly restrictionRepository: Repository<Restriction>,
     private readonly usageArreteRestrictionService: UsageArreteRestrictionService,
-  ) {}
+  ) {
+  }
 
   async updateAll(
     arreteRestriction: ArreteRestriction,
@@ -48,5 +49,24 @@ export class RestrictionService {
       }),
     );
     return rToReturn;
+  }
+
+  async deleteZonesByArreteCadreId(zonesId: number[], acId: number) {
+    if (zonesId.length < 1) {
+      return;
+    }
+    const restrictionIds = await this.restrictionRepository
+      .createQueryBuilder('restriction')
+      .select('restriction.id')
+      .leftJoin('restriction.arreteRestriction', 'arreteRestriction')
+      .leftJoin('arreteRestriction.arretesCadre', 'arretesCadre')
+      .leftJoin('restriction.zoneAlerte', 'zoneAlerte')
+      .where('arretesCadre.id = :acId', { acId: acId })
+      .andWhere('arreteRestriction.statut != :statut', { statut: 'abroge' })
+      .andWhere('zoneAlerte.id IN (:...zonesId)', { zonesId: zonesId })
+      .getMany();
+    return this.restrictionRepository.delete({
+      id: In(restrictionIds.map((r) => r.id)),
+    });
   }
 }

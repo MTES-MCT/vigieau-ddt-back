@@ -10,6 +10,8 @@ import { DepartementModule } from '../departement/departement.module';
 import { ZoneAlerteModule } from '../zone_alerte/zone_alerte.module';
 import { UserModule } from '../user/user.module';
 import { FichierModule } from '../fichier/fichier.module';
+import { RestrictionModule } from '../restriction/restriction.module';
+import { UsageArreteRestrictionModule } from '../usage_arrete_restriction/usage_arrete_restriction.module';
 
 @Module({
   imports: [
@@ -21,9 +23,12 @@ import { FichierModule } from '../fichier/fichier.module';
     forwardRef(() => ZoneAlerteModule),
     UserModule,
     FichierModule,
+    RestrictionModule,
+    UsageArreteRestrictionModule,
   ],
   controllers: [ArreteCadreController],
   providers: [ArreteCadreService],
   exports: [ArreteCadreService],
 })
-export class ArreteCadreModule {}
+export class ArreteCadreModule {
+}

@@ -9,7 +9,8 @@ export class UsageArreteRestrictionService {
   constructor(
     @InjectRepository(UsageArreteRestriction)
     private readonly usageArreteRestrictionRepository: Repository<UsageArreteRestriction>,
-  ) {}
+  ) {
+  }
 
   async updateAll(restriction: Restriction): Promise<UsageArreteRestriction[]> {
     const usagesId = restriction.usagesArreteRestriction
@@ -30,10 +31,28 @@ export class UsageArreteRestrictionService {
         u.restriction = { id: restriction.id };
         return u;
       });
-    const toReturn = this.usageArreteRestrictionRepository.save(
-      usagesArreteRestriction,
-    );
-    return toReturn;
+    return this.usageArreteRestrictionRepository.save(usagesArreteRestriction);
+  }
+
+  async deleteUsagesByArreteCadreId(usagesId: number[], acId: number) {
+    if (usagesId.length < 1) {
+      return;
+    }
+    const usagesArreteRestrictionsId =
+      await this.usageArreteRestrictionRepository
+        .createQueryBuilder('usageArreteRestriction')
+        .select('usageArreteRestriction.id')
+        .leftJoin('usageArreteRestriction.restriction', 'restriction')
+        .leftJoin('restriction.arreteRestriction', 'arreteRestriction')
+        .leftJoin('arreteRestriction.arretesCadre', 'arretesCadre')
+        .leftJoin('usageArreteRestriction.usage', 'usage')
+        .where('arretesCadre.id = :acId', { acId: acId })
+        .andWhere('arreteRestriction.statut != :statut', { statut: 'abroge' })
+        .andWhere('usage.id IN (:...usagesId)', { usagesId: usagesId })
+        .getMany();
+    return this.usageArreteRestrictionRepository.delete({
+      id: In(usagesArreteRestrictionsId.map((u) => u.id)),
+    });
   }
 
   // findByArreteCadre(arreteCadreId: number) {
