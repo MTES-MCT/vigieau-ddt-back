@@ -336,7 +336,7 @@ export class ArreteRestrictionService {
       ...ar,
       ...{
         dateDebut: publishArreteRestrictionDto.dateDebut,
-        dateFin: publishArreteRestrictionDto,
+        dateFin: publishArreteRestrictionDto.dateFin,
       },
     };
     if (
@@ -555,7 +555,7 @@ export class ArreteRestrictionService {
       : null;
     // On enlève le check de la date de fin sur l'AR abrogé
     const maxDateFin = arsWithSameZonesOrCommunes
-      .filter((a) => a.id !== ar.arreteRestrictionAbroge.id)
+      .filter((a) => a.id !== ar.arreteRestrictionAbroge?.id)
       .some((ar) => ar.dateFin)
       ? new Date(
         Math.max.apply(

@@ -38,6 +38,7 @@ import { Utils } from '../core/utils';
 import { FileUploadDto } from '../core/dto/file_upload.dto';
 import { RepealArreteRestrictionDto } from './dto/repeal_arrete_restriction.dto';
 import { PublishArreteRestrictionDto } from './dto/publish_arrete_restriction.dto';
+import { ArreteRestriction } from './entities/arrete_restriction.entity';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('arrete-restriction')
@@ -45,7 +46,8 @@ import { PublishArreteRestrictionDto } from './dto/publish_arrete_restriction.dt
 export class ArreteRestrictionController {
   constructor(
     private readonly arreteRestrictionService: ArreteRestrictionService,
-  ) {}
+  ) {
+  }
 
   @Get('/search')
   @ApiOperation({ summary: 'Retourne les arrêtés de restrictions paginés' })
@@ -95,7 +97,7 @@ export class ArreteRestrictionController {
   }
 
   @Post()
-  @ApiOperation({ summary: "Création d'un arrêté de restriction" })
+  @ApiOperation({ summary: 'Création d\'un arrêté de restriction' })
   @ApiResponse({
     status: 201,
     type: ArreteRestrictionDto,
@@ -194,13 +196,29 @@ export class ArreteRestrictionController {
     );
   }
 
-  @Get(':id/check')
+  @Post(':id/check')
   @ApiOperation({
     summary: "Check d'un arrêté de restriction avant sa publication",
   })
-  async check(@Param('id') id: string): Promise<any> {
-    const ar = await this.arreteRestrictionService.findOne(+id);
-    return this.arreteRestrictionService.checkBeforePublish(ar);
+  async check(
+    @Param('id') id: string,
+    @Body() publishArreteRestrictionDto?: PublishArreteRestrictionDto,
+  ): Promise<any> {
+    const ar: ArreteRestriction =
+      await this.arreteRestrictionService.findOne(+id);
+    // @ts-expect-error type
+    const arBis: ArreteRestriction = {
+      ...ar,
+      ...{
+        dateDebut: publishArreteRestrictionDto
+          ? publishArreteRestrictionDto.dateDebut
+          : ar.dateDebut,
+        dateFin: publishArreteRestrictionDto
+          ? publishArreteRestrictionDto.dateFin
+          : ar.dateFin,
+      },
+    };
+    return this.arreteRestrictionService.checkBeforePublish(arBis);
   }
 
   @Delete(':id')
