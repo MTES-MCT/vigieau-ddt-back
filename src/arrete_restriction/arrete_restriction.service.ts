@@ -387,6 +387,8 @@ export class ArreteRestrictionService {
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
     const toRerturn = await this.arreteRestrictionRepository.save(toSave);
+
+    // Gestion des abrogations associées
     if (ar.arreteRestrictionAbroge) {
       const dateDebutAr = new Date(publishArreteRestrictionDto.dateDebut);
       const dateFinArAbroge = ar.arreteRestrictionAbroge.dateFin ? new Date(ar.arreteRestrictionAbroge.dateFin) : null;

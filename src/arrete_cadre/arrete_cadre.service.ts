@@ -381,6 +381,27 @@ export class ArreteCadreService {
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
     const toReturn = await this.arreteCadreRepository.save(toSave);
+
+    // Gestion des abrogations associées
+    if (ac.arreteCadreAbroge) {
+      const dateDebutAc = new Date(publishArreteCadreDto.dateDebut);
+      const dateFinAcAbroge = ac.arreteCadreAbroge.dateFin ? new Date(ac.arreteCadreAbroge.dateFin) : null;
+      if (
+        !dateFinAcAbroge ||
+        dateFinAcAbroge.getTime() >= dateDebutAc.getTime()
+      ) {
+        const dateToSave = dateDebutAc;
+        dateToSave.setDate(dateToSave.getDate() - 1);
+        await this.arreteCadreRepository.update(
+          {
+            id: ac.arreteCadreAbroge.id,
+          },
+          {
+            dateFin: dateToSave.toDateString(),
+          },
+        );
+      }
+    }
     await this.arreteRestrictionService.updateArreteRestrictionStatut();
     return toReturn;
   }
