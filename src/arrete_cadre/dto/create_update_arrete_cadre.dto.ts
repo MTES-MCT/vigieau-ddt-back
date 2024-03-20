@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { CreateUpdateUsageArreteCadreDto } from '../../usage_arrete_cadre/dto/create_update_usage_arrete_cadre.dto';
+import { CreateUpdateUsageDto } from '../../usage/dto/create_usage.dto';
 
 class UpdateLinkNestedObjectDto {
   @IsNumber()
@@ -71,9 +71,9 @@ export class CreateUpdateArreteCadreDto {
   @IsArray()
   @ValidateNested({ each: true })
   @IsOptional()
-  @Type(() => CreateUpdateUsageArreteCadreDto)
-  @ApiProperty({ type: [CreateUpdateUsageArreteCadreDto] })
-  usagesArreteCadre: CreateUpdateUsageArreteCadreDto[];
+  @Type(() => CreateUpdateUsageDto)
+  @ApiProperty({ type: [CreateUpdateUsageDto] })
+  usages: CreateUpdateUsageDto[];
 
   @IsObject()
   @ValidateNested()

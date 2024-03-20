@@ -11,10 +11,10 @@ import {
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { NiveauGravite } from '../../arrete_restriction/type/niveau_gravite.type';
-import { UsageArreteRestriction } from '../../usage_arrete_restriction/entities/usage_arrete_restriction.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
 import { Commune } from '../../commune/entities/commune.entity';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
+import { Usage } from '../../usage/entities/usage.entity';
 
 @Entity()
 @Unique(['arreteRestriction', 'zoneAlerte'])
@@ -46,11 +46,11 @@ export class Restriction extends BaseEntity {
   niveauGravite: NiveauGravite;
 
   @OneToMany(
-    () => UsageArreteRestriction,
-    (usagesArreteRestriction) => usagesArreteRestriction.restriction,
+    () => Usage,
+    (usages) => usages.restriction,
     { persistence: false },
   )
-  usagesArreteRestriction: UsageArreteRestriction[];
+  usages: Usage[];
 
   @ManyToMany(() => Commune, (commune) => commune.restrictions)
   @JoinTable({

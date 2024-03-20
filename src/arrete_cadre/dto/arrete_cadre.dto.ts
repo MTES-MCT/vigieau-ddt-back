@@ -13,7 +13,8 @@ import { FilterOperator, PaginateConfig } from 'nestjs-paginate';
 import { ArreteCadre } from '../entities/arrete_cadre.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { FichierDto } from '../../fichier/dto/fichier.dto';
-import { UsageArreteCadreDto } from '../../usage_arrete_cadre/dto/usage_arrete_cadre.dto';
+import { Usage } from '../../usage/entities/usage.entity';
+import { UsageDto } from '../../usage/dto/usage.dto';
 
 export class ArreteCadreDto {
   @IsNumber()
@@ -81,8 +82,8 @@ export class ArreteCadreDto {
   zonesAlerte: ZoneAlerteDto[];
 
   @IsArray()
-  @ApiProperty({ type: [UsageArreteCadreDto] })
-  usagesArreteCadre: UsageArreteCadreDto[];
+  @ApiProperty({ type: [UsageDto] })
+  usages: Usage[];
 
   @IsArray()
   @ApiProperty({ type: [ArreteRestrictionDto] })

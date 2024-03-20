@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { CreateUpdateUsageArreteRestrictionDto } from '../../usage_arrete_restriction/dto/create_update_usage_arrete_restriction.dto';
+import { CreateUpdateUsageDto } from '../../usage/dto/create_usage.dto';
 
 class UpdateLinkNestedObjectDto {
   @IsNumber()
@@ -67,9 +67,9 @@ export class CreateUpdateRestrictionDto {
   @IsArray()
   @ValidateNested({ each: true })
   @IsOptional()
-  @Type(() => CreateUpdateUsageArreteRestrictionDto)
-  @ApiProperty({ type: [CreateUpdateUsageArreteRestrictionDto] })
-  usagesArreteRestriction: CreateUpdateUsageArreteRestrictionDto[];
+  @Type(() => CreateUpdateUsageDto)
+  @ApiProperty({ type: [CreateUpdateUsageDto] })
+  usages: CreateUpdateUsageDto[];
 
   @IsArray()
   @ValidateNested({ each: true })

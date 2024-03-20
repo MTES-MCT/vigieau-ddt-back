@@ -5,21 +5,25 @@ import {
   Index,
   ManyToOne,
   OneToMany,
-  PrimaryGeneratedColumn,
+  PrimaryGeneratedColumn, Unique,
 } from 'typeorm';
 import { Thematique } from '../../thematique/entities/thematique.entity';
-import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
-import { UsageArreteRestriction } from '../../usage_arrete_restriction/entities/usage_arrete_restriction.entity';
+import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
+import { Restriction } from '../../restriction/entities/restriction.entity';
 
 @Entity()
+@Unique(['nom', 'thematique', 'arreteCadre'])
+@Unique(['nom', 'thematique', 'restriction'])
 export class Usage extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, nullable: false, length: 255 })
+  @Column({ nullable: false, length: 255 })
   nom: string;
 
-  @ManyToOne(() => Thematique, (thematique) => thematique.usages)
+  @ManyToOne(() => Thematique,
+    (thematique) => thematique.usages,
+    { nullable: false })
   @Index()
   thematique: Thematique;
 
@@ -59,15 +63,19 @@ export class Usage extends BaseEntity {
   @Column({ nullable: true, length: 3000 })
   descriptionCrise: string;
 
-  @OneToMany(
-    () => UsageArreteCadre,
-    (usagesArreteCadre) => usagesArreteCadre.usage,
+  @ManyToOne(
+    () => ArreteCadre,
+    (arreteCadre) => arreteCadre.usages,
+    { nullable: true, persistence: false, onDelete: 'CASCADE' },
   )
-  usagesArreteCadre: UsageArreteCadre[];
+  @Index()
+  arreteCadre: ArreteCadre;
 
-  @OneToMany(
-    () => UsageArreteRestriction,
-    (usagesArreteRestriction) => usagesArreteRestriction.usage,
+  @ManyToOne(
+    () => Restriction,
+    (restriction) => restriction.usages,
+    { nullable: true, persistence: false, onDelete: 'CASCADE' },
   )
-  usagesArreteRestriction: UsageArreteRestriction[];
+  @Index()
+  restriction: Restriction;
 }

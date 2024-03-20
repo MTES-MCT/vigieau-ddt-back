@@ -7,7 +7,7 @@ import { plainToInstance } from 'class-transformer';
 import camelcaseKeys from 'camelcase-keys';
 import { UsageDto } from './dto/usage.dto';
 import { Usage } from './entities/usage.entity';
-import { CreateUsageDto } from './dto/create_usage.dto';
+import { CreateUpdateUsageDto } from './dto/create_usage.dto';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('usage')
@@ -32,13 +32,13 @@ export class UsageController {
   @ApiOperation({ summary: "Création d'un nouvel usage" })
   @ApiBody({
     description: 'Usage',
-    type: CreateUsageDto,
+    type: CreateUpdateUsageDto,
   })
   @ApiResponse({
     status: 201,
     type: UsageDto,
   })
-  async create(@Body() createUsageDto: CreateUsageDto): Promise<UsageDto> {
+  async create(@Body() createUsageDto: CreateUpdateUsageDto): Promise<UsageDto> {
     const usage = await this.usageService.create(createUsageDto);
     return plainToInstance(UsageDto, camelcaseKeys(<any>usage, { deep: true }));
   }

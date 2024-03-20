@@ -13,7 +13,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
 import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 import { CreateUpdateArreteCadreDto } from './dto/create_update_arrete_cadre.dto';
-import { UsageArreteCadreService } from '../usage_arrete_cadre/usage_arrete_cadre.service';
 import { arreteCadrePaginateConfig } from './dto/arrete_cadre.dto';
 import { testArretesCadre } from '../core/test/data';
 import { PublishArreteCadreDto } from './dto/publish_arrete_cadre.dto';
@@ -28,7 +27,7 @@ import { MailService } from '../shared/services/mail.service';
 import { UserService } from '../user/user.service';
 import { FichierService } from '../fichier/fichier.service';
 import { RestrictionService } from '../restriction/restriction.service';
-import { UsageArreteRestrictionService } from '../usage_arrete_restriction/usage_arrete_restriction.service';
+import { UsageService } from '../usage/usage.service';
 
 @Injectable()
 export class ArreteCadreService {
@@ -37,7 +36,6 @@ export class ArreteCadreService {
   constructor(
     @InjectRepository(ArreteCadre)
     private readonly arreteCadreRepository: Repository<ArreteCadre>,
-    private readonly usageArreteCadreService: UsageArreteCadreService,
     private readonly arreteRestrictionService: ArreteRestrictionService,
     private readonly departementService: DepartementService,
     private readonly zoneAlerteService: ZoneAlerteService,
@@ -45,7 +43,7 @@ export class ArreteCadreService {
     private readonly userService: UserService,
     private readonly fichierService: FichierService,
     private readonly restrictionService: RestrictionService,
-    private readonly usageArreteRestrictionService: UsageArreteRestrictionService,
+    private readonly usageService: UsageService,
   ) {
   }
 
@@ -101,8 +99,13 @@ export class ArreteCadreService {
             code: true,
           },
         },
-        usagesArreteCadre: {
+        usages: {
           id: true,
+          nom: true,
+          thematique: {
+            id: true,
+            nom: true,
+          },
           concerneParticulier: true,
           concerneEntreprise: true,
           concerneCollectivite: true,
@@ -114,14 +117,6 @@ export class ArreteCadreService {
           descriptionAlerte: true,
           descriptionAlerteRenforcee: true,
           descriptionCrise: true,
-          usage: {
-            id: true,
-            nom: true,
-            thematique: {
-              id: true,
-              nom: true,
-            },
-          },
         },
         arretesRestriction: {
           id: true,
@@ -130,11 +125,18 @@ export class ArreteCadreService {
       relations: [
         'zonesAlerte',
         'zonesAlerte.departement',
-        'usagesArreteCadre',
-        'usagesArreteCadre.usage',
-        'usagesArreteCadre.usage.thematique',
+        'usages',
+        'usages.thematique',
       ],
       where: whereClause,
+      order: {
+        zonesAlerte: {
+          code: 'ASC',
+        },
+        usages: {
+          nom: 'ASC',
+        },
+      },
     });
     await Promise.all(
       acToReturn.map(async (ac) => {
@@ -217,7 +219,7 @@ export class ArreteCadreService {
           },
         },
       }),
-      this.usageArreteCadreService.findByArreteCadre(id),
+      this.usageService.findByArreteCadre(id),
       this.departementService.findByArreteCadreId(id),
     ]);
     if (!arreteCadre) {
@@ -226,7 +228,7 @@ export class ArreteCadreService {
         HttpStatus.NOT_FOUND,
       );
     }
-    arreteCadre.usagesArreteCadre = usagesArreteCadre;
+    arreteCadre.usages = usagesArreteCadre;
     if (departements) {
       arreteCadre.departements = departements;
     }
@@ -253,8 +255,13 @@ export class ArreteCadreService {
             nom: true,
           },
         },
-        usagesArreteCadre: {
+        usages: {
           id: true,
+          nom: true,
+          thematique: {
+            id: true,
+            nom: true,
+          },
           concerneParticulier: true,
           concerneEntreprise: true,
           concerneCollectivite: true,
@@ -266,23 +273,14 @@ export class ArreteCadreService {
           descriptionAlerte: true,
           descriptionAlerteRenforcee: true,
           descriptionCrise: true,
-          usage: {
-            id: true,
-            nom: true,
-            thematique: {
-              id: true,
-              nom: true,
-            },
-          },
         },
       },
       relations: [
         'zonesAlerte',
         'zonesAlerte.departement',
         'arretesRestriction',
-        'usagesArreteCadre',
-        'usagesArreteCadre.usage',
-        'usagesArreteCadre.usage.thematique',
+        'usages',
+        'usages.thematique',
       ],
       where: {
         arretesRestriction: {
@@ -300,8 +298,8 @@ export class ArreteCadreService {
     await this.checkAci(createArreteCadreDto, false, currentUser);
     const arreteCadre =
       await this.arreteCadreRepository.save(createArreteCadreDto);
-    arreteCadre.usagesArreteCadre =
-      await this.usageArreteCadreService.updateAll(arreteCadre);
+    arreteCadre.usages =
+      await this.usageService.updateAllByArreteCadre(arreteCadre);
     this.sendAciMails(null, arreteCadre, currentUser);
     return arreteCadre;
   }
@@ -323,8 +321,8 @@ export class ArreteCadreService {
       id,
       ...updateArreteCadreDto,
     });
-    arreteCadre.usagesArreteCadre =
-      await this.usageArreteCadreService.updateAll(arreteCadre);
+    arreteCadre.usages =
+      await this.usageService.updateAllByArreteCadre(arreteCadre);
 
     await this.repercussionOnAr(oldAc, arreteCadre);
     this.sendAciMails(oldAc, arreteCadre, currentUser);
@@ -452,17 +450,17 @@ export class ArreteCadreService {
     const zonesDeleted = oldAc.zonesAlerte.filter(
       (za) => !newAc.zonesAlerte.some((nza) => nza.id === za.id),
     );
-    const usagesDeleted = oldAc.usagesArreteCadre.filter(
+    const usagesDeleted = oldAc.usages.filter(
       (uac) =>
-        !newAc.usagesArreteCadre.some((nuac) => nuac.usage.id === uac.usage.id),
+        !newAc.usages.some((nuac) => nuac.id === uac.id),
     );
     await Promise.all([
       this.restrictionService.deleteZonesByArreteCadreId(
         zonesDeleted.map((z) => z.id),
         oldAc.id,
       ),
-      this.usageArreteRestrictionService.deleteUsagesByArreteCadreId(
-        usagesDeleted.map((u) => u.usage.id),
+      this.usageService.deleteUsagesArByArreteCadreId(
+        usagesDeleted.map((u) => u.nom),
         oldAc.id,
       ),
     ]);

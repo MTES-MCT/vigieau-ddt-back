@@ -3,7 +3,6 @@ import { ArreteCadreService } from './arrete_cadre.service';
 import { ArreteCadreController } from './arrete_cadre.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ArreteCadre } from './entities/arrete_cadre.entity';
-import { UsageArreteCadreModule } from '../usage_arrete_cadre/usage_arrete_cadre.module';
 import { ArreteRestrictionModule } from '../arrete_restriction/arrete_restriction.module';
 import { SharedModule } from '../shared/shared.module';
 import { DepartementModule } from '../departement/departement.module';
@@ -11,12 +10,11 @@ import { ZoneAlerteModule } from '../zone_alerte/zone_alerte.module';
 import { UserModule } from '../user/user.module';
 import { FichierModule } from '../fichier/fichier.module';
 import { RestrictionModule } from '../restriction/restriction.module';
-import { UsageArreteRestrictionModule } from '../usage_arrete_restriction/usage_arrete_restriction.module';
+import { UsageModule } from '../usage/usage.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ArreteCadre]),
-    UsageArreteCadreModule,
     forwardRef(() => ArreteRestrictionModule),
     SharedModule,
     DepartementModule,
@@ -24,7 +22,7 @@ import { UsageArreteRestrictionModule } from '../usage_arrete_restriction/usage_
     UserModule,
     FichierModule,
     RestrictionModule,
-    UsageArreteRestrictionModule,
+    UsageModule,
   ],
   controllers: [ArreteCadreController],
   providers: [ArreteCadreService],

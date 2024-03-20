@@ -1,8 +1,13 @@
-import { IsBoolean, IsObject, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 import { ThematiqueDto } from '../../thematique/dto/thematique.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateUsageDto {
+export class CreateUpdateUsageDto {
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({ example: 1, description: 'Identifiant BDD' })
+  id: number;
+
   @IsString()
   @ApiProperty({
     example: 'Arrosage des plantes',
@@ -65,4 +70,36 @@ export class CreateUsageDto {
     description: "Modèle - Est-ce que cet usage concerne l'eau potableZ ?",
   })
   concerneAep: boolean;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    example: 'Pas de restrictions',
+    description: 'Description des restrictions en situation de vigilance',
+  })
+  descriptionVigilance: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    example: 'Pas de restrictions',
+    description: "Description des restrictions en situation d'alerte",
+  })
+  descriptionAlerte: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    example: 'Interdiction de 8h à 20h',
+    description: "Description des restrictions en situation d'alerte renforcée",
+  })
+  descriptionAlerteRenforcee: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    example: 'Interdiction totale',
+    description: 'Description des restrictions en situation de crise',
+  })
+  descriptionCrise: string;
 }

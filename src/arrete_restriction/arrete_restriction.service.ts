@@ -167,8 +167,13 @@ export class ArreteRestrictionService {
               code: true,
             },
             niveauGravite: true,
-            usagesArreteRestriction: {
+            usages: {
               id: true,
+              nom: true,
+              thematique: {
+                id: true,
+                nom: true,
+              },
               concerneParticulier: true,
               concerneEntreprise: true,
               concerneCollectivite: true,
@@ -180,14 +185,6 @@ export class ArreteRestrictionService {
               descriptionAlerte: true,
               descriptionAlerteRenforcee: true,
               descriptionCrise: true,
-              usage: {
-                id: true,
-                nom: true,
-                thematique: {
-                  id: true,
-                  nom: true,
-                },
-              },
             },
           },
           departement: {
@@ -206,9 +203,8 @@ export class ArreteRestrictionService {
           'restrictions.zoneAlerte',
           'restrictions.arreteCadre',
           'restrictions.communes',
-          'restrictions.usagesArreteRestriction',
-          'restrictions.usagesArreteRestriction.usage',
-          'restrictions.usagesArreteRestriction.usage.thematique',
+          'restrictions.usages',
+          'restrictions.usages.thematique',
           'departement',
           'arreteRestrictionAbroge',
         ],
@@ -218,10 +214,8 @@ export class ArreteRestrictionService {
             zoneAlerte: {
               code: 'ASC',
             },
-            usagesArreteRestriction: {
-              usage: {
-                nom: 'ASC',
-              },
+            usages: {
+              nom: 'ASC',
             },
           },
         },

@@ -19,10 +19,10 @@ import {
   StatutArreteCadre,
 } from '../type/arrete_cadre.type';
 import { Departement } from '../../departement/entities/departement.entity';
-import { UsageArreteCadre } from '../../usage_arrete_cadre/entities/usage_arrete_cadre.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
 import { Fichier } from '../../fichier/entities/fichier.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
+import { Usage } from '../../usage/entities/usage.entity';
 
 @Entity()
 export class ArreteCadre extends BaseEntity {
@@ -92,11 +92,11 @@ export class ArreteCadre extends BaseEntity {
   zonesAlerte: ZoneAlerte[];
 
   @OneToMany(
-    () => UsageArreteCadre,
-    (usagesArreteCadre) => usagesArreteCadre.arreteCadre,
+    () => Usage,
+    (usages) => usages.arreteCadre,
     { persistence: false },
   )
-  usagesArreteCadre: UsageArreteCadre[];
+  usages: Usage[];
 
   @ManyToOne(() => ArreteCadre, (arreteCadre) => arreteCadre.arretesCadre)
   arreteCadreAbroge: ArreteCadre;

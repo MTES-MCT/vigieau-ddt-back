@@ -3,14 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Not, Repository } from 'typeorm';
 import { Restriction } from './entities/restriction.entity';
 import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
-import { UsageArreteRestrictionService } from '../usage_arrete_restriction/usage_arrete_restriction.service';
+import { UsageService } from '../usage/usage.service';
 
 @Injectable()
 export class RestrictionService {
   constructor(
     @InjectRepository(Restriction)
     private readonly restrictionRepository: Repository<Restriction>,
-    private readonly usageArreteRestrictionService: UsageArreteRestrictionService,
+    private readonly usageService: UsageService,
   ) {
   }
 
@@ -43,8 +43,8 @@ export class RestrictionService {
       await this.restrictionRepository.save(restrictions);
     await Promise.all(
       rToReturn.map(async (r) => {
-        r.usagesArreteRestriction =
-          await this.usageArreteRestrictionService.updateAll(r);
+        r.usages =
+          await this.usageService.updateAllByRestriction(r);
         return r;
       }),
     );

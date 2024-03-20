@@ -16,7 +16,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { DepartementModule } from './departement/departement.module';
 import { UsageModule } from './usage/usage.module';
 import { ThematiqueModule } from './thematique/thematique.module';
-import { UsageArreteCadreModule } from './usage_arrete_cadre/usage_arrete_cadre.module';
 import { AdminModule } from './admin.module';
 import { ArreteRestrictionModule } from './arrete_restriction/arrete_restriction.module';
 import { AppController } from './app.controller';
@@ -27,6 +26,7 @@ import path from 'path';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { CommuneModule } from './commune/commune.module';
+import { RestrictionModule } from './restriction/restriction.module';
 
 // @ts-ignore
 @Module({
@@ -112,11 +112,11 @@ import { CommuneModule } from './commune/commune.module';
     DepartementModule,
     UsageModule,
     ThematiqueModule,
-    UsageArreteCadreModule,
     ArreteRestrictionModule,
     LoggerModule,
     SharedModule,
     CommuneModule,
+    RestrictionModule
   ],
   controllers: [AppController],
   providers: [
