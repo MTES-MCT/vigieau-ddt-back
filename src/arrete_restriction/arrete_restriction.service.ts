@@ -234,6 +234,7 @@ export class ArreteRestrictionService {
     return this.arreteRestrictionRepository.find({
       select: {
         id: true,
+        numero: true,
         statut: true,
         restrictions: {
           id: true,

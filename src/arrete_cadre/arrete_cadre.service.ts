@@ -118,9 +118,6 @@ export class ArreteCadreService {
           descriptionAlerteRenforcee: true,
           descriptionCrise: true,
         },
-        arretesRestriction: {
-          id: true,
-        },
       },
       relations: [
         'zonesAlerte',

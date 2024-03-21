@@ -37,7 +37,6 @@ export class UsageService {
         },
       )
       .orWhere('usage."isTemplate" = true')
-      .orderBy('usage.nom', 'ASC')
       .getMany();
 
     // Suppression des doublons, problèmes de perf avec DISTINCT via la requête SQL
