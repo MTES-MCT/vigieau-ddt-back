@@ -19,6 +19,7 @@ export class Usage extends BaseEntity {
   id: number;
 
   @Column({ nullable: false, length: 255 })
+  @Index()
   nom: string;
 
   @ManyToOne(() => Thematique,
