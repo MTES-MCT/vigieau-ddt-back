@@ -456,7 +456,6 @@ export class ArreteRestrictionService {
         ),
       )
       : null;
-    // TODO cas de l'AC gelé
     ar.arretesCadre.forEach((ac) => {
       switch (ac.statut) {
         case 'a_valider':
@@ -469,6 +468,11 @@ export class ArreteRestrictionService {
             `L'arrête cadre ${ac.numero} est abrogé, il n'est pas possible de publier un AR dessus.`,
           );
           break;
+      }
+      if(ac.zonesAlerte.some(za => za.disabled)) {
+        errors.push(
+          `L'arrête cadre ${ac.numero} est gelé, il contient des zones qui ne sont plus à jour.`,
+        );
       }
     });
     const acFreeze = ar.arretesCadre.find((ac) => ac.zonesAlerte.some(z => z.disabled));
@@ -521,6 +525,10 @@ export class ArreteRestrictionService {
       .map((r) => r.communes)
       .flat()
       .map((c) => c.id);
+    const idsExcluded = [ar.id];
+    if(ar.arreteRestrictionAbroge) {
+      idsExcluded.push(ar.arreteRestrictionAbroge.id)
+    }
     const arsWithSameZonesOrCommunes =
       await this.arreteRestrictionRepository.find({
         select: {
@@ -536,11 +544,12 @@ export class ArreteRestrictionService {
             { communes: { id: In(communesId) } },
           ],
           statut: In(['a_venir', 'publie']),
-          id: Not(ar.id),
+          id: Not(In(idsExcluded)),
         },
         relations: [],
       });
-    const minDateDebut = arsWithSameZonesOrCommunes.some((ar) => ar.dateDebut)
+    const minDateDebut = arsWithSameZonesOrCommunes
+      .some((ar) => ar.dateDebut)
       ? new Date(
         Math.min.apply(
           null,
@@ -550,9 +559,7 @@ export class ArreteRestrictionService {
         ),
       )
       : null;
-    // On enlève le check de la date de fin sur l'AR abrogé
     const maxDateFin = arsWithSameZonesOrCommunes
-      .filter((a) => a.id !== ar.arreteRestrictionAbroge?.id)
       .some((ar) => ar.dateFin)
       ? new Date(
         Math.max.apply(
