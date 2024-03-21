@@ -26,16 +26,19 @@ export class UsageService {
     return this.usageRepository
       .createQueryBuilder('usage')
       .select()
+      .distinctOn(['usage.nom'])
       .leftJoinAndSelect('usage.thematique', 'thematique')
       .leftJoin('usage.arreteCadre', 'arreteCadre')
       .leftJoin('arreteCadre.departements', 'departements')
-      .where(
-        curentUser.role === 'mte' ? 'usage."arreteCadreId" is not null' : 'departements.code = :code_dep',
+      .where('usage."arreteCadreId" is not null')
+      .andWhere(
+        curentUser.role === 'mte' ? '1 = 1' : 'departements.code = :code_dep',
         {
           code_dep: curentUser.role_departement,
         },
       )
-      .orWhere('usage.isTemplate = true')
+      .orWhere('usage."isTemplate" = true')
+      .orderBy('usage.nom', 'ASC')
       .getMany();
   }
 

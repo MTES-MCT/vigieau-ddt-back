@@ -19,7 +19,7 @@ export class UserService {
             role: curentUser.role,
             role_departement: curentUser.role_departement,
           };
-    return this.userRepository.find({ where });
+    return this.userRepository.find({ where, order: { email: 'ASC' }});
   }
 
   findOne(email: string | undefined): Promise<User> {
