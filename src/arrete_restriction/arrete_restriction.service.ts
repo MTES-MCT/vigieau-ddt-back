@@ -214,6 +214,7 @@ export class ArreteRestrictionService {
             zoneAlerte: {
               code: 'ASC',
             },
+            nomGroupementAep: 'ASC',
             usages: {
               nom: 'ASC',
             },
