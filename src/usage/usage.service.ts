@@ -23,9 +23,10 @@ export class UsageService {
   }
 
   async findAll(curentUser: User): Promise<Usage[]> {
-    const usages = await this.usageRepository
+    return await this.usageRepository
       .createQueryBuilder('usage')
       .select()
+      .distinctOn(['usage.nom'])
       .leftJoinAndSelect('usage.thematique', 'thematique')
       .leftJoin('usage.arreteCadre', 'arreteCadre')
       .leftJoin('arreteCadre.departements', 'departements')
@@ -36,24 +37,8 @@ export class UsageService {
           code_dep: curentUser.role_departement,
         },
       )
-      .orWhere('usage."isTemplate" = true')
       .orderBy('usage.nom', 'ASC')
-      .getMany();
-
-    // Suppression des doublons, problèmes de perf avec DISTINCT via la requête SQL
-    return usages.filter((value, index, self) =>
-        index === self.findIndex((t) => (
-          t.nom === value.nom
-        ))
-    ).sort((a, b) => {
-      if (a.nom < b.nom) {
-        return -1;
-      }
-      if (a.nom > b.nom) {
-        return 1;
-      }
-      return 0;
-    })
+      .getMany()
   }
 
   async create(usage: CreateUpdateUsageDto): Promise<Usage> {
