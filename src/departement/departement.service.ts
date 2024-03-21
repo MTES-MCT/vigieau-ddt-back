@@ -6,9 +6,12 @@ import { Repository } from 'typeorm';
 import { Departement } from './entities/departement.entity';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
+import { RegleauLogger } from '../logger/regleau.logger';
 
 @Injectable()
 export class DepartementService {
+  private readonly logger = new RegleauLogger('DepartementService');
+
   constructor(
     private readonly httpService: HttpService,
     @InjectRepository(Departement)
@@ -105,7 +108,7 @@ export class DepartementService {
 
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
   async updateDepartementsGeom() {
-    console.log('MISE A JOUR DES DEPARTEMENTS');
+    this.logger.log('MISE A JOUR DES DEPARTEMENTS');
     const { data } = await firstValueFrom(
       this.httpService.get(
         'http://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2023/geojson/departements-5m.geojson',
@@ -134,6 +137,6 @@ export class DepartementService {
         geom: () => `ST_TRANSFORM(geom, 2154)`,
       },
     );
-    console.log('DEPARTEMENTS MIS A JOUR');
+    this.logger.log('DEPARTEMENTS MIS A JOUR');
   }
 }

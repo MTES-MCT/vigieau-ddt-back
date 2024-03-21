@@ -7,6 +7,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { DepartementService } from '../departement/departement.service';
 import { firstValueFrom } from 'rxjs';
 import { RegleauLogger } from '../logger/regleau.logger';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CommuneService {
@@ -17,6 +18,7 @@ export class CommuneService {
     @InjectRepository(Commune)
     private readonly communeRepository: Repository<Commune>,
     private readonly departementService: DepartementService,
+    private readonly configService: ConfigService,
   ) {}
 
   async find(depCode?: string, withGeom?: boolean): Promise<Commune[]> {
@@ -43,7 +45,7 @@ export class CommuneService {
     let communesAdded = 0;
     const departements = await this.departementService.findAllLight();
     for (const d of departements) {
-      const url = `https://geo.api.gouv.fr/departements/${d.code}/communes?fields=code,nom,contour,population`;
+      const url = `${this.configService.get('API_GEO')}/departements/${d.code}/communes?fields=code,nom,contour,population`;
       const { data } = await firstValueFrom(this.httpService.get(url));
       for (const c of data) {
         const communeExisting = await this.communeRepository.findOne({

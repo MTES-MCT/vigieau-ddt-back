@@ -7,12 +7,11 @@ import {
   ManyToOne,
   OneToMany,
   Polygon,
-  PrimaryGeneratedColumn,
+  PrimaryGeneratedColumn, UpdateDateColumn,
 } from 'typeorm';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { BassinVersant } from '../../core/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
-import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
 
 @Entity()
@@ -31,6 +30,9 @@ export class ZoneAlerte extends BaseEntity {
 
   @Column({ nullable: false })
   numeroVersion: number;
+
+  @Column({ nullable: true })
+  numeroVersionSandre: number;
 
   @Column({
     type: 'geometry',
@@ -56,4 +58,7 @@ export class ZoneAlerte extends BaseEntity {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
