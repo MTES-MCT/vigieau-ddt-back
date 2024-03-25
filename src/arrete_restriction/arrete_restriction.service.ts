@@ -194,6 +194,7 @@ export class ArreteRestrictionService {
           arreteRestrictionAbroge: {
             id: true,
             numero: true,
+            dateDebut: true,
             dateFin: true,
           },
         },
@@ -500,6 +501,16 @@ export class ArreteRestrictionService {
         } else {
           errors.push(
             `Pour respecter les dates des arrêtés cadre associés, l'arrêté de restriction doit commencer à partir du ${maxDateDebut.toLocaleDateString('fr')}.`,
+          );
+        }
+      }
+      // Check date AR abrogé
+      if (ar.arreteRestrictionAbroge) {
+        const dateDebutAr = new Date(ar.dateDebut);
+        const dateDebutArAbroge = new Date(ar.arreteRestrictionAbroge.dateDebut);
+        if (dateDebutAr.getTime() <= dateDebutArAbroge.getTime()) {
+          errors.push(
+            `La date de début de l'arrêté de restriction doit être supérieur à celle de l'arrêté de restriction abrogé.`
           );
         }
       }

@@ -199,6 +199,8 @@ export class ArreteCadreService {
           arreteCadreAbroge: {
             id: true,
             numero: true,
+            dateDebut: true,
+            dateFin: true,
           },
         },
         relations: [
@@ -344,14 +346,27 @@ export class ArreteCadreService {
     }
     // CHECKER URL / FILE
     const ac = await this.findOne(id, currentUser);
-    if (!(await this.canUpdateArreteCadre(ac, currentUser, !arreteCadrePdf))) {
-      return;
+    if (!(await this.canUpdateArreteCadre(ac, currentUser))) {
+      throw new HttpException(
+        `Vous ne pouvez publier un arrêté cadre que si il est sur votre département et n'est pas abrogé.`,
+        HttpStatus.FORBIDDEN,
+      );
     }
     if (!arreteCadrePdf && !ac.fichier) {
       throw new HttpException(
         `Le PDF de l'arrêté cadre est obligatoire.`,
         HttpStatus.BAD_REQUEST,
       );
+    }
+    if (ac.arreteCadreAbroge) {
+      const dateDebutAc = new Date(publishArreteCadreDto.dateDebut);
+      const dateDebutAcAbroge = new Date(ac.arreteCadreAbroge.dateDebut);
+      if (dateDebutAc.getTime() <= dateDebutAcAbroge.getTime()) {
+        throw new HttpException(
+          `La date de début de l'arrêté cadre doit être supérieur à celle de l'arrêté cadre abrogé.`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
     }
     let toSave: any = {
       id,
@@ -466,11 +481,9 @@ export class ArreteCadreService {
   async canUpdateArreteCadre(
     arreteCadre: ArreteCadre,
     user: User,
-    containUrl: boolean = false,
   ): Promise<boolean> {
     return (
       arreteCadre &&
-      (!containUrl || !!arreteCadre.fichier) &&
       (user.role === 'mte' ||
         (arreteCadre.statut !== 'abroge' &&
           arreteCadre.departements.some(
