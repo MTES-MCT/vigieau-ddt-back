@@ -25,7 +25,7 @@ SELECT setval('usage_id_seq', (SELECT MAX(id) FROM public.usage)+1);
 
 -- USAGES TEMPLATE
 UPDATE public.usage
-SET "isTemplate" = true
+SET "isTemplate" = true;
 
 -- ZONES D'ALERTE
 INSERT INTO public.zone_alerte (id, type, "departementId", "bassinVersantId", nom, code, "numeroVersion", geom)
@@ -335,7 +335,7 @@ SELECT id_arrete_cadre, id_arrete from talend_ingestion_ppluvia.arretes where id
 
 -- FICHIERS /!\ modifier le suffix
 INSERT INTO public.fichier (id, nom, size, url, created_at)
-SELECT fd_cdn, file_name, file_size, CONCAT('https://regleau-dev.s3.gra.io.cloud.ovh.net/dev/', file_path), last_updated
+SELECT fd_cdn, file_name, file_size, CONCAT('https://regleau-dev.s3.gra.io.cloud.ovh.net/test/', file_path), last_updated
 from talend_ingestion_ppluvia.t_orion_file_descriptor;
 SELECT setval('fichier_id_seq', (SELECT MAX(id) FROM public.fichier)+1);
 
@@ -403,7 +403,7 @@ set "concerneParticulier" = u3."concerneParticulier", "concerneCollectivite" = u
     LEFT JOIN public.arrete_restriction as ar ON ar.id = r."arreteRestrictionId"
     LEFT JOIN public.arrete_cadre_arrete_restriction as acar ON acar."arreteRestrictionId" = ar.id
     LEFT JOIN public.usage as u3 ON u3."arreteCadreId" = acar."arreteCadreId" and u3."nom" = u2."nom"
-where u."restrictionId" is not null and u.id = u2.id;
+where u."restrictionId" is not null and u.id = u2.id and u3.id is not null;
 
 -- Abreuvement animaux qui n'ont jamais de descriptionCrise
 UPDATE public.usage

@@ -489,10 +489,10 @@ export class ArreteCadreService {
      */
     return (
       arrete &&
-      !arrete.arretesRestriction.some((ar) =>
-        ['a_venir', 'publie', 'abroge'].includes(ar.statut),
-      ) &&
-      (user.role === 'mte' ||
+      user.role === 'mte' || (
+        !arrete.arretesRestriction.some((ar) =>
+          ['a_venir', 'publie', 'abroge'].includes(ar.statut),
+        ) &&
         arrete.departements.some((d) => d.code === user.role_departement))
     );
   }
