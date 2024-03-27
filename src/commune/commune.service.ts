@@ -38,6 +38,48 @@ export class CommuneService {
       .getRawMany();
   }
 
+  getUnionGeomOfCommunes(communes: Commune[]): Promise<any> {
+    return this.communeRepository
+      .createQueryBuilder('commune')
+      .select('ST_AsGeoJSON(ST_UNION(ST_TRANSFORM(commune.geom, 4326)))', 'geom')
+      .where('commune.id IN(:...communesId)', { communesId: communes.map((c) => c.id) })
+      .getRawOne();
+  }
+
+  async getZoneAlerteComputedForHarmonisation(depId: number) {
+    const rawMany = await this.communeRepository
+      .createQueryBuilder('commune')
+      .select('commune.id', 'id')
+      .addSelect('commune.code', 'code')
+      .addSelect('commune.nom', 'nom')
+      .addSelect('zac.id', 'zac_id')
+      .addSelect('zac.nom', 'zac_nom')
+      .addSelect('zac.type', 'zac_type')
+      .addSelect('ST_Area(ST_Intersection(zac.geom, commune.geom))', 'area')
+      .leftJoin('zone_alerte_computed', 'zac', 'ST_INTERSECTS(zac.geom, commune.geom) and zac."departementId" = commune."departementId"')
+      .where('commune."departementId" = :depId', { depId })
+      .getRawMany();
+    const toReturn = [];
+    rawMany.forEach((c) => {
+      if(!toReturn.find((t) => t.id === c.id)) {
+        toReturn.push({
+          id: c.id,
+          code: c.code,
+          nom: c.nom,
+          zones: [],
+        });
+      }
+      const commune = toReturn.find((t) => t.id === c.id);
+      commune.zones.push({
+        id: c.zac_id,
+        nom: c.zac_nom,
+        type: c.zac_type,
+        area: c.area,
+      });
+    });
+    return toReturn;
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async updateCommuneRef() {
     this.logger.log('MISE A JOUR DES COMMUNES');

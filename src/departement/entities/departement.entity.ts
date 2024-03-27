@@ -15,6 +15,7 @@ import { Region } from '../../core/entities/region.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
 import { Commune } from '../../commune/entities/commune.entity';
 import { Parametres } from '../../parametres/entities/parametres.entity';
+import { ZoneAlerteComputed } from '../../zone_alerte_computed/entities/zone_alerte_computed.entity';
 
 @Entity()
 export class Departement extends BaseEntity {
@@ -42,6 +43,9 @@ export class Departement extends BaseEntity {
 
   @OneToMany(() => ZoneAlerte, (zoneAlerte) => zoneAlerte.departement)
   zonesAlerte: ZoneAlerte[];
+
+  @OneToMany(() => ZoneAlerteComputed, (zoneAlerteComputed) => zoneAlerteComputed.departement)
+  zoneAlerteComputed: ZoneAlerteComputed[];
 
   @ManyToMany(() => ArreteCadre, (arreteCadre) => arreteCadre.departements)
   arretesCadre: ArreteCadre[];

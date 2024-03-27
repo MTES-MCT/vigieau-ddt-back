@@ -22,6 +22,21 @@ export class ZoneAlerteService {
   ) {
   }
 
+  findOne(id: number): Promise<any> {
+    return this.zoneAlerteRepository
+      .createQueryBuilder('zone_alerte')
+      .select('zone_alerte.id', 'id')
+      .addSelect('zone_alerte.code', 'code')
+      .addSelect('zone_alerte.nom', 'nom')
+      .addSelect('zone_alerte.type', 'type')
+      .addSelect(
+        'ST_AsGeoJSON(ST_TRANSFORM(zone_alerte.geom, 4326))',
+        'geom',
+      )
+      .where('zone_alerte.id = :id', { id })
+      .getRawOne();
+  }
+
   findByDepartement(departementCode: string): Promise<ZoneAlerte[]> {
     return this.zoneAlerteRepository.find({
       relations: ['departement'],
@@ -50,6 +65,37 @@ export class ZoneAlerteService {
       .getRawMany();
   }
 
+  getIntersect(zoneId: number, otherZonesId: number[]) {
+    return this.zoneAlerteRepository
+      .createQueryBuilder('zone_alerte')
+      .select('zone_alerte.id', 'id')
+      .addSelect('zone_alerte.code', 'code')
+      .addSelect('zone_alerte.nom', 'nom')
+      .addSelect('zone_alerte.type', 'type')
+      .where('zone_alerte.disabled = false')
+      .andWhere('zone_alerte.id != :id', { id: zoneId })
+      .andWhere('zone_alerte.id IN(:...ids)', { ids: otherZonesId })
+      .andWhere('ST_INTERSECTS(zone_alerte.geom, (SELECT zaBis.geom FROM zone_alerte as zaBis WHERE id = :id))', { id: zoneId })
+      .getRawMany();
+  }
+
+  computeNewZone(zone: any) {
+    const qb = this.zoneAlerteRepository
+      .createQueryBuilder('zone_alerte')
+    let sqlString = `ST_AsGeoJSON(ST_TRANSFORM(`;
+    if(zone.remove && zone.remove.length > 0) {
+      sqlString += `ST_DIFFERENCE(zone_alerte.geom, `;
+      sqlString += `(SELECT ST_UNION(zaBis.geom) FROM zone_alerte as zaBis WHERE zaBis.id IN (${zone.remove.join(', ')}))`;
+      sqlString += `)`;
+    } else {
+      sqlString += `zone_alerte.geom`;
+    }
+    sqlString += `, 4326))`;
+    return qb.select(sqlString, 'geom')
+      .where('zone_alerte.id = :id', { id: zone.id })
+      .getRawOne();
+  }
+
   /**
    * Vérification régulière s'il n'y a pas de nouvelles zones
    */
@@ -66,24 +112,24 @@ export class ZoneAlerteService {
     const url = `${this.configService.get('API_SANDRE')}/geo/zas?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&typename=ZAS&SRSNAME=EPSG:4326&OUTPUTFORMAT=GeoJSON&${filterString}`;
     try {
       const { data } = await firstValueFrom(this.httpService.get(url));
-      for(const [index, f] of data.features.entries()) {
+      for (const [index, f] of data.features.entries()) {
         let existingZone = await this.zoneAlerteRepository.findOne({
-          where :{
+          where: {
             code: f.properties.CdAltZAS,
             type: f.properties.TypeZAS,
             departement: {
-              code: f.properties.CdDepartement
-            }
-          }
+              code: f.properties.CdDepartement,
+            },
+          },
         });
-        if(!existingZone) {
-          zonesAdded ++;
+        if (!existingZone) {
+          zonesAdded++;
           const existingZone = new ZoneAlerte();
           existingZone.code = f.properties.CdAltZAS;
           existingZone.departement = await this.departementService.findByCode(f.properties.CdDepartement);
           existingZone.type = f.properties.TypeZAS;
         } else {
-          zonesUpdates ++;
+          zonesUpdates++;
         }
         existingZone.nom = f.properties.LbZAS;
         existingZone.numeroVersionSandre = f.properties.NumeroVersionZAS;

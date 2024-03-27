@@ -1,5 +1,12 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
+const NIVEAUX_INT = {
+  crise: 5,
+  alerte_renforcee: 4,
+  alerte: 3,
+  vigilance: 2
+};
+
 export class Utils {
   /**
    * Vérification de l'extension d'un document entrant pour s'assurer qu'il s'agisse d'un fichier pdf
@@ -19,4 +26,8 @@ export class Utils {
     }
     return callback(null, true);
   };
+
+  static getNiveau(niveauAlerte) {
+    return niveauAlerte in NIVEAUX_INT ? NIVEAUX_INT[niveauAlerte] : 1
+  }
 }

@@ -8,6 +8,7 @@ import { BassinVersant } from './core/entities/bassin_versant.entity';
 import { Region } from './core/entities/region.entity';
 import { FichierModule } from './fichier/fichier.module';
 import { ParametresModule } from './parametres/parametres.module';
+import { ZoneAlerteComputedModule } from './zone_alerte_computed/zone_alerte_computed.module';
 
 const DEFAULT_ADMIN = {
   email: process.env.ADMINJS_USER,
@@ -59,6 +60,7 @@ const authenticate = async (email: string, password: string) => {
     }),
     FichierModule,
     ParametresModule,
+    ZoneAlerteComputedModule,
   ],
   controllers: [],
   providers: [],

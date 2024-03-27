@@ -69,4 +69,24 @@ export class RestrictionService {
       id: In(restrictionIds.map((r) => r.id)),
     });
   }
+
+  async deleteZonesComputedByDep(departementId: number) {
+    const restrictionsIds = await this.restrictionRepository.find({
+      select: {
+        id: true
+      },
+      where: {
+        zoneAlerteComputed: {
+          departement: {
+            id: departementId,
+          },
+        }
+      }
+    })
+    return this.restrictionRepository.update({
+      id: In(restrictionsIds.map(r => r.id)),
+    }, {
+      zoneAlerteComputed: null,
+    });
+  }
 }

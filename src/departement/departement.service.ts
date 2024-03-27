@@ -44,8 +44,8 @@ export class DepartementService {
         { acStatut: ['a_venir', 'publie'] },
       )
       .where('zonesAlerte.disabled = false')
-      .orderBy('departement.code', 'ASC')
       .orderBy('zonesAlerte.code', 'ASC')
+      .orderBy('departement.code', 'ASC')
       .getMany();
   }
 
@@ -53,6 +53,7 @@ export class DepartementService {
     return this.departementRepository
       .createQueryBuilder('departement')
       .select(['departement.id', 'departement.code', 'departement.nom'])
+      .leftJoinAndSelect('departement.parametres', 'parametres')
       .orderBy('departement.code', 'ASC')
       .getMany();
   }

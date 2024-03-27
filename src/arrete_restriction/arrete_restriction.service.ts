@@ -30,6 +30,7 @@ import { FichierService } from '../fichier/fichier.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { UserService } from '../user/user.service';
 import { MailService } from '../shared/services/mail.service';
+import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -45,6 +46,8 @@ export class ArreteRestrictionService {
     private readonly fichierService: FichierService,
     private readonly userService: UserService,
     private readonly mailService: MailService,
+    @Inject(forwardRef(() => ZoneAlerteComputedService))
+    private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
   ) {
   }
 
@@ -276,6 +279,57 @@ export class ArreteRestrictionService {
     });
   }
 
+  async findByDepartement(
+    depCode: string,
+  ): Promise<ArreteRestriction[]> {
+    return this.arreteRestrictionRepository.find({
+      select: {
+        id: true,
+        numero: true,
+        statut: true,
+        niveauGraviteSpecifiqueEap: true,
+        ressourceEapCommunique: true,
+        restrictions: {
+          id: true,
+          nomGroupementAep: true,
+          zoneAlerte: {
+            id: true,
+            code: true,
+            nom: true,
+            type: true,
+            disabled: true,
+          },
+          arreteCadre: {
+            id: true,
+          },
+          communes: {
+            id: true,
+            nom: true,
+            code: true,
+          },
+        },
+        departement: {
+          id: true,
+          code: true,
+          nom: true,
+        },
+      },
+      relations: [
+        'restrictions',
+        'restrictions.zoneAlerte',
+        'restrictions.arreteCadre',
+        'restrictions.communes',
+        'departement',
+      ],
+      where: {
+        departement: {
+          code: depCode,
+        },
+        statut: In(['publie']),
+      },
+    });
+  }
+
   async create(
     createArreteRestrictionDto: CreateUpdateArreteRestrictionDto,
     currentUser?: User,
@@ -403,9 +457,9 @@ export class ArreteRestrictionService {
             dateFin: dateToSave.toDateString(),
           },
         );
-        await this.updateArreteRestrictionStatut();
       }
     }
+    await this.updateArreteRestrictionStatut();
     return toRerturn;
   }
 
@@ -471,7 +525,7 @@ export class ArreteRestrictionService {
           );
           break;
       }
-      if(ac.zonesAlerte.some(za => za.disabled)) {
+      if (ac.zonesAlerte.some(za => za.disabled)) {
         errors.push(
           `L'arrête cadre ${ac.numero} est gelé, il contient des zones qui ne sont plus à jour.`,
         );
@@ -510,7 +564,7 @@ export class ArreteRestrictionService {
         const dateDebutArAbroge = new Date(ar.arreteRestrictionAbroge.dateDebut);
         if (dateDebutAr.getTime() <= dateDebutArAbroge.getTime()) {
           errors.push(
-            `La date de début de l'arrêté de restriction doit être supérieur à celle de l'arrêté de restriction abrogé.`
+            `La date de début de l'arrêté de restriction doit être supérieur à celle de l'arrêté de restriction abrogé.`,
           );
         }
       }
@@ -538,8 +592,8 @@ export class ArreteRestrictionService {
       .flat()
       .map((c) => c.id);
     const idsExcluded = [ar.id];
-    if(ar.arreteRestrictionAbroge) {
-      idsExcluded.push(ar.arreteRestrictionAbroge.id)
+    if (ar.arreteRestrictionAbroge) {
+      idsExcluded.push(ar.arreteRestrictionAbroge.id);
     }
     const arsWithSameZonesOrCommunes =
       await this.arreteRestrictionRepository.find({
@@ -733,6 +787,7 @@ export class ArreteRestrictionService {
       { statut: 'abroge' },
     );
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
+    this.zoneAlerteComputedService.computeAll();
   }
 
   /**

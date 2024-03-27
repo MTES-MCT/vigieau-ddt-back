@@ -9,6 +9,7 @@ import { RestrictionModule } from '../restriction/restriction.module';
 import { FichierModule } from '../fichier/fichier.module';
 import { UserModule } from '../user/user.module';
 import { SharedModule } from '../shared/shared.module';
+import { ZoneAlerteComputedModule } from '../zone_alerte_computed/zone_alerte_computed.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { SharedModule } from '../shared/shared.module';
     FichierModule,
     UserModule,
     SharedModule,
+    forwardRef(() => ZoneAlerteComputedModule)
   ],
   controllers: [ArreteRestrictionController],
   providers: [ArreteRestrictionService],
