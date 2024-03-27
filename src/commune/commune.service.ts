@@ -46,7 +46,7 @@ export class CommuneService {
       .getRawOne();
   }
 
-  async getZoneAlerteComputedForHarmonisation(depId: number) {
+  async getZoneAlerteComputedForHarmonisation(depId: number, onlyZaPartial: boolean) {
     const rawMany = await this.communeRepository
       .createQueryBuilder('commune')
       .select('commune.id', 'id')
@@ -55,9 +55,13 @@ export class CommuneService {
       .addSelect('zac.id', 'zac_id')
       .addSelect('zac.nom', 'zac_nom')
       .addSelect('zac.type', 'zac_type')
-      .addSelect('ST_Area(ST_Intersection(zac.geom, commune.geom))', 'area')
-      .leftJoin('zone_alerte_computed', 'zac', 'ST_INTERSECTS(zac.geom, commune.geom) and zac."departementId" = commune."departementId"')
+      .addSelect('zac.niveauGravite', 'zac_niveau_gravite')
+      .addSelect('ST_Area(commune.geom)', 'area')
+      .addSelect('ST_Area(zac.geom)', 'zac_area')
+      .addSelect('ST_Area(ST_Intersection(zac.geom, commune.geom))', 'zac_commune_area')
+      .leftJoin('zone_alerte_computed', 'zac', `ST_Intersects(zac.geom, commune.geom) and zac."departementId" = commune."departementId" ${!onlyZaPartial ? '' : 'and not ST_Covers(zac.geom, commune.geom)'}`)
       .where('commune."departementId" = :depId', { depId })
+      .andWhere('zac.id IS NOT NULL and ST_Area(ST_Intersection(zac.geom, commune.geom)) > 0')
       .getRawMany();
     const toReturn = [];
     rawMany.forEach((c) => {
@@ -66,6 +70,7 @@ export class CommuneService {
           id: c.id,
           code: c.code,
           nom: c.nom,
+          area: c.area,
           zones: [],
         });
       }
@@ -74,7 +79,9 @@ export class CommuneService {
         id: c.zac_id,
         nom: c.zac_nom,
         type: c.zac_type,
-        area: c.area,
+        niveauGravite: c.zac_niveau_gravite,
+        area: c.zac_area,
+        areaCommune: c.zac_commune_area,
       });
     });
     return toReturn;

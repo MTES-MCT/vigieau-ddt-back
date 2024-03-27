@@ -292,6 +292,7 @@ export class ArreteRestrictionService {
         restrictions: {
           id: true,
           nomGroupementAep: true,
+          niveauGravite: true,
           zoneAlerte: {
             id: true,
             code: true,

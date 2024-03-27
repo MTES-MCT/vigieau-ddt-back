@@ -2,7 +2,7 @@ import {
   BaseEntity,
   Column,
   CreateDateColumn,
-  Entity,
+  Entity, Index,
   ManyToOne,
   OneToMany,
   Polygon,
@@ -11,6 +11,7 @@ import {
 import { BassinVersant } from '../../core/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
+import { NiveauGravite } from '../../arrete_restriction/type/niveau_gravite.type';
 
 @Entity()
 export class ZoneAlerteComputed extends BaseEntity {
@@ -33,7 +34,15 @@ export class ZoneAlerteComputed extends BaseEntity {
   })
   geom: Polygon;
 
+  @Column('enum', {
+    name: 'niveauGravite',
+    enum: ['vigilance', 'alerte', 'alerte_renforcee', 'crise'],
+    nullable: true,
+  })
+  niveauGravite: NiveauGravite;
+
   @ManyToOne(() => Departement, (departement) => departement.zoneAlerteComputed)
+  @Index()
   departement: Departement;
 
   @ManyToOne(() => BassinVersant, (bassinVersant) => bassinVersant.zoneAlerteComputed)
