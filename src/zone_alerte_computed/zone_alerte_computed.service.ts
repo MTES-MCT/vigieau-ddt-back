@@ -390,25 +390,16 @@ export class ZoneAlerteComputedService {
 
     await writeFile(`${path}/allZones.geojson`, JSON.stringify(geojson));
     try {
-      const {
-        stdout,
-        stderr,
-      } = await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=./data/zones_arretes_en_vigueur.pmtiles ./data/allZones.geojson`);
-      if (!stderr) {
-        const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur.pmtiles`);
-        const fileToTransfer = {
-          originalname: 'zones_arretes_en_vigueur.pmtiles',
-          buffer: data,
-        };
-        // @ts-ignore
-        await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
-      }
+      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur.pmtiles ${path}/allZones.geojson`);
+      const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur.pmtiles`);
+      const fileToTransfer = {
+        originalname: 'zones_arretes_en_vigueur.pmtiles',
+        buffer: data,
+      };
+      // @ts-ignore
+      await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
     } catch (e) {
-      const dirs = (await fs.readdirSync(path, { withFileTypes: true }))
-        .filter(dirent => dirent.isDirectory())
-        .map(dirent => dirent.name);
-      this.logger.log('DIRECTORIES', dirs);
-      this.logger.error('ERROR TIPPECANOE', e);
+      this.logger.error('ERROR GENERATING PMTILES', e);
     }
   }
 }

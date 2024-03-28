@@ -18,9 +18,6 @@ export class DepartementService {
     private readonly departementRepository: Repository<Departement>,
     private readonly configService: ConfigService,
   ) {
-    if (configService.get('NODE_ENV') !== 'local') {
-      this.updateDepartementsGeom();
-    }
   }
 
   findAll(): Promise<Departement[]> {
@@ -136,7 +133,7 @@ export class DepartementService {
     await this.departementRepository.update(
       {},
       {
-        geom: () => `ST_TRANSFORM(geom, 2154)`,
+        geom: () => `ST_TRANSFORM(geom, 4326)`,
       },
     );
     this.logger.log('DEPARTEMENTS MIS A JOUR');
