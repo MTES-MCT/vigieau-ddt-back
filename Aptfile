@@ -2,4 +2,6 @@ make
 build-essential
 libsqlite3-dev
 zlib1g-dev
-g++-5
+cpp
+gcc
+g++

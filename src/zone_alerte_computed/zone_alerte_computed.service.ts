@@ -11,6 +11,14 @@ import { CommuneService } from '../commune/commune.service';
 import { ArreteRestrictionService } from '../arrete_restriction/arrete_restriction.service';
 import { Utils } from '../core/utils';
 import { writeFile } from 'node:fs/promises';
+import tippecanoe from 'tippecanoe';
+import { S3Service } from '../shared/services/s3.service';
+import * as fs from 'fs';
+import { ConfigService } from '@nestjs/config';
+import { filter } from 'rxjs';
+
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 
 @Injectable()
 export class ZoneAlerteComputedService {
@@ -25,6 +33,8 @@ export class ZoneAlerteComputedService {
     private readonly communeService: CommuneService,
     @Inject(forwardRef(() => ArreteRestrictionService))
     private readonly arreteResrictionService: ArreteRestrictionService,
+    private readonly s3Service: S3Service,
+    private readonly configService: ConfigService,
   ) {
     setTimeout(() => {
       // this.computeAll();
@@ -54,7 +64,7 @@ export class ZoneAlerteComputedService {
     const departements = await this.departementService.findAllLight();
     for (const departement of departements) {
       const zonesSaved = await this.computeRegleAr(departement);
-      if(zonesSaved.length > 0) {
+      if (zonesSaved.length > 0) {
         switch (departement.parametres?.superpositionCommune) {
           case 'no':
           case 'no_all':
@@ -186,7 +196,7 @@ export class ZoneAlerteComputedService {
     await this.restrictionService.deleteZonesComputedByDep(departement.id);
     await this.zoneAlerteComputedRepository.delete({ departement: departement });
     const toReturn = await this.zoneAlerteComputedRepository.save(zonesToSave);
-    if(toReturn.length > 0) {
+    if (toReturn.length > 0) {
       await this.cleanZones();
     }
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${zonesToSave.length} zones ajoutées`);
@@ -201,12 +211,12 @@ export class ZoneAlerteComputedService {
     const zoneTypes = onlyAep ? ['AEP'] : ['SUP', 'SOU', 'AEP'];
     const queries = [];
     for (const commune of communes) {
-      for(const zoneType of zoneTypes) {
+      for (const zoneType of zoneTypes) {
         const zonesSameType = commune.zones.filter(z => z.type === zoneType);
         // Quand une seule zone, on l'agrandie à la geometrie de la commune
-        if(zonesSameType.length === 1) {
+        if (zonesSameType.length === 1) {
           queries.push(this.getQueryToExtendZone(zonesSameType[0].id, commune.id));
-        } else if(zonesSameType.length > 1) {
+        } else if (zonesSameType.length > 1) {
           // Si plusieurs zones, soit elles sont toutes au même niveau de gravité et on prend celle qui couvre le plus le territoire
           // Soit on prend celle qui a le niveau de gravité le plus élevé
           const maxNiveauGravite = zonesSameType.reduce((prev, current) => {
@@ -216,8 +226,8 @@ export class ZoneAlerteComputedService {
           const zoneToExtend = zonesSameTypeMaxNiveau.length === 1 ?
             zonesSameTypeMaxNiveau[0] :
             zonesSameTypeMaxNiveau.reduce((prev, current) => {
-            return prev.area > current.area ? prev : current;
-          });
+              return prev.area > current.area ? prev : current;
+            });
           const zonesToReduce = zonesSameType.filter(z => z.id !== zoneToExtend.id);
           queries.push(this.getQueryToExtendZone(zoneToExtend.id, commune.id));
           zonesToReduce.forEach(z => {
@@ -241,7 +251,7 @@ export class ZoneAlerteComputedService {
     for (const commune of communes) {
       // On filtre sur les aires des zones / communes pour éviter les zones résiduelles
       const zones = commune.zones.filter(z => zoneTypes.includes(z.type) && commune.area.toFixed(10) === z.areaCommune.toFixed(10));
-      if(!zones || zones.length <= 0) {
+      if (!zones || zones.length <= 0) {
         continue;
       }
       const maxNiveauGravite = zones.reduce((prev, current) => {
@@ -251,7 +261,7 @@ export class ZoneAlerteComputedService {
         // Normalement il y a au maximum une zone par type mais si ils ont fait plusieurs AR avec des règles de gestions différentes il se peut que plusieurs zones AEP se superposent
         const zonesSameType = zones.filter(z => z.type === zoneType);
 
-        if(zonesSameType.length === 1 && zonesSameType[0].niveauGravite !== maxNiveauGravite) {
+        if (zonesSameType.length === 1 && zonesSameType[0].niveauGravite !== maxNiveauGravite) {
 
           // Si il n'y a qu'une zone et que ce n'est pas son niveau de gravité de base, on la duplique pour avoir la zone au niveau de la commune avec le bon niveau de gravité
           let zoneToDuplicate = await this.findOneWithCommuneZone(zonesSameType[0].id, commune.id);
@@ -259,21 +269,21 @@ export class ZoneAlerteComputedService {
           zonesToSave.push(zoneToDuplicate);
           queries.push(this.getQueryToReduceZone(zonesSameType[0].id, commune.id));
 
-        } else if(zonesSameType.length > 1) {
+        } else if (zonesSameType.length > 1) {
 
           // Si plusieurs zones du même type, on prend celle qui a le niveau de gravité le plus élevé, ou une au pif
           const maxNiveauGraviteZonesSameType = zonesSameType.reduce((prev, current) => {
             return Utils.getNiveau(prev.niveauGravite) > Utils.getNiveau(current.niveauGravite) ? prev : current;
           }).niveauGravite;
           let zoneToKeep = zonesSameType.filter(z => z.niveauGravite === maxNiveauGraviteZonesSameType);
-          if(zoneToKeep.length > 1) {
+          if (zoneToKeep.length > 1) {
             zoneToKeep = zoneToKeep.reduce((prev, current) => {
               return prev.areaCommune > current.areaCommune ? prev : current;
             });
           } else {
             zoneToKeep = zoneToKeep[0];
           }
-          if(zoneToKeep.niveauGravite !== maxNiveauGravite) {
+          if (zoneToKeep.niveauGravite !== maxNiveauGravite) {
             let zoneToDuplicate = await this.findOneWithCommuneZone(zoneToKeep.id, commune.id);
             zoneToDuplicate.niveauGravite = maxNiveauGravite;
             zonesToSave.push(zoneToDuplicate);
@@ -285,7 +295,7 @@ export class ZoneAlerteComputedService {
             queries.push(this.getQueryToReduceZone(z.id, commune.id));
           });
 
-        } else if(zonesSameType.length <= 0) {
+        } else if (zonesSameType.length <= 0) {
           // Si il n'y a pas de zone, on en crée une
           let zoneToDuplicate = zones.filter(z => z.niveauGravite === maxNiveauGravite).reduce((prev, current) => {
             return prev.areaCommune > current.areaCommune ? prev : current;
@@ -341,8 +351,8 @@ export class ZoneAlerteComputedService {
     return this.zoneAlerteComputedRepository
       .createQueryBuilder('zone_alerte_computed')
       .update()
-      .set({ geom: () => 'ST_CollectionExtract(geom, 3)'})
-      .execute()
+      .set({ geom: () => 'ST_CollectionExtract(geom, 3)' })
+      .execute();
   }
 
   async computeGeoJson() {
@@ -372,10 +382,33 @@ export class ZoneAlerteComputedService {
     });
 
     const geojson = {
-      "type": "FeatureCollection",
-      "features": allZones
+      'type': 'FeatureCollection',
+      'features': allZones,
     };
 
-    await writeFile('./data/allZones.geojson', JSON.stringify(geojson));
+    const path = this.configService.get('PATH_TO_WRITE_FILE');
+
+    await writeFile(`${path}/allZones.geojson`, JSON.stringify(geojson));
+    try {
+      const {
+        stdout,
+        stderr,
+      } = await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=./data/zones_arretes_en_vigueur.pmtiles ./data/allZones.geojson`);
+      if (!stderr) {
+        const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur.pmtiles`);
+        const fileToTransfer = {
+          originalname: 'zones_arretes_en_vigueur.pmtiles',
+          buffer: data,
+        };
+        // @ts-ignore
+        await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
+      }
+    } catch (e) {
+      const dirs = (await fs.readdirSync(path, { withFileTypes: true }))
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => dirent.name);
+      this.logger.log('DIRECTORIES', dirs);
+      this.logger.error('ERROR TIPPECANOE', e);
+    }
   }
 }
