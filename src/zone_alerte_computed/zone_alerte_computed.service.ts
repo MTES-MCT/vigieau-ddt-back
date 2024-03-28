@@ -10,6 +10,7 @@ import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { CommuneService } from '../commune/commune.service';
 import { ArreteRestrictionService } from '../arrete_restriction/arrete_restriction.service';
 import { Utils } from '../core/utils';
+import { writeFile } from 'node:fs/promises';
 
 @Injectable()
 export class ZoneAlerteComputedService {
@@ -26,7 +27,8 @@ export class ZoneAlerteComputedService {
     private readonly arreteResrictionService: ArreteRestrictionService,
   ) {
     setTimeout(() => {
-      this.computeAll();
+      // this.computeAll();
+      this.computeGeoJson();
     }, 1000);
   }
 
@@ -78,6 +80,7 @@ export class ZoneAlerteComputedService {
     }
     // On récupère toutes les restrictions en cours
     this.logger.log(`COMPUTING ZONES D'ALERTES - END`);
+    this.computeGeoJson();
   }
 
   async computeRegleAr(departement: Departement) {
@@ -340,5 +343,39 @@ export class ZoneAlerteComputedService {
       .update()
       .set({ geom: () => 'ST_CollectionExtract(geom, 3)'})
       .execute()
+  }
+
+  async computeGeoJson() {
+    let allZones = await this.zoneAlerteComputedRepository
+      .createQueryBuilder('zone_alerte_computed')
+      .select('ST_AsGeoJSON(ST_TRANSFORM(geom, 4326))', 'geom')
+      .addSelect('id')
+      .addSelect('nom')
+      .addSelect('code')
+      .addSelect('type')
+      .addSelect('"niveauGravite"')
+      .getRawMany();
+
+    allZones = allZones.map(z => {
+      z.geom = JSON.parse(z.geom);
+      return {
+        type: 'Feature',
+        geometry: z.geom,
+        properties: {
+          id: z.id,
+          nom: z.nom,
+          code: z.code,
+          type: z.type,
+          niveauGravite: z.niveauGravite,
+        },
+      };
+    });
+
+    const geojson = {
+      "type": "FeatureCollection",
+      "features": allZones
+    };
+
+    await writeFile('./data/allZones.geojson', JSON.stringify(geojson));
   }
 }
