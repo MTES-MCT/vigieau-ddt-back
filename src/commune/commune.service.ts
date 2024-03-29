@@ -19,7 +19,16 @@ export class CommuneService {
     private readonly communeRepository: Repository<Commune>,
     private readonly departementService: DepartementService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.initDatas();
+  }
+
+  async initDatas() {
+    const communes = await this.communeRepository.count();
+    if(communes === 0) {
+      this.updateCommuneRef();
+    }
+  }
 
   async find(depCode?: string, withGeom?: boolean): Promise<Commune[]> {
     const qb = this.communeRepository
