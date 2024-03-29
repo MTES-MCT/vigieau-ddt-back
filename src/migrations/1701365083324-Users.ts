@@ -8,7 +8,7 @@ export class Users1701365083324 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `DELETE FROM "user" WHERE "email" IN ('vincent.laine.utc@gmail.com')`,
+      `DELETE FROM "user" WHERE "email" IN ('vincent.laine@beta.gouv.fr')`,
     );
   }
 }

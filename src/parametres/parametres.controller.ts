@@ -38,6 +38,20 @@ export class ParametresController {
     );
   }
 
+  @Get(':depCode')
+  @ApiOperation({ summary: "Retourne les règles de gestion d'un département" })
+  @ApiResponse({
+    status: 201,
+    type: [ParametresDto],
+  })
+  async findOne(@Param('depCode') depCode: string): Promise<ParametresDto> {
+    const parametres: Parametres = await this.parametresService.findOne(depCode);
+    return plainToInstance(
+      ParametresDto,
+      camelcaseKeys(parametres, { deep: true }),
+    );
+  }
+
   @Post(':depCode')
   @ApiOperation({
     summary: "Création / Edition des règles de gestion d'un département",

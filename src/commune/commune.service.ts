@@ -87,7 +87,7 @@ export class CommuneService {
     return toReturn;
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async updateCommuneRef() {
     this.logger.log('MISE A JOUR DES COMMUNES');
     let communesUpdated = 0;

@@ -7,6 +7,7 @@ import { DepartementModule } from '../departement/departement.module';
 import { ZoneAlerteModule } from '../zone_alerte/zone_alerte.module';
 import { CommuneModule } from '../commune/commune.module';
 import { ArreteRestrictionModule } from '../arrete_restriction/arrete_restriction.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { ArreteRestrictionModule } from '../arrete_restriction/arrete_restrictio
     DepartementModule,
     ZoneAlerteModule,
     CommuneModule,
-    forwardRef(() => ArreteRestrictionModule)
+    forwardRef(() => ArreteRestrictionModule),
+    SharedModule,
   ],
   controllers: [],
   providers: [ZoneAlerteComputedService],
