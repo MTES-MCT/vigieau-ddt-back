@@ -12,17 +12,18 @@ export class ParametresService {
     @InjectRepository(Parametres)
     private readonly parametresRepository: Repository<Parametres>,
     private readonly departementService: DepartementService,
-  ) {}
+  ) {
+  }
 
   async findAll(currentUser?: User): Promise<Parametres[]> {
     const whereClause: FindOptionsWhere<ArreteRestriction> | null =
       !currentUser || currentUser.role === 'mte'
         ? {}
         : {
-            departement: {
-              code: currentUser.role_departement,
-            },
-          };
+          departement: {
+            code: currentUser.role_departement,
+          },
+        };
     return this.parametresRepository.find({
       select: {
         id: true,
@@ -37,6 +38,25 @@ export class ParametresService {
     });
   }
 
+  async findOne(depCode: string): Promise<Parametres> {
+    return this.parametresRepository.findOne({
+      select: {
+        id: true,
+        superpositionCommune: true,
+        departement: {
+          id: true,
+          code: true,
+        },
+      },
+      relations: ['departement'],
+      where: {
+        departement: {
+          code: depCode,
+        },
+      },
+    });
+  }
+
   async createUpdate(
     currentUser: User,
     depCode: string,
@@ -48,7 +68,7 @@ export class ParametresService {
       currentUser.role_departement !== depCode
     ) {
       throw new HttpException(
-        "Vous n'avez pas les droits pour modifier ces paramètres",
+        'Vous n\'avez pas les droits pour modifier ces paramètres',
         HttpStatus.FORBIDDEN,
       );
     }
