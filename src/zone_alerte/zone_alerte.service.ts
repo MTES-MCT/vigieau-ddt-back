@@ -99,7 +99,7 @@ export class ZoneAlerteService {
   /**
    * Vérification régulière s'il n'y a pas de nouvelles zones
    */
-  @Cron(CronExpression.EVERY_DAY_AT_2PM)
+  @Cron(CronExpression.EVERY_10_MINUTES)
   async updateZones() {
     this.logger.log('MISE A JOUR DES ZONES D\'ALERTE');
     let zonesUpdates = 0;
