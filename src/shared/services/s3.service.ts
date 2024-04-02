@@ -4,6 +4,7 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   ListObjectsV2Command,
+  CopyObjectCommand,
   S3,
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
@@ -20,7 +21,9 @@ export class S3Service {
       secretAccessKey: process.env.S3_SECRET_KEY,
     },
   });
-  constructor() {}
+
+  constructor() {
+  }
 
   // async deleteAllFiles() {
   //   const client = this.client;
@@ -84,8 +87,22 @@ export class S3Service {
     try {
       await client.send(new DeleteObjectCommand(params));
     } catch (e) {
-      this.logger.error("Erreur lors de la suppression d'un fichier", e);
+      this.logger.error('Erreur lors de la suppression d\'un fichier', e);
     }
+  }
+
+  async copyFile(fileName: string, newFileName: string, prefix: string = '') {
+    console.log('COPY FILE ', prefix, fileName);
+    const oldFileUrl = process.env.S3_BUCKET + (process.env.S3_PREFIX || '') + prefix + fileName;
+    const newFileUrl = (process.env.S3_PREFIX || '') + prefix + newFileName;
+
+    const client = this.client;
+    const copyCommand = new CopyObjectCommand({
+      Bucket: process.env.S3_BUCKET,
+      CopySource: encodeURI(oldFileUrl),
+      Key: newFileUrl,
+    });
+    return await client.send(copyCommand);
   }
 
   async s3_upload(file, bucket, name, mimetype) {
@@ -104,7 +121,7 @@ export class S3Service {
     try {
       return await upload.done();
     } catch (e) {
-      this.logger.error("Erreur lors de l'upload d'un fichier", e);
+      this.logger.error('Erreur lors de l\'upload d\'un fichier', e);
     }
   }
 }

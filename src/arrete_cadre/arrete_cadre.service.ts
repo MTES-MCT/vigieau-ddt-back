@@ -412,7 +412,7 @@ export class ArreteCadreService {
         );
       }
     }
-    await this.arreteRestrictionService.updateArreteRestrictionStatut();
+    await this.arreteRestrictionService.updateArreteRestrictionStatut(ac.departements);
     return toReturn;
   }
 
@@ -421,8 +421,9 @@ export class ArreteCadreService {
     repealArreteCadreDto: RepealArreteCadreDto,
     currentUser: User,
   ): Promise<ArreteCadre> {
+    const ac = await this.findOne(id, currentUser);
     if (
-      !(await this.canRepealArreteCadre(id, repealArreteCadreDto, currentUser))
+      !(await this.canRepealArreteCadre(ac, repealArreteCadreDto, currentUser))
     ) {
       throw new HttpException(
         `Abrogation impossible.`,
@@ -437,7 +438,7 @@ export class ArreteCadreService {
       toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
     }
     const toReturn = await this.arreteCadreRepository.save(toSave);
-    await this.arreteRestrictionService.updateArreteRestrictionStatut();
+    await this.arreteRestrictionService.updateArreteRestrictionStatut(ac.departements);
     return toReturn;
   }
 
@@ -511,11 +512,10 @@ export class ArreteCadreService {
   }
 
   async canRepealArreteCadre(
-    id: number,
+    arrete: ArreteCadre,
     repealArreteCadre: RepealArreteCadreDto,
     user: User,
   ): Promise<boolean> {
-    const arrete = await this.findOne(id, user);
     if (
       repealArreteCadre.dateFin &&
       new Date(repealArreteCadre.dateFin) < new Date(arrete.dateDebut)

@@ -48,8 +48,8 @@ export class ZoneAlerteComputed extends BaseEntity {
   @ManyToOne(() => BassinVersant, (bassinVersant) => bassinVersant.zoneAlerteComputed)
   bassinVersant: BassinVersant;
 
-  @OneToMany(() => Restriction, (restriction) => restriction.zoneAlerteComputed)
-  restrictions: Restriction[];
+  @ManyToOne(() => Restriction, (restriction) => restriction.zonesAlerteComputed)
+  restriction: Restriction;
 
   @CreateDateColumn()
   createdAt: Date;
