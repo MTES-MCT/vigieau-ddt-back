@@ -31,6 +31,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { UserService } from '../user/user.service';
 import { MailService } from '../shared/services/mail.service';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
+import { Departement } from '../departement/entities/departement.entity';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -460,7 +461,7 @@ export class ArreteRestrictionService {
         );
       }
     }
-    await this.updateArreteRestrictionStatut();
+    await this.updateArreteRestrictionStatut([ar.departement]);
     return toRerturn;
   }
 
@@ -469,9 +470,10 @@ export class ArreteRestrictionService {
     repealArreteRestrictionDto: RepealArreteRestrictionDto,
     currentUser: User,
   ): Promise<ArreteRestriction> {
+    const ar = await this.findOne(id, currentUser);
     if (
       !(await this.canRepealArreteRestriction(
-        id,
+        ar,
         repealArreteRestrictionDto,
         currentUser,
       ))
@@ -489,6 +491,7 @@ export class ArreteRestrictionService {
       toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
     }
     const toReturn = await this.arreteRestrictionRepository.save(toSave);
+    await this.updateArreteRestrictionStatut([ar.departement]);
     // TODO si tout les AR associés à un AC sont abrogés, il faut abroger l'AC
     return toReturn;
   }
@@ -726,11 +729,10 @@ export class ArreteRestrictionService {
   }
 
   async canRepealArreteRestriction(
-    id: number,
+    arrete: ArreteRestriction,
     repealArreteRestriction: RepealArreteRestrictionDto,
     user: User,
   ): Promise<boolean> {
-    const arrete = await this.findOne(id, user);
     if (
       repealArreteRestriction.dateFin &&
       new Date(repealArreteRestriction.dateFin) < new Date(arrete.dateDebut)
@@ -751,7 +753,7 @@ export class ArreteRestrictionService {
    * Mis à jour des statuts des AR en fonction de ceux des ACs
    * On reprend tout pour éviter que certains AR soient passés entre les mailles du filet (notamment l'historique ou autre)
    */
-  async updateArreteRestrictionStatut() {
+  async updateArreteRestrictionStatut(departements?: Departement[]) {
     const arAVenir = await this.arreteRestrictionRepository.find({
       where: {
         statut: 'a_venir',
@@ -788,7 +790,7 @@ export class ArreteRestrictionService {
       { statut: 'abroge' },
     );
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
-    this.zoneAlerteComputedService.computeAll();
+    this.zoneAlerteComputedService.computeAll(departements);
   }
 
   /**

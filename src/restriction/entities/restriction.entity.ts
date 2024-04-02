@@ -36,8 +36,8 @@ export class Restriction extends BaseEntity {
   @ManyToOne(() => ZoneAlerte, (zoneAlerte) => zoneAlerte.restrictions)
   zoneAlerte: ZoneAlerte;
 
-  @ManyToOne(() => ZoneAlerteComputed, (zoneAlerteComputed) => zoneAlerteComputed.restrictions)
-  zoneAlerteComputed: ZoneAlerteComputed;
+  @OneToMany(() => ZoneAlerteComputed, (zoneAlerteComputed) => zoneAlerteComputed.restriction)
+  zonesAlerteComputed: ZoneAlerteComputed[];
 
   @ManyToOne(() => ArreteCadre, (arreteCadre) => arreteCadre.restrictions)
   arreteCadre: ArreteCadre;

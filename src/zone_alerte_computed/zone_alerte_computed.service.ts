@@ -27,7 +27,6 @@ export class ZoneAlerteComputedService {
   constructor(
     @InjectRepository(ZoneAlerteComputed)
     private readonly zoneAlerteComputedRepository: Repository<ZoneAlerteComputed>,
-    private readonly restrictionService: RestrictionService,
     private readonly departementService: DepartementService,
     private readonly zoneAlerteService: ZoneAlerteService,
     private readonly communeService: CommuneService,
@@ -37,15 +36,15 @@ export class ZoneAlerteComputedService {
     private readonly configService: ConfigService,
   ) {
     setTimeout(() => {
-      // this.computeAll();
-      this.computeGeoJson();
+      this.computeAll();
+      // this.computeGeoJson();
     }, 1000);
   }
 
   async findOneWithCommuneZone(id: number, communeId: number): Promise<any> {
     const zoneFull = await this.zoneAlerteComputedRepository.findOne({
       where: { id },
-      relations: ['departement', 'bassinVersant', 'restrictions'],
+      relations: ['departement', 'bassinVersant', 'restriction'],
     });
     const zoneGeom = await this.zoneAlerteComputedRepository
       .createQueryBuilder('zone_alerte_computed')
@@ -59,9 +58,12 @@ export class ZoneAlerteComputedService {
     return zoneFull;
   }
 
-  async computeAll() {
+  async computeAll(deps?: Departement[]) {
     this.logger.log(`COMPUTING ZONES D'ALERTES - BEGIN`);
-    const departements = await this.departementService.findAllLight();
+    let departements = await this.departementService.findAllLight();
+    if (deps && deps.length > 0) {
+      departements = departements.filter(d => deps.some(dep => dep.id === d.id));
+    }
     for (const departement of departements) {
       const zonesSaved = await this.computeRegleAr(departement);
       if (zonesSaved.length > 0) {
@@ -90,7 +92,7 @@ export class ZoneAlerteComputedService {
     }
     // On récupère toutes les restrictions en cours
     this.logger.log(`COMPUTING ZONES D'ALERTES - END`);
-    this.computeGeoJson();
+    this.computeGeoJson(deps && deps.length > 0);
   }
 
   async computeRegleAr(departement: Departement) {
@@ -102,7 +104,7 @@ export class ZoneAlerteComputedService {
       for (const restriction of ar.restrictions) {
         if (restriction.zoneAlerte) {
           const za = await this.zoneAlerteService.findOne(restriction.zoneAlerte.id);
-          za.restrictions = [{ id: restriction.id, niveauGravite: restriction.niveauGravite }];
+          za.restriction = { id: restriction.id, niveauGravite: restriction.niveauGravite };
           za.departement = { id: departement.id };
           // SAUVEGARDE ZONE ESU ou ESO
           zonesArToSave.push(za);
@@ -113,7 +115,7 @@ export class ZoneAlerteComputedService {
             geom: null,
             departement: { id: departement.id },
             bassinVersant: null,
-            restrictions: [{ id: restriction.id, niveauGravite: restriction.niveauGravite }],
+            restriction: { id: restriction.id, niveauGravite: restriction.niveauGravite },
           };
           za.geom = (await this.communeService.getUnionGeomOfCommunes(restriction.communes)).geom;
           // SAUVEGARDE ZONE AEP
@@ -126,7 +128,7 @@ export class ZoneAlerteComputedService {
         switch (ar.ressourceEapCommunique) {
           case 'eso':
           case 'esu':
-            let zonesAep = zonesArToSave.filter((z) => z.type === (ar.ressourceEapCommunique === 'eso' ? 'SOU' : 'SUP') && ar.restrictions.some(r => r.id === z.restrictions[0].id));
+            let zonesAep = zonesArToSave.filter((z) => z.type === (ar.ressourceEapCommunique === 'eso' ? 'SOU' : 'SUP') && ar.restrictions.some(r => r.id === z.restriction.id));
             zonesAep = JSON.parse(JSON.stringify(zonesAep));
             zonesAep = zonesAep.map(z => {
               z.type = 'AEP';
@@ -190,10 +192,9 @@ export class ZoneAlerteComputedService {
     zonesToSave = zonesToSave.map(z => {
       z.id = null;
       z.geom = JSON.parse(z.geom);
-      z.niveauGravite = z.restrictions[0].niveauGravite;
+      z.niveauGravite = z.restriction.niveauGravite;
       return z;
     }).filter(z => z.geom.coordinates.length > 0);
-    await this.restrictionService.deleteZonesComputedByDep(departement.id);
     await this.zoneAlerteComputedRepository.delete({ departement: departement });
     const toReturn = await this.zoneAlerteComputedRepository.save(zonesToSave);
     if (toReturn.length > 0) {
@@ -355,7 +356,7 @@ export class ZoneAlerteComputedService {
       .execute();
   }
 
-  async computeGeoJson() {
+  async computeGeoJson(savePrevious: boolean) {
     let allZones = await this.zoneAlerteComputedRepository
       .createQueryBuilder('zone_alerte_computed')
       .select('ST_AsGeoJSON(ST_TRANSFORM(geom, 4326))', 'geom')
@@ -396,6 +397,11 @@ export class ZoneAlerteComputedService {
         originalname: 'zones_arretes_en_vigueur.pmtiles',
         buffer: data,
       };
+      if(savePrevious) {
+        const date = new Date();
+        const fileNameToSave = `ones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
+        await this.s3Service.copyFile(fileToTransfer.originalname, fileNameToSave, 'pmtiles/');
+      }
       // @ts-ignore
       await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
     } catch (e) {
