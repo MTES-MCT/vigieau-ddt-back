@@ -92,17 +92,17 @@ export class S3Service {
   }
 
   async copyFile(fileName: string, newFileName: string, prefix: string = '') {
-    console.log('COPY FILE ', prefix, fileName);
-    const oldFileUrl = process.env.S3_BUCKET + (process.env.S3_PREFIX || '') + prefix + fileName;
+    const oldFileUrl = process.env.S3_BUCKET + '/' + (process.env.S3_PREFIX || '') + prefix + fileName;
     const newFileUrl = (process.env.S3_PREFIX || '') + prefix + newFileName;
+    console.log('COPY FILE ', oldFileUrl, newFileUrl);
 
     const client = this.client;
-    const copyCommand = new CopyObjectCommand({
+    const params = {
       Bucket: process.env.S3_BUCKET,
       CopySource: encodeURI(oldFileUrl),
-      Key: newFileUrl,
-    });
-    return await client.send(copyCommand);
+      Key: String(newFileUrl),
+    }
+    return await client.send(new CopyObjectCommand(params));
   }
 
   async s3_upload(file, bucket, name, mimetype) {

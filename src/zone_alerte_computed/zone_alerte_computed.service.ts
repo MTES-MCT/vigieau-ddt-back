@@ -2,7 +2,6 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
-import { RestrictionService } from '../restriction/restriction.service';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { DepartementService } from '../departement/departement.service';
 import { Departement } from '../departement/entities/departement.entity';
@@ -11,11 +10,9 @@ import { CommuneService } from '../commune/commune.service';
 import { ArreteRestrictionService } from '../arrete_restriction/arrete_restriction.service';
 import { Utils } from '../core/utils';
 import { writeFile } from 'node:fs/promises';
-import tippecanoe from 'tippecanoe';
 import { S3Service } from '../shared/services/s3.service';
 import * as fs from 'fs';
 import { ConfigService } from '@nestjs/config';
-import { filter } from 'rxjs';
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -37,7 +34,6 @@ export class ZoneAlerteComputedService {
   ) {
     setTimeout(() => {
       this.computeAll();
-      // this.computeGeoJson();
     }, 1000);
   }
 
@@ -92,7 +88,7 @@ export class ZoneAlerteComputedService {
     }
     // On récupère toutes les restrictions en cours
     this.logger.log(`COMPUTING ZONES D'ALERTES - END`);
-    this.computeGeoJson(deps && deps.length > 0);
+    this.computeGeoJson(!deps || deps.length < 1);
   }
 
   async computeRegleAr(departement: Departement) {
@@ -397,11 +393,11 @@ export class ZoneAlerteComputedService {
         originalname: 'zones_arretes_en_vigueur.pmtiles',
         buffer: data,
       };
-      if(savePrevious) {
+      // if(savePrevious) {
         const date = new Date();
-        const fileNameToSave = `ones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
+        const fileNameToSave = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
         await this.s3Service.copyFile(fileToTransfer.originalname, fileNameToSave, 'pmtiles/');
-      }
+      // }
       // @ts-ignore
       await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
     } catch (e) {
