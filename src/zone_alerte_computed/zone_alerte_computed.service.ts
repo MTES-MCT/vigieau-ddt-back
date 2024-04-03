@@ -195,7 +195,7 @@ export class ZoneAlerteComputedService {
     await this.zoneAlerteComputedRepository.delete({ departement: departement });
     const toReturn = await this.zoneAlerteComputedRepository.save(zonesToSave);
     if (toReturn.length > 0) {
-      await this.cleanZones();
+      await this.cleanZones(departement);
     }
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${zonesToSave.length} zones ajoutées`);
     return toReturn;
@@ -235,7 +235,7 @@ export class ZoneAlerteComputedService {
       }
     }
     await Promise.all(queries.map(q => q.execute()));
-    await this.cleanZones();
+    await this.cleanZones(departement);
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${onlyAep ? 'YES_ONLY_AEP' : 'YES_DISTINCT'} END`);
   }
 
@@ -312,7 +312,7 @@ export class ZoneAlerteComputedService {
       return z;
     });
     await this.zoneAlerteComputedRepository.save(zonesToSave);
-    await this.cleanZones();
+    await this.cleanZones(departement);
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${exceptAep ? 'YES_EXCEPT_AEP' : 'YES_ALL'} END`);
   }
 
@@ -345,11 +345,18 @@ export class ZoneAlerteComputedService {
       .where('zone_alerte_computed.id = :id', { id: zoneId });
   }
 
-  cleanZones() {
+  async cleanZones(departement: Departement) {
+    await this.zoneAlerteComputedRepository.createQueryBuilder('zone_alerte_computed')
+      .update()
+      .set({ geom: () => `st_makevalid(geom, 'method=structure keepcollapsed=false')` })
+      .where('not st_isvalid(geom)')
+      .andWhere('"departementId" = :id', { id: departement.id })
+      .execute();
     return this.zoneAlerteComputedRepository
       .createQueryBuilder('zone_alerte_computed')
       .update()
       .set({ geom: () => 'ST_CollectionExtract(geom, 3)' })
+      .where('"departementId" = :id', { id: departement.id })
       .execute();
   }
 
