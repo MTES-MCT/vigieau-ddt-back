@@ -85,6 +85,7 @@ export class ZoneAlerteComputedService {
             this.logger.error(`COMPUTING ${departement.code} - ${departement.nom} - ${departement.parametres?.superpositionCommune} not implemented`, '');
         }
       }
+      await this.computeCommunesIntersected(departement);
     }
     // On récupère toutes les restrictions en cours
     this.logger.log(`COMPUTING ZONES D'ALERTES - END`);
@@ -394,14 +395,39 @@ export class ZoneAlerteComputedService {
         buffer: data,
       };
       // if(savePrevious) {
-        const date = new Date();
-        const fileNameToSave = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
-        await this.s3Service.copyFile(fileToTransfer.originalname, fileNameToSave, 'pmtiles/');
+      const date = new Date();
+      const fileNameToSave = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
+      await this.s3Service.copyFile(fileToTransfer.originalname, fileNameToSave, 'pmtiles/');
       // }
       // @ts-ignore
       await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
     } catch (e) {
       this.logger.error('ERROR GENERATING PMTILES', e);
     }
+  }
+
+  async computeCommunesIntersected(departement: Departement) {
+    const zones = await this.zoneAlerteComputedRepository.createQueryBuilder('zone_alerte_computed')
+      .select(['zone_alerte_computed.id', 'zone_alerte_computed.nom', 'zone_alerte_computed.code', 'zone_alerte_computed.type'])
+      .leftJoin('zone_alerte_computed.departement', 'departement')
+      .leftJoinAndSelect('commune', 'commune', 'commune.departement = departement.id AND ST_INTERSECTS(zone_alerte_computed.geom, commune.geom) AND ST_Area(ST_Intersection(zone_alerte_computed.geom, commune.geom)) > 0.000000001')
+      .where('departement.id = :id', { id: departement.id })
+      .getRawMany();
+    const toSave = [];
+    zones.forEach(z => {
+      if(!toSave.some(s => s.id === z.zone_alerte_computed_id)) {
+        toSave.push({
+          id: z.zone_alerte_computed_id,
+          communes: [],
+        });
+      }
+      const s = toSave.find(s => s.id === z.zone_alerte_computed_id);
+      if(z.commune_id) {
+        s.communes.push({
+          id: z.commune_id,
+        });
+      }
+    });
+    await this.zoneAlerteComputedRepository.save(toSave);
   }
 }

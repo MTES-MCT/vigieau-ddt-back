@@ -2,7 +2,7 @@ import {
   BaseEntity,
   Column,
   CreateDateColumn,
-  Entity, Index,
+  Entity, Index, JoinTable, ManyToMany,
   ManyToOne,
   OneToMany,
   Polygon,
@@ -12,6 +12,7 @@ import { BassinVersant } from '../../core/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
 import { NiveauGravite } from '../../arrete_restriction/type/niveau_gravite.type';
+import { Commune } from '../../commune/entities/commune.entity';
 
 @Entity()
 export class ZoneAlerteComputed extends BaseEntity {
@@ -50,6 +51,12 @@ export class ZoneAlerteComputed extends BaseEntity {
 
   @ManyToOne(() => Restriction, (restriction) => restriction.zonesAlerteComputed)
   restriction: Restriction;
+
+  @ManyToMany(() => Commune, (commune) => commune.zonesAlerteComputed)
+  @JoinTable({
+    name: 'zone_alerte_computed_commune',
+  })
+  communes: Commune[];
 
   @CreateDateColumn()
   createdAt: Date;
