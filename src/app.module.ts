@@ -11,7 +11,7 @@ import { UserModule } from './user/user.module';
 import { ZoneAlerteModule } from './zone_alerte/zone_alerte.module';
 import { DataSource } from 'typeorm';
 import { Region } from './core/entities/region.entity';
-import { BassinVersant } from './core/entities/bassin_versant.entity';
+import { BassinVersant } from './bassin_versant/entities/bassin_versant.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DepartementModule } from './departement/departement.module';
 import { UsageModule } from './usage/usage.module';
@@ -22,11 +22,11 @@ import { AppController } from './app.controller';
 import { LoggerModule } from './logger/logger.module';
 import { LoggerInterceptor } from './core/interceptor/logger.interceptor';
 import { SharedModule } from './shared/shared.module';
-import path from 'path';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { CommuneModule } from './commune/commune.module';
 import { RestrictionModule } from './restriction/restriction.module';
+import { BassinVersantModule } from './bassin_versant/bassin_versant.module';
 
 // @ts-ignore
 @Module({
@@ -116,7 +116,8 @@ import { RestrictionModule } from './restriction/restriction.module';
     LoggerModule,
     SharedModule,
     CommuneModule,
-    RestrictionModule
+    RestrictionModule,
+    BassinVersantModule
   ],
   controllers: [AppController],
   providers: [

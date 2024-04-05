@@ -8,6 +8,7 @@ import { RegleauLogger } from '../logger/regleau.logger';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { DepartementService } from '../departement/departement.service';
+import { BassinVersantService } from '../bassin_versant/bassin_versant.service';
 
 @Injectable()
 export class ZoneAlerteService {
@@ -19,6 +20,7 @@ export class ZoneAlerteService {
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly departementService: DepartementService,
+    private readonly bassinVersantService: BassinVersantService,
   ) {
   }
 
@@ -81,9 +83,9 @@ export class ZoneAlerteService {
 
   computeNewZone(zone: any) {
     const qb = this.zoneAlerteRepository
-      .createQueryBuilder('zone_alerte')
+      .createQueryBuilder('zone_alerte');
     let sqlString = `ST_AsGeoJSON(ST_TRANSFORM(`;
-    if(zone.remove && zone.remove.length > 0) {
+    if (zone.remove && zone.remove.length > 0) {
       sqlString += `ST_DIFFERENCE(zone_alerte.geom, `;
       sqlString += `(SELECT ST_UNION(zaBis.geom) FROM zone_alerte as zaBis WHERE zaBis.id IN (${zone.remove.join(', ')}))`;
       sqlString += `)`;
@@ -105,11 +107,12 @@ export class ZoneAlerteService {
     let zonesUpdates = 0;
     let zonesAdded = 0;
     let lastUpdate = (await this.zoneAlerteRepository.createQueryBuilder('zone_alerte')
-      .select('MAX(zone_alerte.updatedAt)', 'updatedAt')
-      .getRawOne()).updatedAt;
+      .select('MAX(zone_alerte.createdAt)', 'createdAt')
+      .getRawOne()).createdAt;
     lastUpdate = lastUpdate ? lastUpdate.toISOString().split('T')[0] : null;
     const filterString = lastUpdate ? `Filter=<Filter><PropertyIsGreaterThanOrEqualTo><PropertyName>DateMajZAS</PropertyName><Literal>${lastUpdate}</Literal></PropertyIsGreaterThanOrEqualTo></Filter>` : '';
     const url = `${this.configService.get('API_SANDRE')}/geo/zas?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&typename=ZAS&SRSNAME=EPSG:4326&OUTPUTFORMAT=GeoJSON&${filterString}`;
+    console.log(url);
     try {
       const { data } = await firstValueFrom(this.httpService.get(url));
       for (const [index, f] of data.features.entries()) {
@@ -122,18 +125,23 @@ export class ZoneAlerteService {
             },
           },
         });
-        if (!existingZone) {
+        if (!existingZone || (existingZone.idSandre && existingZone.idSandre !== +f.properties.gid)) {
           zonesAdded++;
-          const existingZone = new ZoneAlerte();
+          existingZone = new ZoneAlerte();
           existingZone.code = f.properties.CdAltZAS;
           existingZone.departement = await this.departementService.findByCode(f.properties.CdDepartement);
+          existingZone.bassinVersant = await this.bassinVersantService.findByCode(+f.properties.NumCircAdminBassin);
+          existingZone.idSandre = +f.properties.gid;
           existingZone.type = f.properties.TypeZAS;
         } else {
           zonesUpdates++;
         }
         existingZone.nom = f.properties.LbZAS;
-        existingZone.numeroVersionSandre = f.properties.NumeroVersionZAS;
+        existingZone.numeroVersionSandre = f.properties.NumeroVersionZAS ? f.properties.NumeroVersionZAS : null;
         existingZone.geom = f.geometry;
+        if (f.properties.StZAS === 'Gelé') {
+          existingZone.disabled = true;
+        }
         await this.zoneAlerteRepository.save(existingZone);
         this.logger.log(`${index} - ZONE ${existingZone.id} ${existingZone.code} ENREGISTREE`);
       }

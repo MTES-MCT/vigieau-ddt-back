@@ -4,11 +4,10 @@ import {
   CreateDateColumn,
   Entity, Index, JoinTable, ManyToMany,
   ManyToOne,
-  OneToMany,
   Polygon,
   PrimaryGeneratedColumn, UpdateDateColumn,
 } from 'typeorm';
-import { BassinVersant } from '../../core/entities/bassin_versant.entity';
+import { BassinVersant } from '../../bassin_versant/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
 import { NiveauGravite } from '../../arrete_restriction/type/niveau_gravite.type';

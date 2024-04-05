@@ -10,7 +10,7 @@ import {
   PrimaryGeneratedColumn, UpdateDateColumn,
 } from 'typeorm';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
-import { BassinVersant } from '../../core/entities/bassin_versant.entity';
+import { BassinVersant } from '../../bassin_versant/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
 
@@ -28,11 +28,14 @@ export class ZoneAlerte extends BaseEntity {
   @Column({ nullable: false, length: 50 })
   type: 'SOU' | 'SUP';
 
-  @Column({ nullable: false })
+  @Column({ nullable: true })
   numeroVersion: number;
 
   @Column({ nullable: true })
   numeroVersionSandre: number;
+
+  @Column({ nullable: true })
+  idSandre: number;
 
   @Column({
     type: 'geometry',
