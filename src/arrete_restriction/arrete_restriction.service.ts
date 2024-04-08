@@ -146,6 +146,7 @@ export class ArreteRestrictionService {
           dateSignature: true,
           statut: true,
           niveauGraviteSpecifiqueEap: true,
+          ressourceEapCommunique: true,
           fichier: {
             id: true,
             nom: true,
@@ -676,7 +677,8 @@ export class ArreteRestrictionService {
   }
 
   async remove(id: number, curentUser: User) {
-    if (!(await this.canRemoveArreteRestriction(id, curentUser))) {
+    const arrete = await this.findOne(id, curentUser);
+    if (!(await this.canRemoveArreteRestriction(arrete, curentUser))) {
       throw new HttpException(
         `Vous ne pouvez supprimer un arrêté de restriction que si il est sur votre département.`,
         HttpStatus.FORBIDDEN,
@@ -684,6 +686,9 @@ export class ArreteRestrictionService {
     }
 
     await this.arreteRestrictionRepository.delete(id);
+    if(arrete.statut === 'publie') {
+      this.zoneAlerteComputedService.computeAll([arrete.departement]);
+    }
     return;
   }
 
@@ -714,8 +719,7 @@ export class ArreteRestrictionService {
     );
   }
 
-  async canRemoveArreteRestriction(id: number, user: User): Promise<boolean> {
-    const arrete = await this.findOne(id, user);
+  async canRemoveArreteRestriction(arrete: ArreteRestriction, user: User): Promise<boolean> {
     /**
      * On peut supprimer un AR s'il est sur le département de l'utilisateur
      * ou que l'utilisateur a un rôle MTE

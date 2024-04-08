@@ -112,7 +112,6 @@ export class ZoneAlerteService {
     lastUpdate = lastUpdate ? lastUpdate.toISOString().split('T')[0] : null;
     const filterString = lastUpdate ? `Filter=<Filter><PropertyIsGreaterThanOrEqualTo><PropertyName>DateMajZAS</PropertyName><Literal>${lastUpdate}</Literal></PropertyIsGreaterThanOrEqualTo></Filter>` : '';
     const url = `${this.configService.get('API_SANDRE')}/geo/zas?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&typename=ZAS&SRSNAME=EPSG:4326&OUTPUTFORMAT=GeoJSON&${filterString}`;
-    console.log(url);
     try {
       const { data } = await firstValueFrom(this.httpService.get(url));
       for (const [index, f] of data.features.entries()) {

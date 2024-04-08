@@ -48,7 +48,9 @@ export class ZoneAlerteComputed extends BaseEntity {
   @ManyToOne(() => BassinVersant, (bassinVersant) => bassinVersant.zoneAlerteComputed)
   bassinVersant: BassinVersant;
 
-  @ManyToOne(() => Restriction, (restriction) => restriction.zonesAlerteComputed)
+  @ManyToOne(() => Restriction, (restriction) => restriction.zonesAlerteComputed, {
+    onDelete: 'CASCADE',
+  })
   restriction: Restriction;
 
   @ManyToMany(() => Commune, (commune) => commune.zonesAlerteComputed)
