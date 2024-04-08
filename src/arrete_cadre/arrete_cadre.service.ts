@@ -467,9 +467,34 @@ export class ArreteCadreService {
       (uac) =>
         !newAc.usages.some((nuac) => nuac.id === uac.id),
     );
+    const usagesUpdated = newAc.usages.filter(
+      (nuac) => {
+        const oldUac = oldAc.usages.find(ouac => ouac.id === nuac.id)
+        if(!oldUac) {
+          return false;
+        }
+        return oldUac.nom !== nuac.nom
+          || oldUac.thematique.id !== nuac.thematique.id
+          || oldUac.concerneParticulier !== nuac.concerneParticulier
+          || oldUac.concerneEntreprise !== nuac.concerneEntreprise
+          || oldUac.concerneCollectivite !== nuac.concerneCollectivite
+          || oldUac.concerneExploitation !== nuac.concerneExploitation
+          || oldUac.concerneEso !== nuac.concerneEso
+          || oldUac.concerneEsu !== nuac.concerneEsu
+          || oldUac.concerneAep !== nuac.concerneAep
+          || oldUac.descriptionVigilance !== nuac.descriptionVigilance
+          || oldUac.descriptionAlerte !== nuac.descriptionAlerte
+          || oldUac.descriptionAlerteRenforcee !== nuac.descriptionAlerteRenforcee
+          || oldUac.descriptionCrise !== nuac.descriptionCrise;
+      }
+    );
     await Promise.all([
       this.restrictionService.deleteZonesByArreteCadreId(
         zonesDeleted.map((z) => z.id),
+        oldAc.id,
+      ),
+      this.usageService.updateUsagesArByArreteCadreId(
+        usagesUpdated,
         oldAc.id,
       ),
       this.usageService.deleteUsagesArByArreteCadreId(
