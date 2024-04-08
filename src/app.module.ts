@@ -11,7 +11,6 @@ import { UserModule } from './user/user.module';
 import { ZoneAlerteModule } from './zone_alerte/zone_alerte.module';
 import { DataSource } from 'typeorm';
 import { Region } from './core/entities/region.entity';
-import { BassinVersant } from './bassin_versant/entities/bassin_versant.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DepartementModule } from './departement/departement.module';
 import { UsageModule } from './usage/usage.module';
@@ -27,6 +26,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
 import { CommuneModule } from './commune/commune.module';
 import { RestrictionModule } from './restriction/restriction.module';
 import { BassinVersantModule } from './bassin_versant/bassin_versant.module';
+import { AbonnementMail } from './core/entities/abonnement_mail.entity';
 
 // @ts-ignore
 @Module({
@@ -71,7 +71,7 @@ import { BassinVersantModule } from './bassin_versant/bassin_versant.module';
         return dataSource;
       },
     }),
-    TypeOrmModule.forFeature([Session, Region, BassinVersant]),
+    TypeOrmModule.forFeature([Session, Region, AbonnementMail]),
     // Rate limit, 300 requêtes maximum toutes les 15min par IP
     ThrottlerModule.forRoot([
       {
