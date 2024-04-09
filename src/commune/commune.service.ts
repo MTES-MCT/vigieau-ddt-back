@@ -70,7 +70,7 @@ export class CommuneService {
       .addSelect('ST_Area(ST_Intersection(zac.geom, commune.geom))', 'zac_commune_area')
       .leftJoin('zone_alerte_computed', 'zac', `ST_Intersects(zac.geom, commune.geom) and zac."departementId" = commune."departementId" ${!onlyZaPartial ? '' : 'and not ST_Covers(zac.geom, commune.geom)'}`)
       .where('commune."departementId" = :depId', { depId })
-      .andWhere('zac.id IS NOT NULL and ST_Area(ST_Intersection(zac.geom, commune.geom)) > 0')
+      .andWhere('zac.id IS NOT NULL and (ST_Area(ST_Intersection(zac.geom, commune.geom)) / ST_Area(commune.geom)) * 100 >= 5')
       .getRawMany();
     const toReturn = [];
     rawMany.forEach((c) => {
