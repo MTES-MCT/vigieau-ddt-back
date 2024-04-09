@@ -137,8 +137,10 @@ export class ZoneAlerteComputedService {
             const zonesEsu: any = JSON.parse(JSON.stringify(zonesArToSave.filter(z => z?.type === 'SUP')));
             const zonesEso: any = JSON.parse(JSON.stringify(zonesArToSave.filter(z => z?.type === 'SOU')));
             // On boucle sur les zones ESU et on stock un tableau intersect avec les zones ESO
-            for (const zoneEsu of zonesEsu) {
-              zoneEsu.intersect = (await this.zoneAlerteService.getIntersect(zoneEsu.id, zonesEso.map(z => z.id)));
+            if(zonesEsu.length > 0 && zonesEso.length > 0) {
+              for (const zoneEsu of zonesEsu) {
+                zoneEsu.intersect = (await this.zoneAlerteService.getIntersect(zoneEsu.id, zonesEso.map(z => z.id)));
+              }
             }
             // Pour les zones de l'AR qui ne s'intersectent pas, on peut les copier et les enregistrer sous AEP
             const zonesWithoutIntersection = zonesEsu
