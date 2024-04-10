@@ -13,6 +13,7 @@ import { writeFile } from 'node:fs/promises';
 import { S3Service } from '../shared/services/s3.service';
 import * as fs from 'fs';
 import { ConfigService } from '@nestjs/config';
+import { RestrictionService } from '../restriction/restriction.service';
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -31,9 +32,10 @@ export class ZoneAlerteComputedService {
     private readonly arreteResrictionService: ArreteRestrictionService,
     private readonly s3Service: S3Service,
     private readonly configService: ConfigService,
+    private readonly restrictionService: RestrictionService,
   ) {
     setTimeout(() => {
-      this.computeAll();
+      // this.computeAll();
     }, 1000);
   }
 
@@ -85,6 +87,7 @@ export class ZoneAlerteComputedService {
             this.logger.error(`COMPUTING ${departement.code} - ${departement.nom} - ${departement.parametres?.superpositionCommune} not implemented`, '');
         }
       }
+      await this.computeRegleAepNotSpecific(departement);
       await this.computeCommunesIntersected(departement);
     }
     // On récupère toutes les restrictions en cours
@@ -97,14 +100,13 @@ export class ZoneAlerteComputedService {
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${arretesRestrictions.length} arrêtés de restriction`);
     let zonesToSave = [];
     for (const ar of arretesRestrictions) {
-      let zonesArToSave = [];
       for (const restriction of ar.restrictions) {
         if (restriction.zoneAlerte) {
           const za = await this.zoneAlerteService.findOne(restriction.zoneAlerte.id);
           za.restriction = { id: restriction.id, niveauGravite: restriction.niveauGravite };
           za.departement = { id: departement.id };
           // SAUVEGARDE ZONE ESU ou ESO
-          zonesArToSave.push(za);
+          zonesToSave.push(za);
         } else if (restriction.communes?.length > 0) {
           const za = {
             nom: restriction.nomGroupementAep,
@@ -116,28 +118,49 @@ export class ZoneAlerteComputedService {
           };
           za.geom = (await this.communeService.getUnionGeomOfCommunes(restriction.communes)).geom;
           // SAUVEGARDE ZONE AEP
-          zonesArToSave.push(za);
+          zonesToSave.push(za);
         }
       }
+    }
 
-      // Si pas de zone spécifique AEP, on en crée suivant la règle définie dans l'arrêté de restriction
-      if (ar.niveauGraviteSpecifiqueEap === false) {
+    zonesToSave = zonesToSave.map(z => {
+      z.id = null;
+      z.geom = JSON.parse(z.geom);
+      z.niveauGravite = z.restriction.niveauGravite;
+      return z;
+    }).filter(z => z.geom.coordinates.length > 0);
+    await this.zoneAlerteComputedRepository.delete({ departement: departement });
+    const toReturn = await this.zoneAlerteComputedRepository.save(zonesToSave);
+    if (toReturn.length > 0) {
+      await this.cleanZones(departement);
+    }
+    this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${zonesToSave.length} zones ajoutées`);
+    return toReturn;
+  }
+
+  async computeRegleAepNotSpecific(departement: Departement) {
+    const arretesRestrictions = await this.arreteResrictionService.findByDepartement(departement.code);
+    const zonesDepartement = await this.getZonesAlerteComputedByDepartement(departement);
+    let zonesToSave = [];
+    for (const ar of arretesRestrictions) {
+      let zonesAr = zonesDepartement.filter(z => z.restriction.arreteRestriction.id === ar.id);
+      if (ar.niveauGraviteSpecifiqueEap === false && zonesAr.length > 0) {
         switch (ar.ressourceEapCommunique) {
           case 'eso':
           case 'esu':
-            let zonesAep = zonesArToSave.filter((z) => z.type === (ar.ressourceEapCommunique === 'eso' ? 'SOU' : 'SUP') && ar.restrictions.some(r => r.id === z.restriction.id));
+            let zonesAep = zonesAr.filter((z) => z.type === (ar.ressourceEapCommunique === 'eso' ? 'SOU' : 'SUP') && ar.restrictions.some(r => r.id === z.restriction.id));
             zonesAep = JSON.parse(JSON.stringify(zonesAep));
             zonesAep = zonesAep.map(z => {
               z.type = 'AEP';
               return z;
             });
-            zonesArToSave = zonesArToSave.concat(zonesAep);
+            zonesToSave = zonesToSave.concat(zonesAep);
             break;
           case 'max':
-            const zonesEsu: any = JSON.parse(JSON.stringify(zonesArToSave.filter(z => z?.type === 'SUP')));
-            const zonesEso: any = JSON.parse(JSON.stringify(zonesArToSave.filter(z => z?.type === 'SOU')));
+            const zonesEsu: any = JSON.parse(JSON.stringify(zonesAr.filter(z => z?.type === 'SUP')));
+            const zonesEso: any = JSON.parse(JSON.stringify(zonesAr.filter(z => z?.type === 'SOU')));
             // On boucle sur les zones ESU et on stock un tableau intersect avec les zones ESO
-            if(zonesEsu.length > 0 && zonesEso.length > 0) {
+            if (zonesEsu.length > 0 && zonesEso.length > 0) {
               for (const zoneEsu of zonesEsu) {
                 zoneEsu.intersect = (await this.zoneAlerteService.getIntersect(zoneEsu.id, zonesEso.map(z => z.id)));
               }
@@ -150,11 +173,11 @@ export class ZoneAlerteComputedService {
                 z.type = 'AEP';
                 return z;
               });
-            zonesArToSave = zonesArToSave.concat(zonesWithoutIntersection);
+            zonesToSave = zonesToSave.concat(zonesWithoutIntersection);
             // Pour chaque couple de zone qui s'intersectent, vérifier celle qui a le niveau de gravité max et qui doit être prioritaire
             let zonesWithIntersection = zonesEsu
               .filter(z => z.intersect && z.intersect.length > 0)
-              .concat(zonesEso.filter(z => zonesEsu.some(ze => ze.intersect.some(i => i.id === z.id))))
+              .concat(zonesEso.filter(z => zonesEsu.some(ze => ze.intersect?.some(i => i.id === z.id))))
               .map(z => {
                 z.add = [];
                 z.remove = [];
@@ -174,33 +197,27 @@ export class ZoneAlerteComputedService {
               }
               for (const z of zonesWithIntersection) {
                 // On construit les nouvelles géométries de zones
-                z.geom = (await this.zoneAlerteService.computeNewZone(z)).geom;
+                z.geom = (await this.computeNewZone(z)).geom;
               }
               zonesWithIntersection = zonesWithIntersection.map(z => {
                 z.type = 'AEP';
                 return z;
               });
             }
-            zonesArToSave = zonesArToSave.concat(zonesWithIntersection);
+            zonesToSave = zonesToSave.concat(zonesWithIntersection);
             break;
         }
       }
-      zonesToSave = zonesToSave.concat(JSON.parse(JSON.stringify(zonesArToSave)));
     }
-
     zonesToSave = zonesToSave.map(z => {
       z.id = null;
       z.geom = JSON.parse(z.geom);
-      z.niveauGravite = z.restriction.niveauGravite;
       return z;
     }).filter(z => z.geom.coordinates.length > 0);
-    await this.zoneAlerteComputedRepository.delete({ departement: departement });
     const toReturn = await this.zoneAlerteComputedRepository.save(zonesToSave);
     if (toReturn.length > 0) {
       await this.cleanZones(departement);
     }
-    this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${zonesToSave.length} zones ajoutées`);
-    return toReturn;
   }
 
   // Chaque type de zone doit être harmonisé indépendamment à la commune
@@ -425,19 +442,56 @@ export class ZoneAlerteComputedService {
       .getRawMany();
     const toSave = [];
     zones.forEach(z => {
-      if(!toSave.some(s => s.id === z.zone_alerte_computed_id)) {
+      if (!toSave.some(s => s.id === z.zone_alerte_computed_id)) {
         toSave.push({
           id: z.zone_alerte_computed_id,
           communes: [],
         });
       }
       const s = toSave.find(s => s.id === z.zone_alerte_computed_id);
-      if(z.commune_id) {
+      if (z.commune_id) {
         s.communes.push({
           id: z.commune_id,
         });
       }
     });
     await this.zoneAlerteComputedRepository.save(toSave);
+  }
+
+  async getZonesAlerteComputedByDepartement(departement: Departement): Promise<ZoneAlerteComputed[]> {
+    const zonesDepartement = await this.zoneAlerteComputedRepository
+      .createQueryBuilder('zone_alerte_computed')
+      .select('ST_AsGeoJSON(ST_TRANSFORM(zone_alerte_computed.geom, 4326))', 'geom')
+      .addSelect('zone_alerte_computed.id', 'id')
+      .addSelect('zone_alerte_computed.nom', 'nom')
+      .addSelect('zone_alerte_computed.code', 'code')
+      .addSelect('zone_alerte_computed.type', 'type')
+      .addSelect('"niveauGravite"')
+      .leftJoin('zone_alerte_computed.departement', 'departement')
+      .where('departement.id = :id', { id: departement.id })
+      .getRawMany();
+    // @ts-ignore
+    await Promise.all(zonesDepartement.map(async z => {
+      z.restriction = await this.restrictionService.findOneByZoneAlerteComputed(z.id);
+      return z;
+    }));
+    return zonesDepartement;
+  }
+
+  computeNewZone(zone: any) {
+    const qb = this.zoneAlerteComputedRepository
+      .createQueryBuilder('zone_alerte_computed');
+    let sqlString = `ST_AsGeoJSON(ST_TRANSFORM(`;
+    if (zone.remove && zone.remove.length > 0) {
+      sqlString += `ST_DIFFERENCE(zone_alerte_computed.geom, `;
+      sqlString += `(SELECT ST_UNION(zaBis.geom) FROM zone_alerte_computed as zaBis WHERE zaBis.id IN (${zone.remove.join(', ')}))`;
+      sqlString += `)`;
+    } else {
+      sqlString += `zone_alerte_computed.geom`;
+    }
+    sqlString += `, 4326))`;
+    return qb.select(sqlString, 'geom')
+      .where('zone_alerte_computed.id = :id', { id: zone.id })
+      .getRawOne();
   }
 }

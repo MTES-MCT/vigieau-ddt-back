@@ -81,23 +81,6 @@ export class ZoneAlerteService {
       .getRawMany();
   }
 
-  computeNewZone(zone: any) {
-    const qb = this.zoneAlerteRepository
-      .createQueryBuilder('zone_alerte');
-    let sqlString = `ST_AsGeoJSON(ST_TRANSFORM(`;
-    if (zone.remove && zone.remove.length > 0) {
-      sqlString += `ST_DIFFERENCE(zone_alerte.geom, `;
-      sqlString += `(SELECT ST_UNION(zaBis.geom) FROM zone_alerte as zaBis WHERE zaBis.id IN (${zone.remove.join(', ')}))`;
-      sqlString += `)`;
-    } else {
-      sqlString += `zone_alerte.geom`;
-    }
-    sqlString += `, 4326))`;
-    return qb.select(sqlString, 'geom')
-      .where('zone_alerte.id = :id', { id: zone.id })
-      .getRawOne();
-  }
-
   /**
    * Vérification régulière s'il n'y a pas de nouvelles zones
    */

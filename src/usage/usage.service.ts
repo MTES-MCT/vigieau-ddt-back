@@ -155,7 +155,7 @@ export class UsageService {
     });
     const updates = [];
     for (const u of usagesToUpdate) {
-      const usagesToUpdate = await this.usageRepository.find({
+      const tmp = await this.usageRepository.find({
         where: {
           restriction: {
             arreteRestriction: {
@@ -167,7 +167,7 @@ export class UsageService {
           nom: u.nom,
         },
       });
-      usagesToUpdate.forEach((usageToUpdate) => {
+      tmp.forEach((usageToUpdate) => {
         updates.push(this.usageRepository.update(usageToUpdate.id, u));
       });
     }

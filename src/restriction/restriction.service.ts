@@ -69,4 +69,15 @@ export class RestrictionService {
       id: In(restrictionIds.map((r) => r.id)),
     });
   }
+
+  async findOneByZoneAlerteComputed(zoneAlerteComputedId: number): Promise<Restriction> {
+    return this.restrictionRepository.findOne({
+      relations: ['arreteRestriction', 'zonesAlerteComputed'],
+      where: {
+        zonesAlerteComputed: {
+          id: zoneAlerteComputedId,
+        },
+      },
+    });
+  }
 }

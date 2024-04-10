@@ -18,6 +18,7 @@ import { SharedModule } from '../shared/shared.module';
     CommuneModule,
     forwardRef(() => ArreteRestrictionModule),
     SharedModule,
+    RestrictionModule
   ],
   controllers: [],
   providers: [ZoneAlerteComputedService],
