@@ -55,7 +55,7 @@ export class CommuneService {
       .getRawOne();
   }
 
-  async getZoneAlerteComputedForHarmonisation(depId: number, onlyZaPartial: boolean) {
+  async getZoneAlerteComputedForHarmonisation(depId: number) {
     const rawMany = await this.communeRepository
       .createQueryBuilder('commune')
       .select('commune.id', 'id')
@@ -68,9 +68,9 @@ export class CommuneService {
       .addSelect('ST_Area(commune.geom)', 'area')
       .addSelect('ST_Area(zac.geom)', 'zac_area')
       .addSelect('ST_Area(ST_Intersection(zac.geom, commune.geom))', 'zac_commune_area')
-      .leftJoin('zone_alerte_computed', 'zac', `ST_Intersects(zac.geom, commune.geom) and zac."departementId" = commune."departementId" ${!onlyZaPartial ? '' : 'and not ST_Covers(zac.geom, commune.geom)'}`)
+      .leftJoin('zone_alerte_computed', 'zac', `zac."departementId" = commune."departementId" and ST_Intersects(zac.geom, commune.geom)`)
       .where('commune."departementId" = :depId', { depId })
-      .andWhere('zac.id IS NOT NULL and (ST_Area(ST_Intersection(zac.geom, commune.geom)) / ST_Area(commune.geom)) * 100 >= 5')
+      .andWhere('zac.id IS NOT NULL')
       .getRawMany();
     const toReturn = [];
     rawMany.forEach((c) => {
@@ -91,6 +91,7 @@ export class CommuneService {
         niveauGravite: c.zac_niveau_gravite,
         area: c.zac_area,
         areaCommune: c.zac_commune_area,
+        areaCommunePercentage: (c.zac_commune_area / c.area) * 100,
       });
     });
     return toReturn;

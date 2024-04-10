@@ -67,20 +67,6 @@ export class ZoneAlerteService {
       .getRawMany();
   }
 
-  getIntersect(zoneId: number, otherZonesId: number[]) {
-    return this.zoneAlerteRepository
-      .createQueryBuilder('zone_alerte')
-      .select('zone_alerte.id', 'id')
-      .addSelect('zone_alerte.code', 'code')
-      .addSelect('zone_alerte.nom', 'nom')
-      .addSelect('zone_alerte.type', 'type')
-      .where('zone_alerte.disabled = false')
-      .andWhere('zone_alerte.id != :id', { id: zoneId })
-      .andWhere('zone_alerte.id IN(:...ids)', { ids: otherZonesId })
-      .andWhere('ST_INTERSECTS(zone_alerte.geom, (SELECT zaBis.geom FROM zone_alerte as zaBis WHERE id = :id))', { id: zoneId })
-      .getRawMany();
-  }
-
   /**
    * Vérification régulière s'il n'y a pas de nouvelles zones
    */

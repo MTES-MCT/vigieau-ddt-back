@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { DepartementService } from '../departement/departement.service';
@@ -87,7 +87,6 @@ export class ZoneAlerteComputedService {
             this.logger.error(`COMPUTING ${departement.code} - ${departement.nom} - ${departement.parametres?.superpositionCommune} not implemented`, '');
         }
       }
-      await this.computeRegleAepNotSpecific(departement);
       await this.computeCommunesIntersected(departement);
     }
     // On récupère toutes les restrictions en cours
@@ -129,10 +128,14 @@ export class ZoneAlerteComputedService {
       z.niveauGravite = z.restriction.niveauGravite;
       return z;
     }).filter(z => z.geom.coordinates.length > 0);
+    await this.zoneAlerteComputedRepository.delete({ departement: IsNull() });
     await this.zoneAlerteComputedRepository.delete({ departement: departement });
     const toReturn = await this.zoneAlerteComputedRepository.save(zonesToSave);
     if (toReturn.length > 0) {
       await this.cleanZones(departement);
+    }
+    if (!departement.parametres?.superpositionCommune || departement.parametres?.superpositionCommune !== 'yes_all') {
+      await this.computeRegleAepNotSpecific(departement);
     }
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${zonesToSave.length} zones ajoutées`);
     return toReturn;
@@ -144,7 +147,7 @@ export class ZoneAlerteComputedService {
     let zonesToSave = [];
     for (const ar of arretesRestrictions) {
       let zonesAr = zonesDepartement.filter(z => z.restriction.arreteRestriction.id === ar.id);
-      if (ar.niveauGraviteSpecifiqueEap === false && zonesAr.length > 0) {
+      if (ar.niveauGraviteSpecifiqueEap === false && ar.ressourceEapCommunique && zonesAr.length > 0) {
         switch (ar.ressourceEapCommunique) {
           case 'eso':
           case 'esu':
@@ -162,7 +165,7 @@ export class ZoneAlerteComputedService {
             // On boucle sur les zones ESU et on stock un tableau intersect avec les zones ESO
             if (zonesEsu.length > 0 && zonesEso.length > 0) {
               for (const zoneEsu of zonesEsu) {
-                zoneEsu.intersect = (await this.zoneAlerteService.getIntersect(zoneEsu.id, zonesEso.map(z => z.id)));
+                zoneEsu.intersect = (await this.getIntersect(zoneEsu.id, zonesEso.map(z => z.id)));
               }
             }
             // Pour les zones de l'AR qui ne s'intersectent pas, on peut les copier et les enregistrer sous AEP
@@ -224,32 +227,38 @@ export class ZoneAlerteComputedService {
   async computeYesDistinct(departement, onlyAep: boolean) {
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${onlyAep ? 'YES_ONLY_AEP' : 'YES_DISTINCT'} BEGIN`);
     // On récupères les communes avec des ZA qui ne couvrent pas totalement la zone
-    const communes = await this.communeService.getZoneAlerteComputedForHarmonisation(departement.id, true);
+    const communes = await this.communeService.getZoneAlerteComputedForHarmonisation(departement.id);
     const zoneTypes = onlyAep ? ['AEP'] : ['SUP', 'SOU', 'AEP'];
     const queries = [];
     for (const commune of communes) {
       for (const zoneType of zoneTypes) {
         const zonesSameType = commune.zones.filter(z => z.type === zoneType);
         // Quand une seule zone, on l'agrandie à la geometrie de la commune
-        if (zonesSameType.length === 1) {
+        if (zonesSameType.length === 1 && zonesSameType[0].areaCommunePercentage >= 5) {
           queries.push(this.getQueryToExtendZone(zonesSameType[0].id, commune.id));
         } else if (zonesSameType.length > 1) {
           // Si plusieurs zones, soit elles sont toutes au même niveau de gravité et on prend celle qui couvre le plus le territoire
           // Soit on prend celle qui a le niveau de gravité le plus élevé
-          const maxNiveauGravite = zonesSameType.reduce((prev, current) => {
-            return Utils.getNiveau(prev.niveauGravite) > Utils.getNiveau(current.niveauGravite) ? prev : current;
-          });
-          const zonesSameTypeMaxNiveau = zonesSameType.filter(z => z.niveauGravite === maxNiveauGravite.niveauGravite);
-          const zoneToExtend = zonesSameTypeMaxNiveau.length === 1 ?
-            zonesSameTypeMaxNiveau[0] :
-            zonesSameTypeMaxNiveau.reduce((prev, current) => {
-              return prev.area > current.area ? prev : current;
+          const zonesSameTypeExploitables = zonesSameType
+            .filter(z => z.areaCommunePercentage >= 5);
+          if(zonesSameTypeExploitables.length >= 1) {
+            const maxNiveauGravite = zonesSameTypeExploitables.length > 1 ? zonesSameTypeExploitables
+              .filter(z => z.areaCommunePercentage >= 5)
+              .reduce((prev, current) => {
+                return Utils.getNiveau(prev.niveauGravite) > Utils.getNiveau(current.niveauGravite) ? prev : current;
+              }) : zonesSameTypeExploitables[0].niveauGravite;
+            const zonesSameTypeMaxNiveau = zonesSameTypeExploitables.filter(z => z.niveauGravite === maxNiveauGravite.niveauGravite);
+            const zoneToExtend = zonesSameTypeMaxNiveau.length === 1 ?
+              zonesSameTypeMaxNiveau[0] :
+              zonesSameTypeMaxNiveau.reduce((prev, current) => {
+                return prev.areaCommune > current.areaCommune ? prev : current;
+              });
+            const zonesToReduce = zonesSameType.filter(z => z.id !== zoneToExtend.id);
+            queries.push(this.getQueryToExtendZone(zoneToExtend.id, commune.id));
+            zonesToReduce.forEach(z => {
+              queries.push(this.getQueryToReduceZone(z.id, commune.id));
             });
-          const zonesToReduce = zonesSameType.filter(z => z.id !== zoneToExtend.id);
-          queries.push(this.getQueryToExtendZone(zoneToExtend.id, commune.id));
-          zonesToReduce.forEach(z => {
-            queries.push(this.getQueryToReduceZone(z.id, commune.id));
-          });
+          }
         }
       }
     }
@@ -261,7 +270,7 @@ export class ZoneAlerteComputedService {
   async computeYesAll(departement, exceptAep: boolean) {
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${exceptAep ? 'YES_EXCEPT_AEP' : 'YES_ALL'} BEGIN`);
     // On récupères les communes avec des ZA (même celles qui couvrent totalement la commune)
-    const communes = await this.communeService.getZoneAlerteComputedForHarmonisation(departement.id, false);
+    const communes = await this.communeService.getZoneAlerteComputedForHarmonisation(departement.id);
     const zoneTypes = exceptAep ? ['SUP', 'SOU'] : ['SUP', 'SOU', 'AEP'];
     const queries = [];
     let zonesToSave = [];
@@ -466,6 +475,7 @@ export class ZoneAlerteComputedService {
       .addSelect('zone_alerte_computed.nom', 'nom')
       .addSelect('zone_alerte_computed.code', 'code')
       .addSelect('zone_alerte_computed.type', 'type')
+      .addSelect('departement.id', 'departement_id')
       .addSelect('"niveauGravite"')
       .leftJoin('zone_alerte_computed.departement', 'departement')
       .where('departement.id = :id', { id: departement.id })
@@ -473,6 +483,9 @@ export class ZoneAlerteComputedService {
     // @ts-ignore
     await Promise.all(zonesDepartement.map(async z => {
       z.restriction = await this.restrictionService.findOneByZoneAlerteComputed(z.id);
+      z.departement = {
+        id: z.departement_id,
+      };
       return z;
     }));
     return zonesDepartement;
@@ -493,5 +506,18 @@ export class ZoneAlerteComputedService {
     return qb.select(sqlString, 'geom')
       .where('zone_alerte_computed.id = :id', { id: zone.id })
       .getRawOne();
+  }
+
+  getIntersect(zoneId: number, otherZonesId: number[]) {
+    return this.zoneAlerteComputedRepository
+      .createQueryBuilder('zone_alerte_computed')
+      .select('zone_alerte_computed.id', 'id')
+      .addSelect('zone_alerte_computed.code', 'code')
+      .addSelect('zone_alerte_computed.nom', 'nom')
+      .addSelect('zone_alerte_computed.type', 'type')
+      .where('zone_alerte_computed.id != :id', { id: zoneId })
+      .andWhere('zone_alerte_computed.id IN(:...ids)', { ids: otherZonesId })
+      .andWhere('ST_INTERSECTS(zone_alerte_computed.geom, (SELECT zaBis.geom FROM zone_alerte_computed as zaBis WHERE zaBis.id = :id))', { id: zoneId })
+      .getRawMany();
   }
 }
