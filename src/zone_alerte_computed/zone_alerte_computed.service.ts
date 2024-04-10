@@ -410,6 +410,7 @@ export class ZoneAlerteComputedService {
       // }
       // @ts-ignore
       await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
+      await this.zoneAlerteComputedRepository.update({}, { enabled: true });
     } catch (e) {
       this.logger.error('ERROR GENERATING PMTILES', e);
     }
