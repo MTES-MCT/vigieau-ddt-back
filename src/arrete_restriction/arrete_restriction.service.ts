@@ -320,6 +320,7 @@ export class ArreteRestrictionService {
       relations: [
         'restrictions',
         'restrictions.zoneAlerte',
+        'restrictions.zonesAlerteComputed',
         'restrictions.arreteCadre',
         'restrictions.communes',
         'departement',

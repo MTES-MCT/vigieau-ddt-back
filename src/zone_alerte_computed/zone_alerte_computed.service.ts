@@ -198,15 +198,15 @@ export class ZoneAlerteComputedService {
                   zonesWithIntersection.find(zwi => zwi.id === zIntersected.id).add.push(z.id);
                 }
               }
-              for (const z of zonesWithIntersection) {
-                // On construit les nouvelles géométries de zones
-                z.geom = (await this.computeNewZone(z)).geom;
-              }
-              zonesWithIntersection = zonesWithIntersection.map(z => {
-                z.type = 'AEP';
-                return z;
-              });
             }
+            for (const z of zonesWithIntersection) {
+              // On construit les nouvelles géométries de zones
+              z.geom = (await this.computeNewZone(z)).geom;
+            }
+            zonesWithIntersection = zonesWithIntersection.map(z => {
+              z.type = 'AEP';
+              return z;
+            });
             zonesToSave = zonesToSave.concat(zonesWithIntersection);
             break;
         }
@@ -242,11 +242,10 @@ export class ZoneAlerteComputedService {
           const zonesSameTypeExploitables = zonesSameType
             .filter(z => z.areaCommunePercentage >= 5);
           if(zonesSameTypeExploitables.length >= 1) {
-            const maxNiveauGravite = zonesSameTypeExploitables.length > 1 ? zonesSameTypeExploitables
-              .filter(z => z.areaCommunePercentage >= 5)
+            const maxNiveauGravite = zonesSameTypeExploitables
               .reduce((prev, current) => {
                 return Utils.getNiveau(prev.niveauGravite) > Utils.getNiveau(current.niveauGravite) ? prev : current;
-              }) : zonesSameTypeExploitables[0].niveauGravite;
+              });
             const zonesSameTypeMaxNiveau = zonesSameTypeExploitables.filter(z => z.niveauGravite === maxNiveauGravite.niveauGravite);
             const zoneToExtend = zonesSameTypeMaxNiveau.length === 1 ?
               zonesSameTypeMaxNiveau[0] :
@@ -345,7 +344,7 @@ export class ZoneAlerteComputedService {
   }
 
   getNiveauGravite(zoneId, restrictions) {
-    const r = restrictions.find(r => r.zoneAlerte?.id === zoneId);
+    const r = restrictions.find(r => r.zonesAlerteComputed?.some(z => z.id === zoneId));
     return Utils.getNiveau(r?.niveauGravite);
   }
 
