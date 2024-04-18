@@ -32,7 +32,7 @@ export class MailService {
       .sendMail({
         to: email,
         from: `${process.env.MAIL_USER}`,
-        subject: `Règl'Eau - ${subject}`,
+        subject: `VigiEau Admin - ${subject}`,
         template: `./${template}`,
         context: context,
       })

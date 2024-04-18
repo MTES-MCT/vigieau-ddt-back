@@ -489,7 +489,7 @@ export class ArreteRestrictionService {
       id,
       ...repealArreteRestrictionDto,
     };
-    if (new Date(repealArreteRestrictionDto.dateFin) <= new Date()) {
+    if (new Date(repealArreteRestrictionDto.dateFin) < new Date()) {
       toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
     }
     const toReturn = await this.arreteRestrictionRepository.save(toSave);

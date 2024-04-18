@@ -85,13 +85,20 @@ export class ZoneAlerteService {
       const { data } = await firstValueFrom(this.httpService.get(url));
       for (const [index, f] of data.features.entries()) {
         let existingZone = await this.zoneAlerteRepository.findOne({
-          where: {
-            code: f.properties.CdAltZAS,
-            type: f.properties.TypeZAS,
-            departement: {
-              code: f.properties.CdDepartement,
+          where: [
+            {
+              idSandre: +f.properties.gid,
             },
-          },
+            {
+              code: f.properties.CdAltZAS,
+              type: f.properties.TypeZAS,
+              departement: {
+                code: f.properties.CdDepartement,
+              },
+            }],
+          order: {
+            id: 'DESC',
+          }
         });
         if (!existingZone || (existingZone.idSandre && existingZone.idSandre !== +f.properties.gid)) {
           zonesAdded++;
