@@ -97,6 +97,7 @@ export class ZoneAlerteService {
               },
             }],
           order: {
+            idSandre: 'DESC',
             id: 'DESC',
           }
         });

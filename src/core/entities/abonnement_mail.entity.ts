@@ -10,7 +10,6 @@ export class AbonnementMail extends BaseEntity {
 
   @Column({ nullable: false, length: 255 })
   ip: string;
-
   @Column('enum', {
     name: 'profil',
     enum: ['particulier', 'entreprise', 'collectivite', 'exploitation'],
@@ -21,6 +20,13 @@ export class AbonnementMail extends BaseEntity {
 
   @Column({ nullable: true, length: 6 })
   commune: string;
+
+  @Column({ nullable: true, type: 'decimal' })
+  lon: number;
+
+  @Column({ nullable: true, type: 'decimal' })
+  lat: number;
+
 
   @Column({ nullable: true })
   idAdresse: string;
@@ -33,9 +39,9 @@ export class AbonnementMail extends BaseEntity {
 
   @Column('json', { nullable: false })
   situation: {
-    aep: string;
-    eso: string,
-    esu: string,
+    AEP: string;
+    SOU: string,
+    SUP: string,
   };
 
   @CreateDateColumn({ select: false, type: 'timestamp' })
