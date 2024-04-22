@@ -32,6 +32,7 @@ import { UserService } from '../user/user.service';
 import { MailService } from '../shared/services/mail.service';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
 import { Departement } from '../departement/entities/departement.entity';
+import moment from 'moment';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -224,6 +225,9 @@ export class ArreteRestrictionService {
             usages: {
               nom: 'ASC',
             },
+            communes: {
+              code: 'ASC',
+            }
           },
         },
       }),
@@ -376,8 +380,8 @@ export class ArreteRestrictionService {
   ): Promise<ArreteRestriction> {
     if (
       publishArreteRestrictionDto.dateFin &&
-      new Date(publishArreteRestrictionDto.dateFin) <
-      new Date(publishArreteRestrictionDto.dateDebut)
+      moment(publishArreteRestrictionDto.dateFin)
+        .isBefore(publishArreteRestrictionDto.dateDebut, 'day')
     ) {
       throw new HttpException(
         `La date de fin doit être postérieure à la date de début.`,
@@ -435,9 +439,9 @@ export class ArreteRestrictionService {
       toSave.fichier = { id: newFile.id };
     }
     toSave =
-      new Date(publishArreteRestrictionDto.dateDebut) <= new Date()
+      moment(publishArreteRestrictionDto.dateDebut).isSameOrBefore(moment(), 'day')
         ? publishArreteRestrictionDto.dateFin &&
-        new Date(publishArreteRestrictionDto.dateFin) <= new Date()
+        moment(publishArreteRestrictionDto.dateFin).isBefore(moment(), 'day')
           ? { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } }
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
@@ -449,7 +453,7 @@ export class ArreteRestrictionService {
       const dateFinArAbroge = ar.arreteRestrictionAbroge.dateFin ? new Date(ar.arreteRestrictionAbroge.dateFin) : null;
       if (
         !dateFinArAbroge ||
-        dateFinArAbroge.getTime() >= dateDebutAr.getTime()
+        moment(dateFinArAbroge).isSameOrAfter(moment(dateDebutAr), 'day')
       ) {
         const dateToSave = dateDebutAr;
         dateToSave.setDate(dateToSave.getDate() - 1);
@@ -489,7 +493,7 @@ export class ArreteRestrictionService {
       id,
       ...repealArreteRestrictionDto,
     };
-    if (new Date(repealArreteRestrictionDto.dateFin) < new Date()) {
+    if (moment(repealArreteRestrictionDto.dateFin).isBefore(moment(), 'day')) {
       toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
     }
     const toReturn = await this.arreteRestrictionRepository.save(toSave);
@@ -687,7 +691,7 @@ export class ArreteRestrictionService {
     }
 
     await this.arreteRestrictionRepository.delete(id);
-    if(arrete.statut === 'publie') {
+    if (arrete.statut === 'publie') {
       this.zoneAlerteComputedService.computeAll([arrete.departement]);
     }
     return;
@@ -740,7 +744,8 @@ export class ArreteRestrictionService {
   ): Promise<boolean> {
     if (
       repealArreteRestriction.dateFin &&
-      new Date(repealArreteRestriction.dateFin) < new Date(arrete.dateDebut)
+      moment(repealArreteRestriction.dateFin)
+        .isBefore(moment(arrete.dateDebut), 'day')
     ) {
       throw new HttpException(
         `La date de fin doit être postérieure à la date de début.`,
@@ -775,12 +780,23 @@ export class ArreteRestrictionService {
     );
     this.logger.log(`${arAVenir.length} Arrêtés Restriction publiés`);
 
-    const arPerime = await this.arreteRestrictionRepository.find({
+    const arPerime: ArreteRestriction[] = await this.arreteRestrictionRepository.find({
+      select: {
+        id: true,
+        dateDebut: true,
+        dateFin: true,
+        arretesCadre: {
+          id: true,
+          statut: true,
+          dateFin: true,
+        },
+      },
+      relations: ['arretesCadre'],
       where: [
         {
           statut: In(['a_venir', 'publie']),
           // @ts-expect-error string date
-          dateFin: LessThan(new Date()),
+          dateFin: LessThan(moment().startOf('day')),
         },
         {
           statut: In(['a_venir', 'publie']),
@@ -790,10 +806,33 @@ export class ArreteRestrictionService {
         },
       ],
     });
-    await this.arreteRestrictionRepository.update(
+    const promises = [];
+    arPerime.forEach(ar => {
+      const arDateFin = new Date(ar.dateFin);
+      const arDateDebut = new Date(ar.dateDebut);
+      const acDateFin = new Date(Math.min.apply(null, ar.arretesCadre
+        .filter(ac => ac.statut === 'abroge')
+        .map(ac => new Date(ac.dateFin))));
+      if ((!ar.dateFin && acDateFin) || (ar.dateFin && acDateFin && arDateFin.getTime() > acDateFin.getTime())) {
+        promises.push(this.arreteRestrictionRepository.update(
+          { id: ar.id },
+          // @ts-ignore
+          { dateFin: acDateFin },
+        ));
+        if (acDateFin.getTime() > arDateDebut.getTime()) {
+          promises.push(this.arreteRestrictionRepository.update(
+            { id: ar.id },
+            // @ts-ignore
+            { dateDebut: acDateFin },
+          ));
+        }
+      }
+    });
+    promises.push(this.arreteRestrictionRepository.update(
       { id: In(arPerime.map((ar) => ar.id)) },
       { statut: 'abroge' },
-    );
+    ));
+    await Promise.all(promises);
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
     this.zoneAlerteComputedService.computeAll(departements);
   }
