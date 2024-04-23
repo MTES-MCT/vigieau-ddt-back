@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { ZoneAlerte } from './entities/zone_alerte.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
@@ -73,35 +73,55 @@ export class ZoneAlerteService {
   @Cron(CronExpression.EVERY_10_MINUTES)
   async updateZones() {
     this.logger.log('MISE A JOUR DES ZONES D\'ALERTE');
+    const departements = await this.departementService.findAllLight();
+    try {
+      for (const d of departements) {
+        let lastUpdate = (await this.zoneAlerteRepository.createQueryBuilder('zone_alerte')
+          .select('MAX(zone_alerte.createdAt)', 'createdAt')
+          .leftJoin('zone_alerte.departement', 'departement')
+          .where('departement.id = :depId', { depId: d.id })
+          .getRawOne()).createdAt;
+        lastUpdate = lastUpdate ? lastUpdate.toISOString().split('T')[0] : null;
+        const filterString = lastUpdate ? `Filter=<Filter>
+<And>
+<PropertyIsEqualTo><PropertyName>CdDepartement</PropertyName><Literal>${d.code}</Literal></PropertyIsEqualTo>
+<PropertyIsGreaterThanOrEqualTo><PropertyName>DateMajZAS</PropertyName><Literal>${lastUpdate}</Literal></PropertyIsGreaterThanOrEqualTo>
+</And>
+</Filter>` : 'Filter=<Filter><PropertyIsEqualTo><PropertyName>CdDepartement</PropertyName><Literal>${d.code}</Literal></PropertyIsEqualTo></Filter>';
+        const url = `${this.configService.get('API_SANDRE')}/geo/zas?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&typename=ZAS&SRSNAME=EPSG:4326&OUTPUTFORMAT=GeoJSON&${filterString}`;
+
+        const { data } = await firstValueFrom(this.httpService.get(url));
+        if (data.features?.length > 0) {
+          await this.updateDepartementZones(d.code);
+        }
+      }
+    } catch (error) {
+      this.logger.error('ERREUR LORS DE LA MISE A JOUR DES ZONES D\'ALERTES', error);
+    }
+  }
+
+  async updateDepartementZones(depCode: string) {
+    this.logger.log(`MISE A JOUR DES ZONES D'ALERTE DU DEPARTEMENT ${depCode}`);
+    const filterString = `Filter=<Filter>
+<AND>
+<PropertyIsEqualTo><PropertyName>CdDepartement</PropertyName><Literal>${depCode}</Literal></PropertyIsEqualTo>
+<PropertyIsEqualTo><PropertyName>StZAS</PropertyName><Literal>Validé</Literal></PropertyIsEqualTo>
+</AND>
+</Filter>`;
+    const url = `${this.configService.get('API_SANDRE')}/geo/zas?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&typename=ZAS&SRSNAME=EPSG:4326&OUTPUTFORMAT=GeoJSON&${filterString}`;
     let zonesUpdates = 0;
     let zonesAdded = 0;
-    let lastUpdate = (await this.zoneAlerteRepository.createQueryBuilder('zone_alerte')
-      .select('MAX(zone_alerte.createdAt)', 'createdAt')
-      .getRawOne()).createdAt;
-    lastUpdate = lastUpdate ? lastUpdate.toISOString().split('T')[0] : null;
-    const filterString = lastUpdate ? `Filter=<Filter><PropertyIsGreaterThanOrEqualTo><PropertyName>DateMajZAS</PropertyName><Literal>${lastUpdate}</Literal></PropertyIsGreaterThanOrEqualTo></Filter>` : '';
-    const url = `${this.configService.get('API_SANDRE')}/geo/zas?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&typename=ZAS&SRSNAME=EPSG:4326&OUTPUTFORMAT=GeoJSON&${filterString}`;
     try {
       const { data } = await firstValueFrom(this.httpService.get(url));
-      for (const [index, f] of data.features.entries()) {
+      const idsSandre = data.features.map(f => +f.properties.gid);
+      const promises = [];
+      for (const f of data.features) {
         let existingZone = await this.zoneAlerteRepository.findOne({
-          where: [
-            {
-              idSandre: +f.properties.gid,
-            },
-            {
-              code: f.properties.CdAltZAS,
-              type: f.properties.TypeZAS,
-              departement: {
-                code: f.properties.CdDepartement,
-              },
-            }],
-          order: {
-            idSandre: 'DESC',
-            id: 'DESC',
-          }
+          where: {
+            idSandre: +f.properties.gid,
+          },
         });
-        if (!existingZone || (existingZone.idSandre && existingZone.idSandre !== +f.properties.gid)) {
+        if (!existingZone) {
           zonesAdded++;
           existingZone = new ZoneAlerte();
           existingZone.code = f.properties.CdAltZAS;
@@ -115,26 +135,21 @@ export class ZoneAlerteService {
         existingZone.nom = f.properties.LbZAS;
         existingZone.numeroVersionSandre = f.properties.NumeroVersionZAS ? f.properties.NumeroVersionZAS : null;
         existingZone.geom = f.geometry;
-        if (f.properties.StZAS === 'Gelé') {
-          existingZone.disabled = true;
-        }
-        await this.zoneAlerteRepository.save(existingZone);
-        this.logger.log(`${index} - ZONE ${existingZone.id} ${existingZone.code} ENREGISTREE`);
+        promises.push(this.zoneAlerteRepository.save(existingZone));
       }
+      promises.push(
+        this.zoneAlerteRepository.createQueryBuilder('zone_alerte')
+          .leftJoin('zone_alerte.departement', 'departement')
+          .update()
+          .set({ disabled: true })
+          .where('idSandre NOT IN (:...idsSandre)', { idsSandre })
+          .andWhere('departement.code = :depCode', { depCode }),
+      );
+      await Promise.all(promises);
+      this.logger.log(`${zonesUpdates} ZONES D'ALERTES MIS A JOUR`);
+      this.logger.log(`${zonesAdded} ZONES D'ALERTES AJOUTEES`);
     } catch (error) {
-      this.logger.error('ERREUR LORS DE LA MISE A JOUR DES ZONES D\'ALERTES', error);
+      this.logger.error(`ERREUR LORS DE LA MISE A JOUR DES ZONES D\'ALERTES DU DEPARTEMENT ${depCode}`, error);
     }
-    this.logger.log(`${zonesUpdates} ZONES D'ALERTES MIS A JOUR`);
-    this.logger.log(`${zonesAdded} ZONES D'ALERTES AJOUTEES`);
-    /**
-     * TODO
-     * Appel à l'API SANDRE
-     * Vérifier si des nouvelles ZA sont présentes
-     * Si non, RAS
-     * Si oui, les ajouter en BDD et désactiver les anciennes
-     * Récupérer les codes des ZA qui ne peuvent pas être migrées
-     * Récupérer les AC qui n'ont QUE des ZAs pouvant être migrées
-     * Pour les AC ne comportant que des ZA pouvant être migrées, les migrer
-     */
   }
 }
