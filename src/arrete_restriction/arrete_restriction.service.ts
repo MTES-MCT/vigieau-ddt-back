@@ -227,7 +227,7 @@ export class ArreteRestrictionService {
             },
             communes: {
               code: 'ASC',
-            }
+            },
           },
         },
       }),
@@ -345,7 +345,7 @@ export class ArreteRestrictionService {
     const arreteRestriction: ArreteRestriction =
       await this.arreteRestrictionRepository.save(createArreteRestrictionDto);
     arreteRestriction.restrictions =
-      await this.restrictionService.updateAll(arreteRestriction);
+      await this.restrictionService.updateAll(createArreteRestrictionDto, arreteRestriction.id);
     return arreteRestriction;
   }
 
@@ -362,13 +362,13 @@ export class ArreteRestrictionService {
       );
     }
     // await this.checkAci(updateArreteRestrictionDto, true, currentUser);
-    const arreteRestriction = await this.arreteRestrictionRepository.save({
-      id,
-      ...updateArreteRestrictionDto,
-    });
-    // @ts-expect-error dto != entity
+    const arreteRestriction: ArreteRestriction =
+      await this.arreteRestrictionRepository.save({
+        id,
+        ...updateArreteRestrictionDto,
+      });
     arreteRestriction.restrictions =
-      await this.restrictionService.updateAll(arreteRestriction);
+      await this.restrictionService.updateAll(updateArreteRestrictionDto, arreteRestriction.id);
     return arreteRestriction;
   }
 

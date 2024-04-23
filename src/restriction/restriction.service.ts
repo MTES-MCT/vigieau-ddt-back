@@ -4,6 +4,8 @@ import { In, Not, Repository } from 'typeorm';
 import { Restriction } from './entities/restriction.entity';
 import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
 import { UsageService } from '../usage/usage.service';
+import { CreateUpdateArreteRestrictionDto } from '../arrete_restriction/dto/create_update_arrete_restriction.dto';
+import { CreateUpdateRestrictionDto } from './dto/create_update_restriction.dto';
 
 @Injectable()
 export class RestrictionService {
@@ -15,27 +17,27 @@ export class RestrictionService {
   }
 
   async updateAll(
-    arreteRestriction: ArreteRestriction,
+    arreteRestriction: CreateUpdateArreteRestrictionDto,
+    arId: number,
   ): Promise<Restriction[]> {
     const restrictionsId = arreteRestriction.restrictions
       .filter((r) => r.id)
       .map((r) => r.id);
     await this.restrictionRepository.delete({
       arreteRestriction: {
-        id: arreteRestriction.id,
+        id: arId,
       },
       id: Not(In(restrictionsId)),
     });
-    const restrictions: Restriction[] = arreteRestriction.restrictions.map(
+    const restrictions: CreateUpdateRestrictionDto[] = arreteRestriction.restrictions.map(
       (r) => {
-        // @ts-expect-error test
         if (r.isAep) {
           r.zoneAlerte = null;
         } else {
           r.communes = null;
         }
         // @ts-expect-error on ajoute seulement l'id
-        r.arreteRestriction = { id: arreteRestriction.id };
+        r.arreteRestriction = { id: arId };
         return r;
       },
     );
