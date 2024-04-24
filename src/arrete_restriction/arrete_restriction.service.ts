@@ -430,7 +430,7 @@ export class ArreteRestrictionService {
     // Upload du PDF de l'arrêté cadre
     if (arreteRestrictionPdf) {
       if (ar.fichier) {
-        await this.arreteRestrictionRepository.update({id: id}, {fichier: null});
+        await this.arreteRestrictionRepository.update({ id: id }, { fichier: null });
         await this.fichierService.deleteById(ar.fichier.id);
       }
       const newFile = await this.fichierService.create(
@@ -512,14 +512,19 @@ export class ArreteRestrictionService {
     const maxDateDebut = new Date(
       Math.max.apply(
         null,
-        ar.arretesCadre.map((ac) => new Date(ac.dateDebut).getTime()),
+        ar.arretesCadre.map((ac) =>
+          ac.dateDebut ?
+            new Date(ac.dateDebut).getTime() : null,
+        ),
       ),
     );
     const minDateFin = ar.arretesCadre.some((ac) => ac.dateFin)
       ? new Date(
         Math.min.apply(
           null,
-          ar.arretesCadre.map((ac) => new Date(ac.dateFin).getTime()),
+          ar.arretesCadre.map((ac) =>
+            ac.dateFin ?
+              new Date(ac.dateFin).getTime() : null),
         ),
       )
       : null;

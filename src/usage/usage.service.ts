@@ -64,15 +64,24 @@ export class UsageService {
 
   async updateAllByRestriction(restriction: Restriction): Promise<Usage[]> {
     const usagesId = restriction.usages
+      .filter((u) => u.id)
       .map((u) => u.id)
       .flat();
     // SUPPRESSION DES ANCIENS USAGES
-    await this.usageRepository.delete({
-      restriction: {
-        id: restriction.id,
-      },
-      id: Not(In(usagesId)),
-    });
+    if(usagesId.length > 0) {
+      await this.usageRepository.delete({
+        restriction: {
+          id: restriction.id,
+        },
+        id: Not(In(usagesId)),
+      });
+    } else {
+      await this.usageRepository.delete({
+        restriction: {
+          id: restriction.id,
+        },
+      });
+    }
     const usages: Usage[] =
       restriction.usages.map((u) => {
         // @ts-expect-error on ajoute seulement l'id
