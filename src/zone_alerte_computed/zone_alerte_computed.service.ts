@@ -21,6 +21,8 @@ const exec = util.promisify(require('child_process').exec);
 @Injectable()
 export class ZoneAlerteComputedService {
   private readonly logger = new RegleauLogger('ZoneAlerteComputedService');
+  private isComputingGeojson = false;
+  private askForCompute = false;
 
   constructor(
     @InjectRepository(ZoneAlerteComputed)
@@ -91,7 +93,7 @@ export class ZoneAlerteComputedService {
     }
     // On récupère toutes les restrictions en cours
     this.logger.log(`COMPUTING ZONES D'ALERTES - END`);
-    this.computeGeoJson(!deps || deps.length < 1);
+    this.askComputeGeojson();
   }
 
   async computeRegleAr(departement: Departement) {
@@ -241,7 +243,7 @@ export class ZoneAlerteComputedService {
           // Soit on prend celle qui a le niveau de gravité le plus élevé
           const zonesSameTypeExploitables = zonesSameType
             .filter(z => z.areaCommunePercentage >= 5);
-          if(zonesSameTypeExploitables.length >= 1) {
+          if (zonesSameTypeExploitables.length >= 1) {
             const maxNiveauGravite = zonesSameTypeExploitables
               .reduce((prev, current) => {
                 return Utils.getNiveau(prev.niveauGravite) > Utils.getNiveau(current.niveauGravite) ? prev : current;
@@ -364,14 +366,6 @@ export class ZoneAlerteComputedService {
       .where('zone_alerte_computed.id = :id', { id: zoneId });
   }
 
-  getQueryToUpdateNiveauGravite(zoneId, niveauGravite) {
-    return this.zoneAlerteComputedRepository
-      .createQueryBuilder('zone_alerte_computed')
-      .update()
-      .set({ niveauGravite: niveauGravite })
-      .where('zone_alerte_computed.id = :id', { id: zoneId });
-  }
-
   async cleanZones(departement: Departement) {
     await this.zoneAlerteComputedRepository.createQueryBuilder('zone_alerte_computed')
       .update()
@@ -387,7 +381,28 @@ export class ZoneAlerteComputedService {
       .execute();
   }
 
-  async computeGeoJson(savePrevious: boolean) {
+  async askComputeGeojson(force = false) {
+    if (this.isComputingGeojson && this.askForCompute && !force) {
+      return;
+    }
+    if (this.isComputingGeojson) {
+      this.askForCompute = true;
+      // On check toutes les 10s si on peut calculer
+      setTimeout(() => {
+        this.askComputeGeojson(true);
+      }, 10 * 1000);
+      return;
+    }
+    try {
+      this.askForCompute = false;
+      this.isComputingGeojson = true;
+      await this.computeGeoJson();
+    } catch (e) {
+    }
+    this.isComputingGeojson = false;
+  }
+
+  async computeGeoJson() {
     let allZones = await this.zoneAlerteComputedRepository
       .createQueryBuilder('zone_alerte_computed')
       .select('ST_AsGeoJSON(ST_TRANSFORM(geom, 4326))', 'geom')
@@ -428,11 +443,9 @@ export class ZoneAlerteComputedService {
         originalname: 'zones_arretes_en_vigueur.pmtiles',
         buffer: data,
       };
-      // if(savePrevious) {
       const date = new Date();
       const fileNameToSave = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
       await this.s3Service.copyFile(fileToTransfer.originalname, fileNameToSave, 'pmtiles/');
-      // }
       // @ts-ignore
       await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
       await this.zoneAlerteComputedRepository.update({}, { enabled: true });
