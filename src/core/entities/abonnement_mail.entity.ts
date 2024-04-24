@@ -10,6 +10,7 @@ export class AbonnementMail extends BaseEntity {
 
   @Column({ nullable: false, length: 255 })
   ip: string;
+
   @Column('enum', {
     name: 'profil',
     enum: ['particulier', 'entreprise', 'collectivite', 'exploitation'],
@@ -26,7 +27,6 @@ export class AbonnementMail extends BaseEntity {
 
   @Column({ nullable: true, type: 'decimal' })
   lat: number;
-
 
   @Column({ nullable: true })
   idAdresse: string;

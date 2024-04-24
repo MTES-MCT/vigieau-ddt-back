@@ -27,6 +27,7 @@ import { CommuneModule } from './commune/commune.module';
 import { RestrictionModule } from './restriction/restriction.module';
 import { BassinVersantModule } from './bassin_versant/bassin_versant.module';
 import { AbonnementMail } from './core/entities/abonnement_mail.entity';
+import { DatagouvModule } from './datagouv/datagouv.module';
 
 // @ts-ignore
 @Module({
@@ -117,7 +118,8 @@ import { AbonnementMail } from './core/entities/abonnement_mail.entity';
     SharedModule,
     CommuneModule,
     RestrictionModule,
-    BassinVersantModule
+    BassinVersantModule,
+    DatagouvModule,
   ],
   controllers: [AppController],
   providers: [
