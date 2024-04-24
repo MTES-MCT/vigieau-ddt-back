@@ -376,6 +376,7 @@ export class ArreteCadreService {
     // Upload du PDF de l'arrêté cadre
     if (arreteCadrePdf) {
       if (ac.fichier) {
+        await this.arreteCadreRepository.update({id: id}, {fichier: null});
         await this.fichierService.deleteById(ac.fichier.id);
       }
       const newFile = await this.fichierService.create(

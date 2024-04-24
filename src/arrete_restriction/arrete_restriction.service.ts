@@ -430,6 +430,7 @@ export class ArreteRestrictionService {
     // Upload du PDF de l'arrêté cadre
     if (arreteRestrictionPdf) {
       if (ar.fichier) {
+        await this.arreteRestrictionRepository.update({id: id}, {fichier: null});
         await this.fichierService.deleteById(ar.fichier.id);
       }
       const newFile = await this.fichierService.create(

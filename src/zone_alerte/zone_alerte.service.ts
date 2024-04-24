@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Not, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
 import { ZoneAlerte } from './entities/zone_alerte.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
@@ -137,13 +137,33 @@ export class ZoneAlerteService {
         existingZone.geom = f.geometry;
         promises.push(this.zoneAlerteRepository.save(existingZone));
       }
+      const idsToDisable = await this.zoneAlerteRepository.find({
+        select: {
+          id: true,
+          idSandre: true,
+          departement: {
+            id: true,
+            code: true,
+          }
+        },
+        relations: ['departement'],
+        where: [
+          {
+            departement: {
+              code: depCode,
+            },
+            idSandre: Not(In(idsSandre)),
+          },
+          {
+            departement: {
+              code: depCode,
+            },
+            idSandre: IsNull(),
+          }
+        ],
+      });
       promises.push(
-        this.zoneAlerteRepository.createQueryBuilder('zone_alerte')
-          .leftJoin('zone_alerte.departement', 'departement')
-          .update()
-          .set({ disabled: true })
-          .where('idSandre NOT IN (:...idsSandre)', { idsSandre })
-          .andWhere('departement.code = :depCode', { depCode }),
+        this.zoneAlerteRepository.update(idsToDisable.map(z => z.id), { disabled: true }),
       );
       await Promise.all(promises);
       this.logger.log(`${zonesUpdates} ZONES D'ALERTES MIS A JOUR`);
