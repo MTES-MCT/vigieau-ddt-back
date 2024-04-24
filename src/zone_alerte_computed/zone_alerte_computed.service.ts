@@ -21,8 +21,9 @@ const exec = util.promisify(require('child_process').exec);
 @Injectable()
 export class ZoneAlerteComputedService {
   private readonly logger = new RegleauLogger('ZoneAlerteComputedService');
-  private isComputingGeojson = false;
+  private isComputing = false;
   private askForCompute = false;
+  private departementsToUpdate = [];
 
   constructor(
     @InjectRepository(ZoneAlerteComputed)
@@ -36,9 +37,29 @@ export class ZoneAlerteComputedService {
     private readonly configService: ConfigService,
     private readonly restrictionService: RestrictionService,
   ) {
-    setTimeout(() => {
-      // this.computeAll();
-    }, 1000);
+  }
+
+  async askCompute(depsIds?: number[], force = false) {
+    this.departementsToUpdate = this.departementsToUpdate.concat(depsIds);
+    if ((this.isComputing && this.askForCompute && !force)
+      || (!this.askForCompute && force)) {
+      return;
+    }
+    if (this.isComputing) {
+      this.askForCompute = true;
+      // On check toutes les 10s si on peut calculer
+      setTimeout(() => {
+        this.askCompute([], true);
+      }, 10 * 1000);
+      return;
+    }
+    try {
+      this.askForCompute = false;
+      this.isComputing = true;
+      await this.computeAll([...new Set(this.departementsToUpdate)]);
+    } catch (e) {
+    }
+    this.isComputing = false;
   }
 
   async findOneWithCommuneZone(id: number, communeId: number): Promise<any> {
@@ -58,11 +79,12 @@ export class ZoneAlerteComputedService {
     return zoneFull;
   }
 
-  async computeAll(deps?: Departement[]) {
+  async computeAll(depsId?: number[]) {
     this.logger.log(`COMPUTING ZONES D'ALERTES - BEGIN`);
+    this.departementsToUpdate = [];
     let departements = await this.departementService.findAllLight();
-    if (deps && deps.length > 0) {
-      departements = departements.filter(d => deps.some(dep => dep.id === d.id));
+    if (depsId && depsId.length > 0) {
+      departements = departements.filter(d => depsId.some(dep => dep === d.id));
     }
     for (const departement of departements) {
       const zonesSaved = await this.computeRegleAr(departement);
@@ -93,7 +115,7 @@ export class ZoneAlerteComputedService {
     }
     // On récupère toutes les restrictions en cours
     this.logger.log(`COMPUTING ZONES D'ALERTES - END`);
-    this.askComputeGeojson();
+    await this.computeGeoJson();
   }
 
   async computeRegleAr(departement: Departement) {
@@ -379,27 +401,6 @@ export class ZoneAlerteComputedService {
       .set({ geom: () => 'ST_CollectionExtract(geom, 3)' })
       .where('"departementId" = :id', { id: departement.id })
       .execute();
-  }
-
-  async askComputeGeojson(force = false) {
-    if (this.isComputingGeojson && this.askForCompute && !force) {
-      return;
-    }
-    if (this.isComputingGeojson) {
-      this.askForCompute = true;
-      // On check toutes les 10s si on peut calculer
-      setTimeout(() => {
-        this.askComputeGeojson(true);
-      }, 10 * 1000);
-      return;
-    }
-    try {
-      this.askForCompute = false;
-      this.isComputingGeojson = true;
-      await this.computeGeoJson();
-    } catch (e) {
-    }
-    this.isComputingGeojson = false;
   }
 
   async computeGeoJson() {

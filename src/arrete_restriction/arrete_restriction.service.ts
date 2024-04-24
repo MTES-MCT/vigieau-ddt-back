@@ -698,7 +698,7 @@ export class ArreteRestrictionService {
 
     await this.arreteRestrictionRepository.delete(id);
     if (arrete.statut === 'publie') {
-      this.zoneAlerteComputedService.computeAll([arrete.departement]);
+      this.zoneAlerteComputedService.askCompute([arrete.departement.id]);
     }
     return;
   }
@@ -840,7 +840,7 @@ export class ArreteRestrictionService {
     ));
     await Promise.all(promises);
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
-    this.zoneAlerteComputedService.computeAll(departements);
+    this.zoneAlerteComputedService.askCompute(departements.map(d => d.id));
   }
 
   /**
