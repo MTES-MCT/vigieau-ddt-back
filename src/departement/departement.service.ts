@@ -45,7 +45,7 @@ export class DepartementService {
       )
       .where('zonesAlerte.disabled = false')
       .orderBy('zonesAlerte.code', 'ASC')
-      .orderBy('departement.code', 'ASC')
+      .addOrderBy('departement.code', 'ASC')
       .getMany();
   }
 
