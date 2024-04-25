@@ -6,8 +6,8 @@ import { Issuer } from 'openid-client';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserService } from '../user/user.service';
-import { Dev } from '../core/decorators/dev.decorator';
 import { AuthGuard } from '@nestjs/passport';
+import { DevGuard } from '../core/guards/dev.guard';
 
 @Controller('auth')
 @ApiTags('Authentification')
@@ -23,7 +23,7 @@ export class AuthController {
   login() {}
 
   @Get('/login/dev/:email')
-  @Dev()
+  @UseGuards(DevGuard)
   @UseGuards(AuthGuard('local'))
   @ApiOperation({ summary: 'Bypass Login pour le développement' })
   async loginDev(@Req() req, @Res() res: Response) {

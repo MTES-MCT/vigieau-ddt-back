@@ -21,9 +21,9 @@ import snakecaseKeys from 'snakecase-keys';
 import { UserDto } from './dto/user.dto';
 import { RolesGuard } from '../core/guards/roles.guard';
 import { Roles } from '../core/decorators/roles.decorator';
-import { Dev } from '../core/decorators/dev.decorator';
 import { Public } from '../core/decorators/public.decorator';
 import { DeleteResult } from 'typeorm';
+import { DevGuard } from '../core/guards/dev.guard';
 
 @UseGuards(AuthenticatedGuard)
 @Controller('user')
@@ -33,7 +33,7 @@ export class UserController {
 
   @Get('/dev')
   @Public()
-  @Dev()
+  @UseGuards(DevGuard)
   @ApiOperation({ summary: 'Retourne tout les utilisateurs - dev' })
   @ApiResponse({
     status: 201,
@@ -120,7 +120,7 @@ export class UserController {
 
   @Post('clearTestData')
   @Public()
-  @Dev()
+  @UseGuards(DevGuard)
   @ApiOperation({ summary: 'Suppression des données générées par les tests' })
   async clearTestData(): Promise<DeleteResult> {
     return this.userService.removeTestData();
