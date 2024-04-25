@@ -44,8 +44,8 @@ export class DepartementService {
         { acStatut: ['a_venir', 'publie'] },
       )
       .where('zonesAlerte.disabled = false')
-      .orderBy('zonesAlerte.code', 'ASC')
-      .addOrderBy('departement.code', 'ASC')
+      .orderBy('departement.code', 'ASC')
+      .addOrderBy('zonesAlerte.code', 'ASC')
       .getMany();
   }
 
