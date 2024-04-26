@@ -8,6 +8,7 @@ import { ZoneAlerteModule } from '../zone_alerte/zone_alerte.module';
 import { CommuneModule } from '../commune/commune.module';
 import { ArreteRestrictionModule } from '../arrete_restriction/arrete_restriction.module';
 import { SharedModule } from '../shared/shared.module';
+import { DatagouvModule } from '../datagouv/datagouv.module';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { SharedModule } from '../shared/shared.module';
     CommuneModule,
     forwardRef(() => ArreteRestrictionModule),
     SharedModule,
-    RestrictionModule
+    RestrictionModule,
+    forwardRef(() => DatagouvModule),
   ],
   controllers: [],
   providers: [ZoneAlerteComputedService],

@@ -127,6 +127,44 @@ export class ArreteRestrictionService {
     });
   }
 
+  async findDatagouv() {
+    return this.arreteRestrictionRepository.find({
+      select: {
+        id: true,
+        numero: true,
+        dateDebut: true,
+        dateFin: true,
+        dateSignature: true,
+        statut: true,
+        fichier: {
+          url: true,
+        },
+        departement: {
+          code: true,
+        },
+        arretesCadre: {
+          id: true,
+          numero: true,
+          fichier: {
+            url: true,
+          },
+        },
+      },
+      relations: [
+        'fichier',
+        'departement',
+        'arretesCadre',
+        'arretesCadre.fichier',
+      ],
+      where: {
+        statut: In(['a_venir', 'publie', 'abroge']),
+      },
+      order: {
+        dateDebut: 'ASC'
+      }
+    });
+  }
+
   async findOne(id: number, currentUser?: User) {
     const whereClause: FindOptionsWhere<ArreteRestriction> | null =
       !currentUser || currentUser.role === 'mte'

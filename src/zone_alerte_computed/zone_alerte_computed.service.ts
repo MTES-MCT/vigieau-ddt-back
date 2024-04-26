@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { DepartementService } from '../departement/departement.service';
@@ -14,6 +14,7 @@ import { S3Service } from '../shared/services/s3.service';
 import * as fs from 'fs';
 import { ConfigService } from '@nestjs/config';
 import { RestrictionService } from '../restriction/restriction.service';
+import { DatagouvService } from '../datagouv/datagouv.service';
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -36,6 +37,8 @@ export class ZoneAlerteComputedService {
     private readonly s3Service: S3Service,
     private readonly configService: ConfigService,
     private readonly restrictionService: RestrictionService,
+    @Inject(forwardRef(() => DatagouvService))
+    private readonly datagouvService: DatagouvService,
   ) {
   }
 
@@ -436,9 +439,9 @@ export class ZoneAlerteComputedService {
 
     const path = this.configService.get('PATH_TO_WRITE_FILE');
 
-    await writeFile(`${path}/allZones.geojson`, JSON.stringify(geojson));
+    await writeFile(`${path}/zones_arretes_en_vigueur.geojson`, JSON.stringify(geojson));
     try {
-      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur.pmtiles ${path}/allZones.geojson`);
+      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur.pmtiles ${path}/zones_arretes_en_vigueur.geojson`);
       const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur.pmtiles`);
       const fileToTransfer = {
         originalname: 'zones_arretes_en_vigueur.pmtiles',
@@ -448,8 +451,11 @@ export class ZoneAlerteComputedService {
       const fileNameToSave = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
       await this.s3Service.copyFile(fileToTransfer.originalname, fileNameToSave, 'pmtiles/');
       // @ts-ignore
-      await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
+      const s3Response = await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
       await this.zoneAlerteComputedRepository.update({}, { enabled: true });
+
+      await this.datagouvService.uploadToDatagouv('pmtiles', s3Response.Location, 'Carte des zones et arrêtés en vigueur - PMTILES', true);
+      await this.datagouvService.uploadToDatagouv('geojson', 'zones_arretes_en_vigueur.geojson', 'Carte des zones et arrêtés en vigueur - GeoJSON');
     } catch (e) {
       this.logger.error('ERROR GENERATING PMTILES', e);
     }
@@ -532,5 +538,53 @@ export class ZoneAlerteComputedService {
       .andWhere('zone_alerte_computed.id IN(:...ids)', { ids: otherZonesId })
       .andWhere('ST_INTERSECTS(zone_alerte_computed.geom, (SELECT zaBis.geom FROM zone_alerte_computed as zaBis WHERE zaBis.id = :id))', { id: zoneId })
       .getRawMany();
+  }
+
+  async findDatagouv(): Promise<ZoneAlerteComputed[]> {
+    return this.zoneAlerteComputedRepository.find({
+      select: {
+        id: true,
+        code: true,
+        nom: true,
+        type: true,
+        niveauGravite: true,
+        restriction: {
+          id: true,
+          arreteRestriction: {
+            id: true,
+            numero: true,
+          },
+          usages: {
+            id: true,
+            nom: true,
+            thematique: {
+              nom: true,
+            },
+            concerneParticulier: true,
+            concerneEntreprise: true,
+            concerneCollectivite: true,
+            concerneExploitation: true,
+            concerneEsu: true,
+            concerneEso: true,
+            concerneAep: true,
+            descriptionVigilance: true,
+            descriptionAlerte: true,
+            descriptionAlerteRenforcee: true,
+            descriptionCrise: true,
+          },
+        },
+        departement: {
+          id: true,
+          code: true,
+        },
+      },
+      relations: [
+        'restriction',
+        'restriction.arreteRestriction',
+        'restriction.usages',
+        'restriction.usages.thematique',
+        'departement'
+      ],
+    });
   }
 }
