@@ -59,6 +59,7 @@ export class UserService {
         HttpStatus.FORBIDDEN,
       );
     }
+    user.email = user.email.toLowerCase();
     const userExists = await this.findOne(user.email);
     if (!userExists) {
       return this.userRepository.save(this._formatUser(user));

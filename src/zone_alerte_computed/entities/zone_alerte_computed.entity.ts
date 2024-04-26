@@ -2,16 +2,16 @@ import {
   BaseEntity,
   Column,
   CreateDateColumn,
-  Entity, Index,
+  Entity, Index, JoinTable, ManyToMany,
   ManyToOne,
-  OneToMany,
   Polygon,
   PrimaryGeneratedColumn, UpdateDateColumn,
 } from 'typeorm';
-import { BassinVersant } from '../../core/entities/bassin_versant.entity';
+import { BassinVersant } from '../../bassin_versant/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
 import { NiveauGravite } from '../../arrete_restriction/type/niveau_gravite.type';
+import { Commune } from '../../commune/entities/commune.entity';
 
 @Entity()
 export class ZoneAlerteComputed extends BaseEntity {
@@ -26,6 +26,9 @@ export class ZoneAlerteComputed extends BaseEntity {
 
   @Column({ nullable: false, length: 50 })
   type: 'SOU' | 'SUP' | 'AEP';
+
+  @Column({ default: false })
+  enabled: boolean;
 
   @Column({
     type: 'geometry',
@@ -48,8 +51,16 @@ export class ZoneAlerteComputed extends BaseEntity {
   @ManyToOne(() => BassinVersant, (bassinVersant) => bassinVersant.zoneAlerteComputed)
   bassinVersant: BassinVersant;
 
-  @ManyToOne(() => Restriction, (restriction) => restriction.zonesAlerteComputed)
+  @ManyToOne(() => Restriction, (restriction) => restriction.zonesAlerteComputed, {
+    onDelete: 'CASCADE',
+  })
   restriction: Restriction;
+
+  @ManyToMany(() => Commune, (commune) => commune.zonesAlerteComputed)
+  @JoinTable({
+    name: 'zone_alerte_computed_commune',
+  })
+  communes: Commune[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -38,7 +38,7 @@ export class UsageService {
         },
       )
       .orderBy('usage.nom', 'ASC')
-      .getMany()
+      .getMany();
   }
 
   async create(usage: CreateUpdateUsageDto): Promise<Usage> {
@@ -64,15 +64,24 @@ export class UsageService {
 
   async updateAllByRestriction(restriction: Restriction): Promise<Usage[]> {
     const usagesId = restriction.usages
+      .filter((u) => u.id)
       .map((u) => u.id)
       .flat();
     // SUPPRESSION DES ANCIENS USAGES
-    await this.usageRepository.delete({
-      restriction: {
-        id: restriction.id,
-      },
-      id: Not(In(usagesId)),
-    });
+    if(usagesId.length > 0) {
+      await this.usageRepository.delete({
+        restriction: {
+          id: restriction.id,
+        },
+        id: Not(In(usagesId)),
+      });
+    } else {
+      await this.usageRepository.delete({
+        restriction: {
+          id: restriction.id,
+        },
+      });
+    }
     const usages: Usage[] =
       restriction.usages.map((u) => {
         // @ts-expect-error on ajoute seulement l'id
@@ -133,6 +142,45 @@ export class UsageService {
         nom: 'ASC',
       },
     });
+  }
+
+  async updateUsagesArByArreteCadreId(usagesAc: Usage[], acId: number) {
+    const usagesToUpdate = usagesAc.map((u) => {
+      return {
+        nom: u.nom,
+        thematique: u.thematique,
+        concerneParticulier: u.concerneParticulier,
+        concerneEntreprise: u.concerneEntreprise,
+        concerneCollectivite: u.concerneCollectivite,
+        concerneExploitation: u.concerneExploitation,
+        concerneEso: u.concerneEso,
+        concerneEsu: u.concerneEsu,
+        concerneAep: u.concerneAep,
+        descriptionVigilance: u.descriptionVigilance,
+        descriptionAlerte: u.descriptionAlerte,
+        descriptionAlerteRenforcee: u.descriptionAlerteRenforcee,
+        descriptionCrise: u.descriptionCrise,
+      };
+    });
+    const updates = [];
+    for (const u of usagesToUpdate) {
+      const tmp = await this.usageRepository.find({
+        where: {
+          restriction: {
+            arreteRestriction: {
+              arretesCadre: {
+                id: acId,
+              },
+            },
+          },
+          nom: u.nom,
+        },
+      });
+      tmp.forEach((usageToUpdate) => {
+        updates.push(this.usageRepository.update(usageToUpdate.id, u));
+      });
+    }
+    await Promise.all(updates);
   }
 
   async deleteUsagesArByArreteCadreId(usagesNom: string[], acId: number) {

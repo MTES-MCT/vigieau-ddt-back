@@ -11,7 +11,6 @@ import { UserModule } from './user/user.module';
 import { ZoneAlerteModule } from './zone_alerte/zone_alerte.module';
 import { DataSource } from 'typeorm';
 import { Region } from './core/entities/region.entity';
-import { BassinVersant } from './core/entities/bassin_versant.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DepartementModule } from './departement/departement.module';
 import { UsageModule } from './usage/usage.module';
@@ -22,11 +21,14 @@ import { AppController } from './app.controller';
 import { LoggerModule } from './logger/logger.module';
 import { LoggerInterceptor } from './core/interceptor/logger.interceptor';
 import { SharedModule } from './shared/shared.module';
-import path from 'path';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { CommuneModule } from './commune/commune.module';
 import { RestrictionModule } from './restriction/restriction.module';
+import { BassinVersantModule } from './bassin_versant/bassin_versant.module';
+import { AbonnementMail } from './core/entities/abonnement_mail.entity';
+import { DatagouvModule } from './datagouv/datagouv.module';
+import { DevGuard } from './core/guards/dev.guard';
 
 // @ts-ignore
 @Module({
@@ -71,7 +73,7 @@ import { RestrictionModule } from './restriction/restriction.module';
         return dataSource;
       },
     }),
-    TypeOrmModule.forFeature([Session, Region, BassinVersant]),
+    TypeOrmModule.forFeature([Session, Region, AbonnementMail]),
     // Rate limit, 300 requêtes maximum toutes les 15min par IP
     ThrottlerModule.forRoot([
       {
@@ -116,7 +118,9 @@ import { RestrictionModule } from './restriction/restriction.module';
     LoggerModule,
     SharedModule,
     CommuneModule,
-    RestrictionModule
+    RestrictionModule,
+    BassinVersantModule,
+    DatagouvModule,
   ],
   controllers: [AppController],
   providers: [

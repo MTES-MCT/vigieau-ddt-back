@@ -32,6 +32,7 @@ import { UserService } from '../user/user.service';
 import { MailService } from '../shared/services/mail.service';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
 import { Departement } from '../departement/entities/departement.entity';
+import moment from 'moment';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -126,6 +127,44 @@ export class ArreteRestrictionService {
     });
   }
 
+  async findDatagouv() {
+    return this.arreteRestrictionRepository.find({
+      select: {
+        id: true,
+        numero: true,
+        dateDebut: true,
+        dateFin: true,
+        dateSignature: true,
+        statut: true,
+        fichier: {
+          url: true,
+        },
+        departement: {
+          code: true,
+        },
+        arretesCadre: {
+          id: true,
+          numero: true,
+          fichier: {
+            url: true,
+          },
+        },
+      },
+      relations: [
+        'fichier',
+        'departement',
+        'arretesCadre',
+        'arretesCadre.fichier',
+      ],
+      where: {
+        statut: In(['a_venir', 'publie', 'abroge']),
+      },
+      order: {
+        dateDebut: 'ASC'
+      }
+    });
+  }
+
   async findOne(id: number, currentUser?: User) {
     const whereClause: FindOptionsWhere<ArreteRestriction> | null =
       !currentUser || currentUser.role === 'mte'
@@ -146,6 +185,7 @@ export class ArreteRestrictionService {
           dateSignature: true,
           statut: true,
           niveauGraviteSpecifiqueEap: true,
+          ressourceEapCommunique: true,
           fichier: {
             id: true,
             nom: true,
@@ -222,6 +262,9 @@ export class ArreteRestrictionService {
             nomGroupementAep: 'ASC',
             usages: {
               nom: 'ASC',
+            },
+            communes: {
+              code: 'ASC',
             },
           },
         },
@@ -319,6 +362,7 @@ export class ArreteRestrictionService {
       relations: [
         'restrictions',
         'restrictions.zoneAlerte',
+        'restrictions.zonesAlerteComputed',
         'restrictions.arreteCadre',
         'restrictions.communes',
         'departement',
@@ -339,7 +383,7 @@ export class ArreteRestrictionService {
     const arreteRestriction: ArreteRestriction =
       await this.arreteRestrictionRepository.save(createArreteRestrictionDto);
     arreteRestriction.restrictions =
-      await this.restrictionService.updateAll(arreteRestriction);
+      await this.restrictionService.updateAll(createArreteRestrictionDto, arreteRestriction.id);
     return arreteRestriction;
   }
 
@@ -356,13 +400,13 @@ export class ArreteRestrictionService {
       );
     }
     // await this.checkAci(updateArreteRestrictionDto, true, currentUser);
-    const arreteRestriction = await this.arreteRestrictionRepository.save({
-      id,
-      ...updateArreteRestrictionDto,
-    });
-    // @ts-expect-error dto != entity
+    const arreteRestriction: ArreteRestriction =
+      await this.arreteRestrictionRepository.save({
+        id,
+        ...updateArreteRestrictionDto,
+      });
     arreteRestriction.restrictions =
-      await this.restrictionService.updateAll(arreteRestriction);
+      await this.restrictionService.updateAll(updateArreteRestrictionDto, arreteRestriction.id);
     return arreteRestriction;
   }
 
@@ -374,8 +418,8 @@ export class ArreteRestrictionService {
   ): Promise<ArreteRestriction> {
     if (
       publishArreteRestrictionDto.dateFin &&
-      new Date(publishArreteRestrictionDto.dateFin) <
-      new Date(publishArreteRestrictionDto.dateDebut)
+      moment(publishArreteRestrictionDto.dateFin)
+        .isBefore(publishArreteRestrictionDto.dateDebut, 'day')
     ) {
       throw new HttpException(
         `La date de fin doit être postérieure à la date de début.`,
@@ -424,6 +468,7 @@ export class ArreteRestrictionService {
     // Upload du PDF de l'arrêté cadre
     if (arreteRestrictionPdf) {
       if (ar.fichier) {
+        await this.arreteRestrictionRepository.update({ id: id }, { fichier: null });
         await this.fichierService.deleteById(ar.fichier.id);
       }
       const newFile = await this.fichierService.create(
@@ -433,9 +478,9 @@ export class ArreteRestrictionService {
       toSave.fichier = { id: newFile.id };
     }
     toSave =
-      new Date(publishArreteRestrictionDto.dateDebut) <= new Date()
+      moment(publishArreteRestrictionDto.dateDebut).isSameOrBefore(moment(), 'day')
         ? publishArreteRestrictionDto.dateFin &&
-        new Date(publishArreteRestrictionDto.dateFin) <= new Date()
+        moment(publishArreteRestrictionDto.dateFin).isBefore(moment(), 'day')
           ? { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } }
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
@@ -447,7 +492,7 @@ export class ArreteRestrictionService {
       const dateFinArAbroge = ar.arreteRestrictionAbroge.dateFin ? new Date(ar.arreteRestrictionAbroge.dateFin) : null;
       if (
         !dateFinArAbroge ||
-        dateFinArAbroge.getTime() >= dateDebutAr.getTime()
+        moment(dateFinArAbroge).isSameOrAfter(moment(dateDebutAr), 'day')
       ) {
         const dateToSave = dateDebutAr;
         dateToSave.setDate(dateToSave.getDate() - 1);
@@ -487,7 +532,7 @@ export class ArreteRestrictionService {
       id,
       ...repealArreteRestrictionDto,
     };
-    if (new Date(repealArreteRestrictionDto.dateFin) <= new Date()) {
+    if (moment(repealArreteRestrictionDto.dateFin).isBefore(moment(), 'day')) {
       toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
     }
     const toReturn = await this.arreteRestrictionRepository.save(toSave);
@@ -505,14 +550,19 @@ export class ArreteRestrictionService {
     const maxDateDebut = new Date(
       Math.max.apply(
         null,
-        ar.arretesCadre.map((ac) => new Date(ac.dateDebut).getTime()),
+        ar.arretesCadre.map((ac) =>
+          ac.dateDebut ?
+            new Date(ac.dateDebut).getTime() : null,
+        ),
       ),
     );
     const minDateFin = ar.arretesCadre.some((ac) => ac.dateFin)
       ? new Date(
         Math.min.apply(
           null,
-          ar.arretesCadre.map((ac) => new Date(ac.dateFin).getTime()),
+          ar.arretesCadre.map((ac) =>
+            ac.dateFin ?
+              new Date(ac.dateFin).getTime() : null),
         ),
       )
       : null;
@@ -676,7 +726,8 @@ export class ArreteRestrictionService {
   }
 
   async remove(id: number, curentUser: User) {
-    if (!(await this.canRemoveArreteRestriction(id, curentUser))) {
+    const arrete = await this.findOne(id, curentUser);
+    if (!(await this.canRemoveArreteRestriction(arrete, curentUser))) {
       throw new HttpException(
         `Vous ne pouvez supprimer un arrêté de restriction que si il est sur votre département.`,
         HttpStatus.FORBIDDEN,
@@ -684,6 +735,9 @@ export class ArreteRestrictionService {
     }
 
     await this.arreteRestrictionRepository.delete(id);
+    if (arrete.statut === 'publie') {
+      this.zoneAlerteComputedService.askCompute([arrete.departement.id]);
+    }
     return;
   }
 
@@ -714,8 +768,7 @@ export class ArreteRestrictionService {
     );
   }
 
-  async canRemoveArreteRestriction(id: number, user: User): Promise<boolean> {
-    const arrete = await this.findOne(id, user);
+  async canRemoveArreteRestriction(arrete: ArreteRestriction, user: User): Promise<boolean> {
     /**
      * On peut supprimer un AR s'il est sur le département de l'utilisateur
      * ou que l'utilisateur a un rôle MTE
@@ -735,7 +788,8 @@ export class ArreteRestrictionService {
   ): Promise<boolean> {
     if (
       repealArreteRestriction.dateFin &&
-      new Date(repealArreteRestriction.dateFin) < new Date(arrete.dateDebut)
+      moment(repealArreteRestriction.dateFin)
+        .isBefore(moment(arrete.dateDebut), 'day')
     ) {
       throw new HttpException(
         `La date de fin doit être postérieure à la date de début.`,
@@ -770,12 +824,23 @@ export class ArreteRestrictionService {
     );
     this.logger.log(`${arAVenir.length} Arrêtés Restriction publiés`);
 
-    const arPerime = await this.arreteRestrictionRepository.find({
+    const arPerime: ArreteRestriction[] = await this.arreteRestrictionRepository.find({
+      select: {
+        id: true,
+        dateDebut: true,
+        dateFin: true,
+        arretesCadre: {
+          id: true,
+          statut: true,
+          dateFin: true,
+        },
+      },
+      relations: ['arretesCadre'],
       where: [
         {
           statut: In(['a_venir', 'publie']),
           // @ts-expect-error string date
-          dateFin: LessThan(new Date()),
+          dateFin: LessThan(moment().startOf('day')),
         },
         {
           statut: In(['a_venir', 'publie']),
@@ -785,12 +850,35 @@ export class ArreteRestrictionService {
         },
       ],
     });
-    await this.arreteRestrictionRepository.update(
+    const promises = [];
+    arPerime.forEach(ar => {
+      const arDateFin = new Date(ar.dateFin);
+      const arDateDebut = new Date(ar.dateDebut);
+      const acDateFin = new Date(Math.min.apply(null, ar.arretesCadre
+        .filter(ac => ac.statut === 'abroge')
+        .map(ac => new Date(ac.dateFin))));
+      if ((!ar.dateFin && acDateFin) || (ar.dateFin && acDateFin && arDateFin.getTime() > acDateFin.getTime())) {
+        promises.push(this.arreteRestrictionRepository.update(
+          { id: ar.id },
+          // @ts-ignore
+          { dateFin: acDateFin },
+        ));
+        if (acDateFin.getTime() > arDateDebut.getTime()) {
+          promises.push(this.arreteRestrictionRepository.update(
+            { id: ar.id },
+            // @ts-ignore
+            { dateDebut: acDateFin },
+          ));
+        }
+      }
+    });
+    promises.push(this.arreteRestrictionRepository.update(
       { id: In(arPerime.map((ar) => ar.id)) },
       { statut: 'abroge' },
-    );
+    ));
+    await Promise.all(promises);
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
-    this.zoneAlerteComputedService.computeAll(departements);
+    this.zoneAlerteComputedService.askCompute(departements.map(d => d.id));
   }
 
   /**

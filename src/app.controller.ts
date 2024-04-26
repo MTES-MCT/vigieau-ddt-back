@@ -1,11 +1,11 @@
-import { Controller, Get } from '@nestjs/common';
-import { Dev } from './core/decorators/dev.decorator';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { DevGuard } from './core/guards/dev.guard';
 
 @Controller('app')
 export class AppController {
   constructor() {}
 
-  @Dev()
+  @UseGuards(DevGuard)
   @Get('__coverage__')
   public getCoverage() {
     if (global['__coverage__']) {

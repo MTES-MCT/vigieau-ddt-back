@@ -28,6 +28,7 @@ import { UserService } from '../user/user.service';
 import { FichierService } from '../fichier/fichier.service';
 import { RestrictionService } from '../restriction/restriction.service';
 import { UsageService } from '../usage/usage.service';
+import moment from 'moment/moment';
 
 @Injectable()
 export class ArreteCadreService {
@@ -336,8 +337,8 @@ export class ArreteCadreService {
   ): Promise<ArreteCadre> {
     if (
       publishArreteCadreDto.dateFin &&
-      new Date(publishArreteCadreDto.dateFin) <
-      new Date(publishArreteCadreDto.dateDebut)
+      moment(publishArreteCadreDto.dateFin)
+        .isBefore(publishArreteCadreDto.dateDebut, 'day')
     ) {
       throw new HttpException(
         `La date de fin doit être postérieure à la date de début.`,
@@ -375,6 +376,7 @@ export class ArreteCadreService {
     // Upload du PDF de l'arrêté cadre
     if (arreteCadrePdf) {
       if (ac.fichier) {
+        await this.arreteCadreRepository.update({id: id}, {fichier: null});
         await this.fichierService.deleteById(ac.fichier.id);
       }
       const newFile = await this.fichierService.create(
@@ -398,7 +400,7 @@ export class ArreteCadreService {
       const dateFinAcAbroge = ac.arreteCadreAbroge.dateFin ? new Date(ac.arreteCadreAbroge.dateFin) : null;
       if (
         !dateFinAcAbroge ||
-        dateFinAcAbroge.getTime() >= dateDebutAc.getTime()
+        moment(dateFinAcAbroge).isSameOrAfter(moment(dateDebutAc), 'day')
       ) {
         const dateToSave = dateDebutAc;
         dateToSave.setDate(dateToSave.getDate() - 1);
@@ -410,6 +412,16 @@ export class ArreteCadreService {
             dateFin: dateToSave.toDateString(),
           },
         );
+        if(moment(dateToSave).isBefore(moment(), 'day')) {
+          await this.arreteCadreRepository.update(
+            {
+              id: ac.arreteCadreAbroge.id,
+            },
+            {
+              statut: <StatutArreteCadre>'abroge',
+            },
+          );
+        }
       }
     }
     await this.arreteRestrictionService.updateArreteRestrictionStatut(ac.departements);
@@ -434,7 +446,7 @@ export class ArreteCadreService {
       id,
       ...repealArreteCadreDto,
     };
-    if (new Date(repealArreteCadreDto.dateFin) <= new Date()) {
+    if (moment(repealArreteCadreDto.dateFin).isBefore(moment(), 'day')) {
       toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
     }
     const toReturn = await this.arreteCadreRepository.save(toSave);
@@ -467,9 +479,34 @@ export class ArreteCadreService {
       (uac) =>
         !newAc.usages.some((nuac) => nuac.id === uac.id),
     );
+    const usagesUpdated = newAc.usages.filter(
+      (nuac) => {
+        const oldUac = oldAc.usages.find(ouac => ouac.id === nuac.id);
+        if (!oldUac) {
+          return false;
+        }
+        return oldUac.nom !== nuac.nom
+          || oldUac.thematique.id !== nuac.thematique.id
+          || oldUac.concerneParticulier !== nuac.concerneParticulier
+          || oldUac.concerneEntreprise !== nuac.concerneEntreprise
+          || oldUac.concerneCollectivite !== nuac.concerneCollectivite
+          || oldUac.concerneExploitation !== nuac.concerneExploitation
+          || oldUac.concerneEso !== nuac.concerneEso
+          || oldUac.concerneEsu !== nuac.concerneEsu
+          || oldUac.concerneAep !== nuac.concerneAep
+          || oldUac.descriptionVigilance !== nuac.descriptionVigilance
+          || oldUac.descriptionAlerte !== nuac.descriptionAlerte
+          || oldUac.descriptionAlerteRenforcee !== nuac.descriptionAlerteRenforcee
+          || oldUac.descriptionCrise !== nuac.descriptionCrise;
+      },
+    );
     await Promise.all([
       this.restrictionService.deleteZonesByArreteCadreId(
         zonesDeleted.map((z) => z.id),
+        oldAc.id,
+      ),
+      this.usageService.updateUsagesArByArreteCadreId(
+        usagesUpdated,
         oldAc.id,
       ),
       this.usageService.deleteUsagesArByArreteCadreId(
@@ -518,7 +555,8 @@ export class ArreteCadreService {
   ): Promise<boolean> {
     if (
       repealArreteCadre.dateFin &&
-      new Date(repealArreteCadre.dateFin) < new Date(arrete.dateDebut)
+      moment(repealArreteCadre.dateFin)
+        .isBefore(moment(arrete.dateDebut), 'day')
     ) {
       throw new HttpException(
         `La date de fin doit être postérieure à la date de début.`,

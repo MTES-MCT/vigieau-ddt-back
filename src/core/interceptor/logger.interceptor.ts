@@ -25,7 +25,7 @@ export class LoggerInterceptor implements NestInterceptor {
     this._logger.log(
       `REQUEST - ${id} - ${req.ip} - ${req.session?.user?.email} - ${
         req.method
-      } - ${req.originalUrl} - ${!body ? '' : JSON.stringify(body)}`,
+      } - ${req.originalUrl}`,
     );
 
     return next.handle().pipe(

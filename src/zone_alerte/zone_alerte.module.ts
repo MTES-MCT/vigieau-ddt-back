@@ -6,6 +6,7 @@ import { ZoneAlerte } from './entities/zone_alerte.entity';
 import { ArreteCadreModule } from '../arrete_cadre/arrete_cadre.module';
 import { HttpModule } from '@nestjs/axios';
 import { DepartementModule } from '../departement/departement.module';
+import { BassinVersantModule } from '../bassin_versant/bassin_versant.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { DepartementModule } from '../departement/departement.module';
     forwardRef(() => ArreteCadreModule),
     HttpModule,
     DepartementModule,
+    BassinVersantModule
   ],
   controllers: [ZoneAlerteController],
   providers: [ZoneAlerteService],

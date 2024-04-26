@@ -4,7 +4,7 @@ import { Thematique } from './thematique/entities/thematique.entity';
 import { Usage } from './usage/entities/usage.entity';
 import { ZoneAlerte } from './zone_alerte/entities/zone_alerte.entity';
 import { Departement } from './departement/entities/departement.entity';
-import { BassinVersant } from './core/entities/bassin_versant.entity';
+import { BassinVersant } from './bassin_versant/entities/bassin_versant.entity';
 import { Region } from './core/entities/region.entity';
 import { FichierModule } from './fichier/fichier.module';
 import { ParametresModule } from './parametres/parametres.module';
