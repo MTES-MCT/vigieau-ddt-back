@@ -18,9 +18,7 @@ export class DepartementService {
     private readonly departementRepository: Repository<Departement>,
     private readonly configService: ConfigService,
   ) {
-    if (configService.get('NODE_ENV') !== 'local') {
-      this.updateDepartementsGeom();
-    }
+    // this.updateDepartementsGeom();
   }
 
   findAll(): Promise<Departement[]> {

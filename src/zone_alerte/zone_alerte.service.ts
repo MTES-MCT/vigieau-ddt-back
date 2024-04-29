@@ -77,10 +77,10 @@ export class ZoneAlerteService {
     try {
       for (const d of departements) {
         let lastUpdate = (await this.zoneAlerteRepository.createQueryBuilder('zone_alerte')
-          .select('MAX(zone_alerte.createdAt)', 'createdAt')
+          .select('MAX(zone_alerte.updatedAt)', 'updatedAt')
           .leftJoin('zone_alerte.departement', 'departement')
           .where('departement.id = :depId', { depId: d.id })
-          .getRawOne()).createdAt;
+          .getRawOne()).updatedAt;
         lastUpdate = lastUpdate ? lastUpdate.toISOString().split('T')[0] : null;
         const filterString = lastUpdate ? `Filter=<Filter>
 <And>
@@ -117,9 +117,20 @@ export class ZoneAlerteService {
       const promises = [];
       for (const f of data.features) {
         let existingZone = await this.zoneAlerteRepository.findOne({
-          where: {
-            idSandre: +f.properties.gid,
-          },
+          where: [
+            {
+              idSandre: +f.properties.gid,
+            },
+            {
+              idSandre: IsNull(),
+              code: f.properties.CdAltZAS,
+              departement: {
+                code: depCode,
+              },
+              type: f.properties.TypeZAS,
+              numeroVersion: f.properties.NumeroVersionZAS ? +f.properties.NumeroVersionZAS : IsNull(),
+            }
+          ]
         });
         if (!existingZone) {
           zonesAdded++;
@@ -127,13 +138,13 @@ export class ZoneAlerteService {
           existingZone.code = f.properties.CdAltZAS;
           existingZone.departement = await this.departementService.findByCode(f.properties.CdDepartement);
           existingZone.bassinVersant = await this.bassinVersantService.findByCode(+f.properties.NumCircAdminBassin);
-          existingZone.idSandre = +f.properties.gid;
           existingZone.type = f.properties.TypeZAS;
         } else {
           zonesUpdates++;
         }
+        existingZone.idSandre = +f.properties.gid;
         existingZone.nom = f.properties.LbZAS;
-        existingZone.numeroVersionSandre = f.properties.NumeroVersionZAS ? f.properties.NumeroVersionZAS : null;
+        existingZone.numeroVersionSandre = f.properties.NumeroVersionZAS ? +f.properties.NumeroVersionZAS : null;
         existingZone.geom = f.geometry;
         promises.push(this.zoneAlerteRepository.save(existingZone));
       }
