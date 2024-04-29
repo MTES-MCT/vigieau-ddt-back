@@ -863,7 +863,7 @@ export class ArreteRestrictionService {
           // @ts-ignore
           { dateFin: acDateFin },
         ));
-        if (acDateFin.getTime() > arDateDebut.getTime()) {
+        if (acDateFin.getTime() < arDateDebut.getTime()) {
           promises.push(this.arreteRestrictionRepository.update(
             { id: ar.id },
             // @ts-ignore
