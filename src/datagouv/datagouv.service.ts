@@ -241,7 +241,7 @@ export class DatagouvService {
       title: title,
     };
     if (isUrl) {
-      body.url = resource;
+      body.url = fileName;
     }
     return lastValueFrom(this.httpService.put(url, body, {
       headers: {
