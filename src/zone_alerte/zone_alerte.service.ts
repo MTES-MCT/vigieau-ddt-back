@@ -72,7 +72,7 @@ export class ZoneAlerteService {
    */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async updateZones() {
-    this.logger.log('MISE A JOUR DES ZONES D\'ALERTE');
+    this.logger.log('MISE A JOUR DES ZONES D\'ALERTE - DEBUT');
     const departements = await this.departementService.findAllLight();
     try {
       for (const d of departements) {
@@ -98,6 +98,7 @@ export class ZoneAlerteService {
     } catch (error) {
       this.logger.error('ERREUR LORS DE LA MISE A JOUR DES ZONES D\'ALERTES', error);
     }
+    this.logger.log('MISE A JOUR DES ZONES D\'ALERTE - FIN');
   }
 
   async updateDepartementZones(depCode: string) {
