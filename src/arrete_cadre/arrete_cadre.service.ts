@@ -290,6 +290,28 @@ export class ArreteCadreService {
     });
   }
 
+  findByDepartement(depCode: string): Promise<ArreteCadre[]> {
+    return this.arreteCadreRepository.find({
+      select: {
+        id: true,
+        numero: true,
+      },
+      relations: [
+        'departements',
+        'zonesAlerte',
+      ],
+      where: {
+        departements: {
+          code: depCode,
+        },
+        zonesAlerte: {
+          disabled: true,
+        },
+        statut: In(['a_venir', 'publie']),
+      },
+    });
+  }
+
   async create(
     createArreteCadreDto: CreateUpdateArreteCadreDto,
     currentUser?: User,
@@ -376,7 +398,7 @@ export class ArreteCadreService {
     // Upload du PDF de l'arrêté cadre
     if (arreteCadrePdf) {
       if (ac.fichier) {
-        await this.arreteCadreRepository.update({id: id}, {fichier: null});
+        await this.arreteCadreRepository.update({ id: id }, { fichier: null });
         await this.fichierService.deleteById(ac.fichier.id);
       }
       const newFile = await this.fichierService.create(
@@ -412,7 +434,7 @@ export class ArreteCadreService {
             dateFin: dateToSave.toDateString(),
           },
         );
-        if(moment(dateToSave).isBefore(moment(), 'day')) {
+        if (moment(dateToSave).isBefore(moment(), 'day')) {
           await this.arreteCadreRepository.update(
             {
               id: ac.arreteCadreAbroge.id,
