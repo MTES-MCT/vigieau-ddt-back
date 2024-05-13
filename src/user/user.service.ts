@@ -48,6 +48,18 @@ export class UserService {
       .getMany();
   }
 
+  findByDepartementsCode(depCodes: string[]): Promise<User[]> {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect(
+        Departement,
+        'departement',
+        'departement.code = user.role_departement',
+      )
+      .where('departement.code IN (:...depCodes)', { depCodes })
+      .getMany();
+  }
+
   async create(curentUser: User, user: User): Promise<User> {
     if (
       curentUser.role === 'departement' &&

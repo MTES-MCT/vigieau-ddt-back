@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Not, Repository } from 'typeorm';
 import { ZoneAlerte } from './entities/zone_alerte.entity';
@@ -9,6 +9,8 @@ import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { DepartementService } from '../departement/departement.service';
 import { BassinVersantService } from '../bassin_versant/bassin_versant.service';
+import { MailService } from '../shared/services/mail.service';
+import { ArreteCadreService } from '../arrete_cadre/arrete_cadre.service';
 
 @Injectable()
 export class ZoneAlerteService {
@@ -21,6 +23,9 @@ export class ZoneAlerteService {
     private readonly httpService: HttpService,
     private readonly departementService: DepartementService,
     private readonly bassinVersantService: BassinVersantService,
+    private readonly mailService: MailService,
+    @Inject(forwardRef(() => ArreteCadreService))
+    private readonly arreteCadreService: ArreteCadreService,
   ) {
   }
 
@@ -180,6 +185,17 @@ export class ZoneAlerteService {
       await Promise.all(promises);
       this.logger.log(`${zonesUpdates} ZONES D'ALERTES MIS A JOUR`);
       this.logger.log(`${zonesAdded} ZONES D'ALERTES AJOUTEES`);
+      if(zonesAdded > 0) {
+        const arretesCadre = await this.arreteCadreService.findByDepartement(depCode);
+        await this.mailService.sendEmailsByDepartement(
+          depCode,
+          `Vos nouvelles zones d’alerte ont été intégrées`,
+          'maj_za',
+          {
+            arretesCadre: arretesCadre,
+          },
+        );
+      }
     } catch (error) {
       this.logger.error(`ERREUR LORS DE LA MISE A JOUR DES ZONES D\'ALERTES DU DEPARTEMENT ${depCode}`, error);
     }
