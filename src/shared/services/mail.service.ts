@@ -31,6 +31,10 @@ export class MailService {
     template: string,
     context?: any,
   ): Promise<any> {
+    if(!process.env.MAIL_USER) {
+      this.logger.log(`EMAIL NOT SEND - NO MAIL_USER ${email} WITH SUBJECT: ${subject} WITH TEMPLATE: ${template}`)
+      return;
+    }
     return this.mailerService
       .sendMail({
         to: email,
