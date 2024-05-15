@@ -20,9 +20,9 @@ export class ZoneAlerteComputedHistoricService {
               private readonly zoneAlerteService: ZoneAlerteService,
               private readonly configService: ConfigService,
               private readonly s3Service: S3Service) {
-    if (this.configService.get('NODE_ENV') !== 'local') {
-      this.computeHistoricMaps();
-    }
+    // setTimeout(() => {
+    //   this.computeHistoricMaps();
+    // }, 5000);
   }
 
   async computeHistoricMaps() {
