@@ -5,7 +5,7 @@ SELECT setval('region_id_seq', (SELECT MAX(id) FROM public.region)+1);
 
 -- DEPARTEMENTS
 INSERT INTO public.departement (id, "regionId", code, nom, geom)
-SELECT id_dep, id_region, code_dep, nom_dep, the_geom from talend_ingestion_ppluvia.departements;
+SELECT id_dep, id_nouvelle_region, code_dep, nom_dep, the_geom from talend_ingestion_ppluvia.departements;
 SELECT setval('departement_id_seq', (SELECT MAX(id) FROM public.departement)+1);
 
 -- BASSINS VERSANTS

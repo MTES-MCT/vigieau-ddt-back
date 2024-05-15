@@ -37,7 +37,7 @@ export class AbonnementMail extends BaseEntity {
   @Column('simple-array', { nullable: false })
   typesEau: string[];
 
-  @Column('json', { nullable: false })
+  @Column('json', { nullable: true })
   situation: {
     AEP: string;
     SOU: string,
