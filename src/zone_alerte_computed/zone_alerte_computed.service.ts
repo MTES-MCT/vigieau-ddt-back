@@ -415,6 +415,10 @@ export class ZoneAlerteComputedService {
       .addSelect('code')
       .addSelect('type')
       .addSelect('"niveauGravite"')
+      .addSelect('ar.id', 'ar_id')
+      .addSelect('ar.numero', 'ar_numero')
+      .leftJoin('zone_alerte_computed.restriction', 'restriction')
+      .leftJoin('restriction.arreteRestriction', 'ar')
       .getRawMany();
 
     allZones = allZones.map(z => {
@@ -428,6 +432,10 @@ export class ZoneAlerteComputedService {
           code: z.code,
           type: z.type,
           niveauGravite: z.niveauGravite,
+          arreteRestriction: {
+            id: z.ar_id,
+            numero: z.ar_numero,
+          }
         },
       };
     });
