@@ -11,7 +11,7 @@ import {
   FindOptionsWhere,
   In,
   LessThan,
-  LessThanOrEqual,
+  LessThanOrEqual, MoreThanOrEqual,
   Not,
   Repository,
 } from 'typeorm';
@@ -32,7 +32,7 @@ import { UserService } from '../user/user.service';
 import { MailService } from '../shared/services/mail.service';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
 import { Departement } from '../departement/entities/departement.entity';
-import moment from 'moment';
+import moment, { Moment } from 'moment';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -372,6 +372,45 @@ export class ArreteRestrictionService {
           code: depCode,
         },
         statut: In(['publie']),
+      },
+    });
+  }
+
+  async findByDate(date: Moment) {
+    return this.arreteRestrictionRepository.find({
+      select: {
+        id: true,
+        numero: true,
+        dateDebut: true,
+        dateFin: true,
+        dateSignature: true,
+        statut: true,
+        fichier: {
+          id: true,
+          nom: true,
+          url: true,
+        },
+        departement: {
+          code: true,
+        },
+        arretesCadre: {
+          id: true,
+          numero: true,
+          fichier: {
+            url: true,
+          },
+        },
+      },
+      relations: [
+        'fichier',
+        'departement',
+        'arretesCadre',
+        'arretesCadre.fichier',
+      ],
+      where: {
+        statut: In(['publie', 'abroge']),
+        dateDebut: LessThanOrEqual(date.format('YYYY-MM-DD')),
+        dateFin: MoreThanOrEqual(date.format('YYYY-MM-DD')),
       },
     });
   }

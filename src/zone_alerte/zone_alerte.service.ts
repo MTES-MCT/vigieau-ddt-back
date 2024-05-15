@@ -72,6 +72,26 @@ export class ZoneAlerteService {
       .getRawMany();
   }
 
+  findByArreteRestriction(arIds: number[]): Promise<ZoneAlerte[]> {
+    return this.zoneAlerteRepository
+      .createQueryBuilder('zone_alerte')
+      .select('zone_alerte.id', 'id')
+      .addSelect('zone_alerte.code', 'code')
+      .addSelect('zone_alerte.nom', 'nom')
+      .addSelect('zone_alerte.type', 'type')
+      .addSelect('restrictions.niveauGravite', 'niveauGravite')
+      .addSelect('arreteRestriction.id', 'ar_id')
+      .addSelect('arreteRestriction.numero', 'ar_numero')
+      .addSelect(
+        'ST_AsGeoJSON(ST_TRANSFORM(zone_alerte.geom, 4326), 3)',
+        'geom',
+      )
+      .leftJoin('zone_alerte.restrictions', 'restrictions')
+      .leftJoin('restrictions.arreteRestriction', 'arreteRestriction')
+      .where('arreteRestriction.id IN(:...arIds)', { arIds })
+      .getRawMany();
+  }
+
   /**
    * Vérification régulière s'il n'y a pas de nouvelles zones
    */
