@@ -161,7 +161,6 @@ export class ZoneAlerteService {
         if (!existingZone) {
           zonesAdded++;
           existingZone = new ZoneAlerte();
-          existingZone.code = f.properties.CdAltZAS;
           existingZone.departement = await this.departementService.findByCode(f.properties.CdDepartement);
           existingZone.bassinVersant = await this.bassinVersantService.findByCode(+f.properties.NumCircAdminBassin);
           existingZone.type = f.properties.TypeZAS;
@@ -170,6 +169,7 @@ export class ZoneAlerteService {
         }
         existingZone.idSandre = +f.properties.gid;
         existingZone.nom = f.properties.LbZAS;
+        existingZone.code = f.properties.CdAltZAS;
         existingZone.numeroVersionSandre = f.properties.NumeroVersionZAS ? +f.properties.NumeroVersionZAS : null;
         existingZone.geom = f.geometry;
         promises.push(this.zoneAlerteRepository.save(existingZone));
