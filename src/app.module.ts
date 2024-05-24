@@ -45,11 +45,7 @@ import { DevGuard } from './core/guards/dev.guard';
           process.env.DATABASE_NAME
         }?${process.env.DATABASE_SSL_CERT ? 'sslmode=require' : ''}`,
         entities: [`${__dirname}/**/*.entity{.ts,.js}`],
-        logging: ['test', 'dev', 'review', 'local'].includes(
-          process.env.NODE_ENV,
-        )
-          ? ['error', 'schema']
-          : false,
+        logging: ['error', 'schema'],
         migrations: [`${__dirname}/migrations/**/*{.ts,.js}`],
         cli: {
           migrationsDir: 'src/migrations',
