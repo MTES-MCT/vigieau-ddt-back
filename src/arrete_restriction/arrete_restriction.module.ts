@@ -10,6 +10,7 @@ import { FichierModule } from '../fichier/fichier.module';
 import { UserModule } from '../user/user.module';
 import { SharedModule } from '../shared/shared.module';
 import { ZoneAlerteComputedModule } from '../zone_alerte_computed/zone_alerte_computed.module';
+import { StatisticDepartementModule } from '../statistic_departement/statistic_departement.module';
 
 @Module({
   imports: [
@@ -20,10 +21,12 @@ import { ZoneAlerteComputedModule } from '../zone_alerte_computed/zone_alerte_co
     FichierModule,
     UserModule,
     SharedModule,
-    forwardRef(() => ZoneAlerteComputedModule)
+    forwardRef(() => ZoneAlerteComputedModule),
+    StatisticDepartementModule,
   ],
   controllers: [ArreteRestrictionController],
   providers: [ArreteRestrictionService],
   exports: [ArreteRestrictionService],
 })
-export class ArreteRestrictionModule {}
+export class ArreteRestrictionModule {
+}

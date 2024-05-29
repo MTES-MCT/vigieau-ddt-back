@@ -33,6 +33,7 @@ import { MailService } from '../shared/services/mail.service';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
 import { Departement } from '../departement/entities/departement.entity';
 import moment, { Moment } from 'moment';
+import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -50,6 +51,7 @@ export class ArreteRestrictionService {
     private readonly mailService: MailService,
     @Inject(forwardRef(() => ZoneAlerteComputedService))
     private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
+    private readonly statisticDepartementService: StatisticDepartementService,
   ) {
   }
 
@@ -776,6 +778,7 @@ export class ArreteRestrictionService {
     await this.arreteRestrictionRepository.delete(id);
     if (arrete.statut === 'publie') {
       this.zoneAlerteComputedService.askCompute([arrete.departement.id]);
+      this.statisticDepartementService.computeDepartementStatistics();
     }
     return;
   }
@@ -918,6 +921,7 @@ export class ArreteRestrictionService {
     await Promise.all(promises);
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
     this.zoneAlerteComputedService.askCompute(departements ? departements.map(d => d.id) : []);
+    this.statisticDepartementService.computeDepartementStatistics();
   }
 
   /**

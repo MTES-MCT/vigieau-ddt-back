@@ -414,11 +414,18 @@ export class ZoneAlerteComputedService {
       .addSelect('zone_alerte_computed.nom', 'nom')
       .addSelect('zone_alerte_computed.code', 'code')
       .addSelect('zone_alerte_computed.type', 'type')
-      .addSelect('zone_alerte_computed."niveauGravite"', 'niveauGravite')
+      .addSelect('zone_alerte_computed.niveauGravite', 'niveauGravite')
+      .addSelect('departement.code', 'departement')
       .addSelect('ar.id', 'ar_id')
       .addSelect('ar.numero', 'ar_numero')
+      .addSelect('ar.dateDebut', 'ar_dateDebut')
+      .addSelect('ar.dateFin', 'ar_dateFin')
+      .addSelect('ar.dateSignature', 'ar_dateSignature')
+      .addSelect('fichier.url', 'ar_fichier')
+      .leftJoin('zone_alerte_computed.departement', 'departement')
       .leftJoin('zone_alerte_computed.restriction', 'restriction')
       .leftJoin('restriction.arreteRestriction', 'ar')
+      .leftJoin('ar.fichier', 'fichier')
       .getRawMany();
 
     allZones = allZones.map(z => {
@@ -432,9 +439,14 @@ export class ZoneAlerteComputedService {
           code: z.code,
           type: z.type,
           niveauGravite: z.niveauGravite,
+          departement: z.departement,
           arreteRestriction: {
             id: z.ar_id,
             numero: z.ar_numero,
+            dateDebut: z.ar_dateDebut,
+            dateFin: z.ar_dateFin,
+            dateSignature: z.ar_dateSignature,
+            fichier: z.ar_fichier,
           }
         },
       };

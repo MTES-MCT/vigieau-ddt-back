@@ -16,6 +16,7 @@ import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_rest
 import { Commune } from '../../commune/entities/commune.entity';
 import { Parametres } from '../../parametres/entities/parametres.entity';
 import { ZoneAlerteComputed } from '../../zone_alerte_computed/entities/zone_alerte_computed.entity';
+import { StatisticDepartement } from '../../statistic_departement/entities/statistic_departement.entity';
 
 @Entity()
 export class Departement extends BaseEntity {
@@ -61,4 +62,7 @@ export class Departement extends BaseEntity {
 
   @OneToOne(() => Parametres, (parametres) => parametres.departement)
   parametres: Parametres;
+
+  @OneToMany(() => StatisticDepartement, (statisticDepartement) => statisticDepartement.departement)
+  statisticDepartement: StatisticDepartement[];
 }

@@ -56,6 +56,28 @@ export class ZoneAlerteService {
     });
   }
 
+  findByDepartementWithRestrictions(departementCode: string): Promise<ZoneAlerte[]> {
+    return this.zoneAlerteRepository.find({
+      relations: ['departement', 'restrictions', 'restrictions.arreteRestriction'],
+      where: [{
+        departement: {
+          code: departementCode,
+        },
+        restrictions: {
+          arreteRestriction: {
+            statut: 'publie',
+          }
+        },
+        disabled: false,
+      }, {
+        departement: {
+          code: departementCode,
+        },
+        disabled: false,
+      }]
+    });
+  }
+
   findByArreteCadre(acId: number): Promise<ZoneAlerte[]> {
     return this.zoneAlerteRepository
       .createQueryBuilder('zone_alerte')
@@ -72,22 +94,33 @@ export class ZoneAlerteService {
       .getRawMany();
   }
 
-  findByArreteRestriction(arIds: number[]): Promise<ZoneAlerte[]> {
+  findByArreteRestriction(arIds: number[]): Promise<ZoneAlerte[]> | any[] {
+    if(!arIds || arIds.length < 1) {
+      return [];
+    }
     return this.zoneAlerteRepository
       .createQueryBuilder('zone_alerte')
       .select('zone_alerte.id', 'id')
+      .addSelect('zone_alerte.idSandre', 'idSandre')
       .addSelect('zone_alerte.code', 'code')
       .addSelect('zone_alerte.nom', 'nom')
       .addSelect('zone_alerte.type', 'type')
       .addSelect('restrictions.niveauGravite', 'niveauGravite')
+      .addSelect('departement.code', 'departement')
       .addSelect('arreteRestriction.id', 'ar_id')
       .addSelect('arreteRestriction.numero', 'ar_numero')
+      .addSelect('arreteRestriction.dateDebut', 'ar_dateDebut')
+      .addSelect('arreteRestriction.dateFin', 'ar_dateFin')
+      .addSelect('arreteRestriction.dateSignature', 'ar_dateSignature')
+      .addSelect('fichier.url', 'ar_fichier')
       .addSelect(
         'ST_AsGeoJSON(ST_TRANSFORM(zone_alerte.geom, 4326), 3)',
         'geom',
       )
+      .leftJoin('zone_alerte.departement', 'departement')
       .leftJoin('zone_alerte.restrictions', 'restrictions')
       .leftJoin('restrictions.arreteRestriction', 'arreteRestriction')
+      .leftJoin('arreteRestriction.fichier', 'fichier')
       .where('arreteRestriction.id IN(:...arIds)', { arIds })
       .getRawMany();
   }
