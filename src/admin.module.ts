@@ -10,6 +10,7 @@ import { FichierModule } from './fichier/fichier.module';
 import { ParametresModule } from './parametres/parametres.module';
 import { ZoneAlerteComputedModule } from './zone_alerte_computed/zone_alerte_computed.module';
 import { StatisticDepartementModule } from './statistic_departement/statistic_departement.module';
+import { UsageFeedbackModule } from './usage_feedback/usage_feedback.module';
 
 const DEFAULT_ADMIN = {
   email: process.env.ADMINJS_USER,
@@ -63,6 +64,7 @@ const authenticate = async (email: string, password: string) => {
     ParametresModule,
     ZoneAlerteComputedModule,
     StatisticDepartementModule,
+    UsageFeedbackModule,
   ],
   controllers: [],
   providers: [],
