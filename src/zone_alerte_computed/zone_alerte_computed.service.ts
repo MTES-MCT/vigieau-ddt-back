@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { DepartementService } from '../departement/departement.service';
@@ -40,6 +40,21 @@ export class ZoneAlerteComputedService {
     @Inject(forwardRef(() => DatagouvService))
     private readonly datagouvService: DatagouvService,
   ) {
+  }
+
+  findOne(id: number): Promise<any> {
+    return this.zoneAlerteComputedRepository
+      .createQueryBuilder('zone_alerte_computed')
+      .select('zone_alerte_computed.id', 'id')
+      .addSelect('zone_alerte_computed.code', 'code')
+      .addSelect('zone_alerte_computed.nom', 'nom')
+      .addSelect('zone_alerte_computed.type', 'type')
+      .addSelect(
+        'ST_AsGeoJSON(ST_TRANSFORM(zone_alerte_computed.geom, 4326))',
+        'geom',
+      )
+      .where('zone_alerte_computed.id = :id', { id })
+      .getRawOne();
   }
 
   async askCompute(depsIds?: number[], force = false) {
@@ -407,29 +422,59 @@ export class ZoneAlerteComputedService {
   }
 
   async computeGeoJson() {
-    let allZones = await this.zoneAlerteComputedRepository
-      .createQueryBuilder('zone_alerte_computed')
-      .select('ST_AsGeoJSON(ST_TRANSFORM(geom, 4326))', 'geom')
-      .addSelect('zone_alerte_computed.id', 'id')
-      .addSelect('zone_alerte_computed.nom', 'nom')
-      .addSelect('zone_alerte_computed.code', 'code')
-      .addSelect('zone_alerte_computed.type', 'type')
-      .addSelect('zone_alerte_computed.niveauGravite', 'niveauGravite')
-      .addSelect('departement.code', 'departement')
-      .addSelect('ar.id', 'ar_id')
-      .addSelect('ar.numero', 'ar_numero')
-      .addSelect('ar.dateDebut', 'ar_dateDebut')
-      .addSelect('ar.dateFin', 'ar_dateFin')
-      .addSelect('ar.dateSignature', 'ar_dateSignature')
-      .addSelect('fichier.url', 'ar_fichier')
-      .leftJoin('zone_alerte_computed.departement', 'departement')
-      .leftJoin('zone_alerte_computed.restriction', 'restriction')
-      .leftJoin('restriction.arreteRestriction', 'ar')
-      .leftJoin('ar.fichier', 'fichier')
-      .getRawMany();
+    let allZones: any = await this.zoneAlerteComputedRepository.find({
+      select: {
+        id: true,
+        code: true,
+        nom: true,
+        type: true,
+        departement: {
+          code: true,
+          nom: true,
+        },
+        restriction: {
+          niveauGravite: true,
+          arreteRestriction: {
+            id: true,
+            numero: true,
+            dateDebut: true,
+            dateFin: true,
+            dateSignature: true,
+            fichier: {
+              url: true,
+            },
+          },
+          usages: {
+            nom: true,
+            concerneParticulier: true,
+            concerneEntreprise: true,
+            concerneExploitation: true,
+            concerneCollectivite: true,
+            concerneEso: true,
+            concerneEsu: true,
+            concerneAep: true,
+            descriptionVigilance: true,
+            descriptionAlerte: true,
+            descriptionAlerteRenforcee: true,
+            descriptionCrise: true,
+            thematique: {
+              nom: true,
+            },
+          },
+        },
+      },
+      relations: [
+        'departement',
+        'restriction',
+        'restriction.usages',
+        'restriction.usages.thematique',
+        'restriction.arreteRestriction',
+        'restriction.arreteRestriction.fichier',
+      ],
+    });
 
-    allZones = allZones.map(z => {
-      z.geom = JSON.parse(z.geom);
+    allZones = allZones.map(async z => {
+      z.geom = JSON.parse((await this.findOne(z.id)).geom);
       return {
         type: 'Feature',
         geometry: z.geom,
@@ -441,13 +486,42 @@ export class ZoneAlerteComputedService {
           niveauGravite: z.niveauGravite,
           departement: z.departement,
           arreteRestriction: {
-            id: z.ar_id,
-            numero: z.ar_numero,
-            dateDebut: z.ar_dateDebut,
-            dateFin: z.ar_dateFin,
-            dateSignature: z.ar_dateSignature,
-            fichier: z.ar_fichier,
-          }
+            id: z.restriction.arreteRestriction.id,
+            numero: z.restriction.arreteRestriction.numero,
+            dateDebut: z.restriction.arreteRestriction.dateDebut,
+            dateFin: z.restriction.arreteRestriction.dateFin,
+            dateSignature: z.restriction.arreteRestriction.dateSignature,
+            fichier: z.restriction.arreteRestriction.fichier?.url,
+          },
+          restrictions: z.restriction.usages.map(u => {
+            let d;
+            switch (z.restriction.niveauGravite) {
+              case 'vigilance':
+                d = u.descriptionVigilance;
+                break;
+              case 'alerte':
+                d = u.descriptionAlerte;
+                break;
+              case 'alerte_renforcee':
+                d = u.descriptionAlerteRenforcee;
+                break;
+              case 'crise':
+                d = u.descriptionCrise
+                break;
+            }
+            return {
+              nom: u.nom,
+              thematique: u.thematique.nom,
+              concerneParticulier: u.concerneParticulier,
+              concerneEntreprise: u.concerneEntreprise,
+              concerneCollectivite: u.concerneCollectivite,
+              concerneExploitation: u.concerneExploitation,
+              concerneEso: u.concerneEso,
+              concerneEsu: u.concerneEsu,
+              concerneAep: u.concerneAep,
+              description: d
+            }
+          })
         },
       };
     });
@@ -467,15 +541,24 @@ export class ZoneAlerteComputedService {
         originalname: 'zones_arretes_en_vigueur.pmtiles',
         buffer: data,
       };
+      const dataGeojson = fs.readFileSync(`${path}/zones_arretes_en_vigueur.geojson`);
+      const fileToTransferGeojson = {
+        originalname: `zones_arretes_en_vigueur.geojson`,
+        buffer: dataGeojson,
+      };
       const date = new Date();
       const fileNameToSave = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
       await this.s3Service.copyFile(fileToTransfer.originalname, fileNameToSave, 'pmtiles/');
+      const fileNameToSaveGeoJson = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.geojson`;
+      await this.s3Service.copyFile(fileToTransferGeojson.originalname, fileNameToSaveGeoJson, 'geojson/');
       // @ts-ignore
       const s3Response = await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
+      // @ts-ignore
+      const s3ResponseGeojson = await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
       await this.zoneAlerteComputedRepository.update({}, { enabled: true });
 
       await this.datagouvService.uploadToDatagouv('pmtiles', s3Response.Location, 'Carte des zones et arrêtés en vigueur - PMTILES', true);
-      await this.datagouvService.uploadToDatagouv('geojson', 'zones_arretes_en_vigueur.geojson', 'Carte des zones et arrêtés en vigueur - GeoJSON');
+      await this.datagouvService.uploadToDatagouv('geojson', s3ResponseGeojson.Location, 'Carte des zones et arrêtés en vigueur - GeoJSON', true);
     } catch (e) {
       this.logger.error('ERROR GENERATING PMTILES', e);
     }

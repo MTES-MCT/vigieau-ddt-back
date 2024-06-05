@@ -8,6 +8,7 @@ import fs from 'fs';
 import { ConfigService } from '@nestjs/config';
 import util from 'util';
 import { S3Service } from '../shared/services/s3.service';
+import { ZoneAlerte } from '../zone_alerte/entities/zone_alerte.entity';
 
 const exec = util.promisify(require('child_process').exec);
 
@@ -26,14 +27,15 @@ export class ZoneAlerteComputedHistoricService {
   }
 
   async computeHistoricMaps() {
-    const dateDebut = moment('01/01/2013', 'DD/MM/YYYY');
+    const dateDebut = moment('01/01/2018', 'DD/MM/YYYY');
+    // const dateFin = moment('31/12/2019', 'DD/MM/YYYY');
     const dateFin = moment('28/04/2024', 'DD/MM/YYYY');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
       const ars = await this.arreteResrictionService.findByDate(m);
-      let zas: any[] = await this.zoneAlerteService.findByArreteRestriction(ars.map(ar => ar.id));
-      zas = zas.map(z => {
-        z.geom = JSON.parse(z.geom);
+      let zas: ZoneAlerte[] = await this.zoneAlerteService.findByArreteRestriction(ars.map(ar => ar.id));
+      const zasFormated = await Promise.all(zas.map(async z => {
+        z.geom = JSON.parse((await this.zoneAlerteService.findOne(z.id)).geom);
         return {
           type: 'Feature',
           geometry: z.geom,
@@ -43,23 +45,52 @@ export class ZoneAlerteComputedHistoricService {
             nom: z.nom,
             code: z.code,
             type: z.type,
-            niveauGravite: z.niveauGravite,
+            niveauGravite: z.restrictions[0].niveauGravite,
             departement: z.departement,
             arreteRestriction: {
-              id: z.ar_id,
-              numero: z.ar_numero,
-              dateDebut: z.ar_dateDebut,
-              dateFin: z.ar_dateFin,
-              dateSignature: z.ar_dateSignature,
-              fichier: z.ar_fichier,
+              id: z.restrictions[0].arreteRestriction.id,
+              numero: z.restrictions[0].arreteRestriction.numero,
+              dateDebut: z.restrictions[0].arreteRestriction.dateDebut,
+              dateFin: z.restrictions[0].arreteRestriction.dateFin,
+              dateSignature: z.restrictions[0].arreteRestriction.dateSignature,
+              fichier: z.restrictions[0].arreteRestriction.fichier?.url,
             },
+            restrictions: z.restrictions[0].usages.map(u => {
+              let d;
+              switch (z.restrictions[0].niveauGravite) {
+                case 'vigilance':
+                  d = u.descriptionVigilance;
+                  break;
+                case 'alerte':
+                  d = u.descriptionAlerte;
+                  break;
+                case 'alerte_renforcee':
+                  d = u.descriptionAlerteRenforcee;
+                  break;
+                case 'crise':
+                  d = u.descriptionCrise
+                  break;
+              }
+              return {
+                nom: u.nom,
+                thematique: u.thematique.nom,
+                concerneParticulier: u.concerneParticulier,
+                concerneEntreprise: u.concerneEntreprise,
+                concerneCollectivite: u.concerneCollectivite,
+                concerneExploitation: u.concerneExploitation,
+                concerneEso: u.concerneEso,
+                concerneEsu: u.concerneEsu,
+                concerneAep: u.concerneAep,
+                description: d
+              }
+            })
           },
         };
-      });
+      }));
 
       const geojson = {
         'type': 'FeatureCollection',
-        'features': zas,
+        'features': zasFormated,
       };
 
       const path = this.configService.get('PATH_TO_WRITE_FILE');
