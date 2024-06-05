@@ -473,7 +473,7 @@ export class ZoneAlerteComputedService {
       ],
     });
 
-    allZones = allZones.map(async z => {
+    allZones = await Promise.all(allZones.map(async z => {
       z.geom = JSON.parse((await this.findOne(z.id)).geom);
       return {
         type: 'Feature',
@@ -483,17 +483,17 @@ export class ZoneAlerteComputedService {
           nom: z.nom,
           code: z.code,
           type: z.type,
-          niveauGravite: z.niveauGravite,
+          niveauGravite: z.restriction?.niveauGravite,
           departement: z.departement,
           arreteRestriction: {
-            id: z.restriction.arreteRestriction.id,
-            numero: z.restriction.arreteRestriction.numero,
-            dateDebut: z.restriction.arreteRestriction.dateDebut,
-            dateFin: z.restriction.arreteRestriction.dateFin,
-            dateSignature: z.restriction.arreteRestriction.dateSignature,
-            fichier: z.restriction.arreteRestriction.fichier?.url,
+            id: z.restriction?.arreteRestriction.id,
+            numero: z.restriction?.arreteRestriction.numero,
+            dateDebut: z.restriction?.arreteRestriction.dateDebut,
+            dateFin: z.restriction?.arreteRestriction.dateFin,
+            dateSignature: z.restriction?.arreteRestriction.dateSignature,
+            fichier: z.restriction?.arreteRestriction.fichier?.url,
           },
-          restrictions: z.restriction.usages.map(u => {
+          restrictions: z.restriction?.usages.map(u => {
             let d;
             switch (z.restriction.niveauGravite) {
               case 'vigilance':
@@ -506,7 +506,7 @@ export class ZoneAlerteComputedService {
                 d = u.descriptionAlerteRenforcee;
                 break;
               case 'crise':
-                d = u.descriptionCrise
+                d = u.descriptionCrise;
                 break;
             }
             return {
@@ -519,12 +519,12 @@ export class ZoneAlerteComputedService {
               concerneEso: u.concerneEso,
               concerneEsu: u.concerneEsu,
               concerneAep: u.concerneAep,
-              description: d
-            }
-          })
+              description: d,
+            };
+          }),
         },
       };
-    });
+    }));
 
     const geojson = {
       'type': 'FeatureCollection',
@@ -533,7 +533,22 @@ export class ZoneAlerteComputedService {
 
     const path = this.configService.get('PATH_TO_WRITE_FILE');
 
+    const date = new Date();
     await writeFile(`${path}/zones_arretes_en_vigueur.geojson`, JSON.stringify(geojson));
+    const dataGeojson = fs.readFileSync(`${path}/zones_arretes_en_vigueur.geojson`);
+    const fileToTransferGeojson = {
+      originalname: `zones_arretes_en_vigueur.geojson`,
+      buffer: dataGeojson,
+    };
+    try {
+      const fileNameToSaveGeoJson = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.geojson`;
+      await this.s3Service.copyFile(fileToTransferGeojson.originalname, fileNameToSaveGeoJson, 'geojson/');
+      // @ts-ignore
+      const s3ResponseGeojson = await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
+      await this.datagouvService.uploadToDatagouv('geojson', s3ResponseGeojson.Location, 'Carte des zones et arrêtés en vigueur - GeoJSON', true);
+    } catch (e) {
+      this.logger.error('ERROR COPYING GEOJSON', e);
+    }
     try {
       await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur.pmtiles ${path}/zones_arretes_en_vigueur.geojson`);
       const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur.pmtiles`);
@@ -541,24 +556,17 @@ export class ZoneAlerteComputedService {
         originalname: 'zones_arretes_en_vigueur.pmtiles',
         buffer: data,
       };
-      const dataGeojson = fs.readFileSync(`${path}/zones_arretes_en_vigueur.geojson`);
-      const fileToTransferGeojson = {
-        originalname: `zones_arretes_en_vigueur.geojson`,
-        buffer: dataGeojson,
-      };
-      const date = new Date();
-      const fileNameToSave = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
-      await this.s3Service.copyFile(fileToTransfer.originalname, fileNameToSave, 'pmtiles/');
-      const fileNameToSaveGeoJson = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.geojson`;
-      await this.s3Service.copyFile(fileToTransferGeojson.originalname, fileNameToSaveGeoJson, 'geojson/');
+      try {
+        const fileNameToSave = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
+        await this.s3Service.copyFile(fileToTransfer.originalname, fileNameToSave, 'pmtiles/');
+      } catch (e) {
+        this.logger.error('ERROR COPYING PMTILES', e);
+      }
       // @ts-ignore
       const s3Response = await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
-      // @ts-ignore
-      const s3ResponseGeojson = await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
       await this.zoneAlerteComputedRepository.update({}, { enabled: true });
 
       await this.datagouvService.uploadToDatagouv('pmtiles', s3Response.Location, 'Carte des zones et arrêtés en vigueur - PMTILES', true);
-      await this.datagouvService.uploadToDatagouv('geojson', s3ResponseGeojson.Location, 'Carte des zones et arrêtés en vigueur - GeoJSON', true);
     } catch (e) {
       this.logger.error('ERROR GENERATING PMTILES', e);
     }
@@ -686,7 +694,7 @@ export class ZoneAlerteComputedService {
         'restriction.arreteRestriction',
         'restriction.usages',
         'restriction.usages.thematique',
-        'departement'
+        'departement',
       ],
     });
   }
