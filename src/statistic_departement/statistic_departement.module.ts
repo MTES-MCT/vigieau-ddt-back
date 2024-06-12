@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { StatisticDepartement } from './entities/statistic_departement.entity';
 import { StatisticDepartementService } from './statistic_departement.service';
-import { Statistic } from '../core/entities/statistic.entity';
+import { Statistic } from '../statistic/entities/statistic.entity';
 import { DepartementModule } from '../departement/departement.module';
 import { AbonnementMail } from '../core/entities/abonnement_mail.entity';
 import { ZoneAlerteModule } from '../zone_alerte/zone_alerte.module';

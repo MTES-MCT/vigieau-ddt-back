@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Like, Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { StatisticDepartement } from './entities/statistic_departement.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Statistic } from '../core/entities/statistic.entity';
+import { Statistic } from '../statistic/entities/statistic.entity';
 import { DepartementService } from '../departement/departement.service';
 import { AbonnementMail } from '../core/entities/abonnement_mail.entity';
 import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';

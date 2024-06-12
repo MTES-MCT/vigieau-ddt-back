@@ -15,6 +15,7 @@ import * as fs from 'fs';
 import { ConfigService } from '@nestjs/config';
 import { RestrictionService } from '../restriction/restriction.service';
 import { DatagouvService } from '../datagouv/datagouv.service';
+import { StatisticService } from '../statistic/statistic.service';
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -39,6 +40,7 @@ export class ZoneAlerteComputedService {
     private readonly restrictionService: RestrictionService,
     @Inject(forwardRef(() => DatagouvService))
     private readonly datagouvService: DatagouvService,
+    private readonly statisticService: StatisticService,
   ) {
   }
 
@@ -422,7 +424,7 @@ export class ZoneAlerteComputedService {
   }
 
   async computeGeoJson() {
-    let allZones: any = await this.zoneAlerteComputedRepository.find({
+    let allZonesComputed: any = await this.zoneAlerteComputedRepository.find({
       select: {
         id: true,
         code: true,
@@ -473,7 +475,7 @@ export class ZoneAlerteComputedService {
       ],
     });
 
-    allZones = await Promise.all(allZones.map(async z => {
+    const allZones = await Promise.all(allZonesComputed.map(async z => {
       z.geom = JSON.parse((await this.findOne(z.id)).geom);
       return {
         type: 'Feature',
@@ -570,6 +572,7 @@ export class ZoneAlerteComputedService {
     } catch (e) {
       this.logger.error('ERROR GENERATING PMTILES', e);
     }
+    this.statisticService.computeDepartementsSituation(allZonesComputed);
   }
 
   async computeCommunesIntersected(departement: Departement) {

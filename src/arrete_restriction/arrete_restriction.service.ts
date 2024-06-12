@@ -378,6 +378,62 @@ export class ArreteRestrictionService {
     });
   }
 
+  async findByDepartementAndDate(
+    depCode: string,
+    date: Moment,
+  ): Promise<ArreteRestriction[]> {
+    return this.arreteRestrictionRepository.find({
+      select: {
+        id: true,
+        numero: true,
+        statut: true,
+        niveauGraviteSpecifiqueEap: true,
+        ressourceEapCommunique: true,
+        restrictions: {
+          id: true,
+          nomGroupementAep: true,
+          niveauGravite: true,
+          zoneAlerte: {
+            id: true,
+            code: true,
+            nom: true,
+            type: true,
+            disabled: true,
+          },
+          arreteCadre: {
+            id: true,
+          },
+          communes: {
+            id: true,
+            nom: true,
+            code: true,
+          },
+        },
+        departement: {
+          id: true,
+          code: true,
+          nom: true,
+        },
+      },
+      relations: [
+        'restrictions',
+        'restrictions.zoneAlerte',
+        'restrictions.zonesAlerteComputed',
+        'restrictions.arreteCadre',
+        'restrictions.communes',
+        'departement',
+      ],
+      where: {
+        departement: {
+          code: depCode,
+        },
+        statut: In(['publie', 'abroge']),
+        dateDebut: LessThanOrEqual(date.format('YYYY-MM-DD')),
+        dateFin: MoreThanOrEqual(date.format('YYYY-MM-DD')),
+      },
+    });
+  }
+
   async findByDate(date: Moment) {
     return this.arreteRestrictionRepository.find({
       select: {

@@ -16,6 +16,7 @@ import { Commune } from '../../commune/entities/commune.entity';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { Usage } from '../../usage/entities/usage.entity';
 import { ZoneAlerteComputed } from '../../zone_alerte_computed/entities/zone_alerte_computed.entity';
+import { ZoneAlerteComputedHistoric } from '../../zone_alerte_computed/entities/zone_alerte_computed_historic.entity';
 
 @Entity()
 @Unique(['arreteRestriction', 'zoneAlerte'])
@@ -38,6 +39,9 @@ export class Restriction extends BaseEntity {
 
   @OneToMany(() => ZoneAlerteComputed, (zoneAlerteComputed) => zoneAlerteComputed.restriction)
   zonesAlerteComputed: ZoneAlerteComputed[];
+
+  @OneToMany(() => ZoneAlerteComputedHistoric, (zoneAlerteComputedHistoric) => zoneAlerteComputedHistoric.restriction)
+  zonesAlerteComputedHistoric: ZoneAlerteComputedHistoric[];
 
   @ManyToOne(() => ArreteCadre, (arreteCadre) => arreteCadre.restrictions)
   arreteCadre: ArreteCadre;
