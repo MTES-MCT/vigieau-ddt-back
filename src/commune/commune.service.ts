@@ -97,6 +97,48 @@ export class CommuneService {
     return toReturn;
   }
 
+  async getZoneAlerteComputedHistoricForHarmonisation(depId: number) {
+    const rawMany = await this.communeRepository
+      .createQueryBuilder('commune')
+      .select('commune.id', 'id')
+      .addSelect('commune.code', 'code')
+      .addSelect('commune.nom', 'nom')
+      .addSelect('zac.id', 'zac_id')
+      .addSelect('zac.nom', 'zac_nom')
+      .addSelect('zac.type', 'zac_type')
+      .addSelect('zac.niveauGravite', 'zac_niveau_gravite')
+      .addSelect('ST_Area(commune.geom)', 'area')
+      .addSelect('ST_Area(zac.geom)', 'zac_area')
+      .addSelect('ST_Area(ST_Intersection(zac.geom, commune.geom))', 'zac_commune_area')
+      .leftJoin('zone_alerte_computed_historic', 'zac', `zac."departementId" = commune."departementId" and ST_Intersects(zac.geom, commune.geom)`)
+      .where('commune."departementId" = :depId', { depId })
+      .andWhere('zac.id IS NOT NULL')
+      .getRawMany();
+    const toReturn = [];
+    rawMany.forEach((c) => {
+      if(!toReturn.find((t) => t.id === c.id)) {
+        toReturn.push({
+          id: c.id,
+          code: c.code,
+          nom: c.nom,
+          area: c.area,
+          zones: [],
+        });
+      }
+      const commune = toReturn.find((t) => t.id === c.id);
+      commune.zones.push({
+        id: c.zac_id,
+        nom: c.zac_nom,
+        type: c.zac_type,
+        niveauGravite: c.zac_niveau_gravite,
+        area: c.zac_area,
+        areaCommune: c.zac_commune_area,
+        areaCommunePercentage: (c.zac_commune_area / c.area) * 100,
+      });
+    });
+    return toReturn;
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async updateCommuneRef() {
     this.logger.log('MISE A JOUR DES COMMUNES');

@@ -71,7 +71,7 @@ export class StatisticDepartementService {
       };
 
       for (const statByDay of stats) {
-        const depVisits = statByDay.departementRepartition[d.code];
+        const depVisits = statByDay.departementRepartition ? statByDay.departementRepartition[d.code] : 0;
         statisticDepartement.totalVisits += depVisits;
 
         const today = new Date();

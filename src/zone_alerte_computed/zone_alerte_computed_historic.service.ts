@@ -57,8 +57,8 @@ export class ZoneAlerteComputedHistoricService {
   }
 
   async computeHistoricMaps() {
-    const dateDebut = moment('22/08/2020', 'DD/MM/YYYY');
-    const dateFin = moment('31/12/2021', 'DD/MM/YYYY');
+    const dateDebut = moment('01/01/2013', 'DD/MM/YYYY');
+    const dateFin = moment('  31/12/2014', 'DD/MM/YYYY');
     // const dateFin = moment('28/04/2024', 'DD/MM/YYYY');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
@@ -146,17 +146,18 @@ export class ZoneAlerteComputedHistoricService {
       } catch (e) {
         this.logger.error('ERROR GENERATING PMTILES', e);
       }
-      this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
+      await this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
     }
   }
 
   async computeHistoricMapsComputed() {
-    const dateDebut = moment('29/04/2024', 'DD/MM/YYYY');
-    const dateFin = moment('11/06/2024', 'DD/MM/YYYY');
+    const dateDebut = moment('17/06/2024', 'DD/MM/YYYY');
+    const dateFin = moment('17/06/2024', 'DD/MM/YYYY');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
       this.logger.log(`COMPUTING ZONES D'ALERTES - BEGIN`);
       let departements = await this.departementService.findAllLight();
+
       for (const departement of departements) {
         const zonesSaved = await this.computeRegleAr(departement, m);
         if (zonesSaved.length > 0) {
@@ -231,18 +232,18 @@ export class ZoneAlerteComputedHistoricService {
       await this.cleanZones(departement);
     }
     if (!departement.parametres?.superpositionCommune || departement.parametres?.superpositionCommune !== 'yes_all') {
-      await this.computeRegleAepNotSpecific(departement);
+      await this.computeRegleAepNotSpecific(departement, date);
     }
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${zonesToSave.length} zones ajoutées`);
     return toReturn;
   }
 
-  async computeRegleAepNotSpecific(departement: Departement) {
-    const arretesRestrictions = await this.arreteResrictionService.findByDepartement(departement.code);
+  async computeRegleAepNotSpecific(departement: Departement, date: Moment) {
+    const arretesRestrictions = await this.arreteResrictionService.findByDepartementAndDate(departement.code, date);
     const zonesDepartement = await this.getZonesAlerteComputedByDepartement(departement);
     let zonesToSave = [];
     for (const ar of arretesRestrictions) {
-      let zonesAr = zonesDepartement.filter(z => z.restriction.arreteRestriction.id === ar.id);
+      let zonesAr = zonesDepartement.filter(z => z.restriction?.arreteRestriction.id === ar.id);
       if (ar.niveauGraviteSpecifiqueEap === false && ar.ressourceEapCommunique && zonesAr.length > 0) {
         switch (ar.ressourceEapCommunique) {
           case 'eso':
@@ -312,7 +313,7 @@ export class ZoneAlerteComputedHistoricService {
       z.id = null;
       z.geom = JSON.parse(z.geom);
       return z;
-    }).filter(z => z.geom.coordinates.length > 0);
+    }).filter(z => z.geom.coordinates?.length > 0);
     const toReturn = await this.zoneAlerteComputedHistoricRepository.save(zonesToSave);
     if (toReturn.length > 0) {
       await this.cleanZones(departement);
@@ -323,7 +324,7 @@ export class ZoneAlerteComputedHistoricService {
   async computeYesDistinct(departement, onlyAep: boolean) {
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${onlyAep ? 'YES_ONLY_AEP' : 'YES_DISTINCT'} BEGIN`);
     // On récupères les communes avec des ZA qui ne couvrent pas totalement la zone
-    const communes = await this.communeService.getZoneAlerteComputedForHarmonisation(departement.id);
+    const communes = await this.communeService.getZoneAlerteComputedHistoricForHarmonisation(departement.id);
     const zoneTypes = onlyAep ? ['AEP'] : ['SUP', 'SOU', 'AEP'];
     const queries = [];
     for (const commune of communes) {
@@ -365,7 +366,7 @@ export class ZoneAlerteComputedHistoricService {
   async computeYesAll(departement, exceptAep: boolean) {
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${exceptAep ? 'YES_EXCEPT_AEP' : 'YES_ALL'} BEGIN`);
     // On récupères les communes avec des ZA (même celles qui couvrent totalement la commune)
-    const communes = await this.communeService.getZoneAlerteComputedForHarmonisation(departement.id);
+    const communes = await this.communeService.getZoneAlerteComputedHistoricForHarmonisation(departement.id);
     const zoneTypes = exceptAep ? ['SUP', 'SOU'] : ['SUP', 'SOU', 'AEP'];
     const queries = [];
     let zonesToSave = [];
@@ -490,7 +491,7 @@ export class ZoneAlerteComputedHistoricService {
           communes: [],
         });
       }
-      const s = toSave.find(s => s.id === z.zone_alerte_computed_id);
+      const s = toSave.find(s => s.id === z.zone_alerte_computed_historic_id);
       if (z.commune_id) {
         s.communes.push({
           id: z.commune_id,
@@ -515,7 +516,7 @@ export class ZoneAlerteComputedHistoricService {
       .getRawMany();
     // @ts-ignore
     await Promise.all(zonesDepartement.map(async z => {
-      z.restriction = await this.restrictionService.findOneByZoneAlerteComputed(z.id);
+      z.restriction = await this.restrictionService.findOneByZoneAlerteComputedHistoric(z.id);
       z.departement = {
         id: z.departement_id,
       };

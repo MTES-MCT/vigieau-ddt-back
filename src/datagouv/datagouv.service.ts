@@ -77,7 +77,10 @@ export class DatagouvService {
         chemin_fichier: arrete.fichier ? arrete.fichier?.url : '',
         arrete_cadre: arrete.arretesCadre.map(arreteCadre => {
           return {
+            id: arreteCadre.id,
             numero: arreteCadre.numero,
+            date_debut: arrete.dateDebut,
+            date_signature: arrete.dateSignature,
             chemin_fichier: arreteCadre.fichier ? arreteCadre.fichier?.url : '',
           };
         }),
@@ -119,7 +122,10 @@ export class DatagouvService {
             chemin_fichier: arrete.fichier ? arrete.fichier?.url : '',
             arrete_cadre: arrete.arretesCadre.map(arreteCadre => {
               return {
+                id: arreteCadre.id,
                 numero: arreteCadre.numero,
+                date_debut: arrete.dateDebut,
+                date_signature: arrete.dateSignature,
                 chemin_fichier: arreteCadre.fichier ? arreteCadre.fichier?.url : '',
               };
             }),
