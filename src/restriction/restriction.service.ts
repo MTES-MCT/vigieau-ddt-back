@@ -82,4 +82,15 @@ export class RestrictionService {
       },
     });
   }
+
+  async findOneByZoneAlerteComputedHistoric(zoneAlerteComputedId: number): Promise<Restriction> {
+    return this.restrictionRepository.findOne({
+      relations: ['arreteRestriction', 'zonesAlerteComputedHistoric'],
+      where: {
+        zonesAlerteComputedHistoric: {
+          id: zoneAlerteComputedId,
+        },
+      },
+    });
+  }
 }

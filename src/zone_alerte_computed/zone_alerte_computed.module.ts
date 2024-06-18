@@ -10,10 +10,12 @@ import { ArreteRestrictionModule } from '../arrete_restriction/arrete_restrictio
 import { SharedModule } from '../shared/shared.module';
 import { DatagouvModule } from '../datagouv/datagouv.module';
 import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_historic.service';
+import { StatisticModule } from '../statistic/statistic.module';
+import { ZoneAlerteComputedHistoric } from './entities/zone_alerte_computed_historic.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ZoneAlerteComputed]),
+    TypeOrmModule.forFeature([ZoneAlerteComputed, ZoneAlerteComputedHistoric]),
     RestrictionModule,
     DepartementModule,
     ZoneAlerteModule,
@@ -22,6 +24,7 @@ import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_histor
     SharedModule,
     RestrictionModule,
     forwardRef(() => DatagouvModule),
+    StatisticModule
   ],
   controllers: [],
   providers: [ZoneAlerteComputedService, ZoneAlerteComputedHistoricService],

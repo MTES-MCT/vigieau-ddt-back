@@ -19,7 +19,7 @@ import { Restriction } from '../../restriction/entities/restriction.entity';
 import { Fichier } from '../../fichier/entities/fichier.entity';
 
 @Entity()
-export class ArreteRestriction extends BaseEntity {
+export class  ArreteRestriction extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

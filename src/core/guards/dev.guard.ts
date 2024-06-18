@@ -9,6 +9,6 @@ export class DevGuard implements CanActivate {
    * @param context
    */
   canActivate(context: ExecutionContext): boolean {
-    return ['test', 'dev', 'review', 'local'].includes(process.env.NODE_ENV);
+    return ['dev', 'review', 'local'].includes(process.env.NODE_ENV);
   }
 }

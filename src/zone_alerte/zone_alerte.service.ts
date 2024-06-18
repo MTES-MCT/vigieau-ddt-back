@@ -56,6 +56,28 @@ export class ZoneAlerteService {
     });
   }
 
+  findByDepartementWithRestrictions(departementCode: string): Promise<ZoneAlerte[]> {
+    return this.zoneAlerteRepository.find({
+      relations: ['departement', 'restrictions', 'restrictions.arreteRestriction'],
+      where: [{
+        departement: {
+          code: departementCode,
+        },
+        restrictions: {
+          arreteRestriction: {
+            statut: 'publie',
+          },
+        },
+        disabled: false,
+      }, {
+        departement: {
+          code: departementCode,
+        },
+        disabled: false,
+      }],
+    });
+  }
+
   findByArreteCadre(acId: number): Promise<ZoneAlerte[]> {
     return this.zoneAlerteRepository
       .createQueryBuilder('zone_alerte')
@@ -72,24 +94,68 @@ export class ZoneAlerteService {
       .getRawMany();
   }
 
-  findByArreteRestriction(arIds: number[]): Promise<ZoneAlerte[]> {
-    return this.zoneAlerteRepository
-      .createQueryBuilder('zone_alerte')
-      .select('zone_alerte.id', 'id')
-      .addSelect('zone_alerte.code', 'code')
-      .addSelect('zone_alerte.nom', 'nom')
-      .addSelect('zone_alerte.type', 'type')
-      .addSelect('restrictions.niveauGravite', 'niveauGravite')
-      .addSelect('arreteRestriction.id', 'ar_id')
-      .addSelect('arreteRestriction.numero', 'ar_numero')
-      .addSelect(
-        'ST_AsGeoJSON(ST_TRANSFORM(zone_alerte.geom, 4326), 3)',
-        'geom',
-      )
-      .leftJoin('zone_alerte.restrictions', 'restrictions')
-      .leftJoin('restrictions.arreteRestriction', 'arreteRestriction')
-      .where('arreteRestriction.id IN(:...arIds)', { arIds })
-      .getRawMany();
+  findByArreteRestriction(arIds: number[]): Promise<ZoneAlerte[]> | any[] {
+    if (!arIds || arIds.length < 1) {
+      return [];
+    }
+    return this.zoneAlerteRepository.find({
+      select: {
+        id: true,
+        idSandre: true,
+        code: true,
+        nom: true,
+        type: true,
+        departement: {
+          code: true,
+          nom: true,
+        },
+        restrictions: {
+          niveauGravite: true,
+          arreteRestriction: {
+            id: true,
+            numero: true,
+            dateDebut: true,
+            dateFin: true,
+            dateSignature: true,
+            fichier: {
+              url: true,
+            },
+          },
+          usages: {
+            nom: true,
+            concerneParticulier: true,
+            concerneEntreprise: true,
+            concerneExploitation: true,
+            concerneCollectivite: true,
+            concerneEso: true,
+            concerneEsu: true,
+            concerneAep: true,
+            descriptionVigilance: true,
+            descriptionAlerte: true,
+            descriptionAlerteRenforcee: true,
+            descriptionCrise: true,
+            thematique: {
+              nom: true,
+            },
+          },
+        },
+      },
+      relations: [
+        'departement',
+        'restrictions',
+        'restrictions.usages',
+        'restrictions.usages.thematique',
+        'restrictions.arreteRestriction',
+        'restrictions.arreteRestriction.fichier',
+      ],
+      where: {
+        restrictions: {
+          arreteRestriction: {
+            id: In(arIds),
+          },
+        },
+      },
+    });
   }
 
   /**
@@ -155,8 +221,8 @@ export class ZoneAlerteService {
               },
               type: f.properties.TypeZAS,
               numeroVersion: f.properties.NumeroVersionZAS ? +f.properties.NumeroVersionZAS : IsNull(),
-            }
-          ]
+            },
+          ],
         });
         if (!existingZone) {
           zonesAdded++;
@@ -181,7 +247,7 @@ export class ZoneAlerteService {
           departement: {
             id: true,
             code: true,
-          }
+          },
         },
         relations: ['departement'],
         where: [
@@ -196,7 +262,7 @@ export class ZoneAlerteService {
               code: depCode,
             },
             idSandre: IsNull(),
-          }
+          },
         ],
       });
       promises.push(
@@ -205,7 +271,7 @@ export class ZoneAlerteService {
       await Promise.all(promises);
       this.logger.log(`${zonesUpdates} ZONES D'ALERTES MIS A JOUR`);
       this.logger.log(`${zonesAdded} ZONES D'ALERTES AJOUTEES`);
-      if(zonesAdded > 0) {
+      if (zonesAdded > 0) {
         const arretesCadre = await this.arreteCadreService.findByDepartement(depCode);
         await this.mailService.sendEmailsByDepartement(
           depCode,

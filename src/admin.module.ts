@@ -9,6 +9,9 @@ import { Region } from './core/entities/region.entity';
 import { FichierModule } from './fichier/fichier.module';
 import { ParametresModule } from './parametres/parametres.module';
 import { ZoneAlerteComputedModule } from './zone_alerte_computed/zone_alerte_computed.module';
+import { StatisticDepartementModule } from './statistic_departement/statistic_departement.module';
+import { UsageFeedbackModule } from './usage_feedback/usage_feedback.module';
+import { StatisticModule } from './statistic/statistic.module';
 
 const DEFAULT_ADMIN = {
   email: process.env.ADMINJS_USER,
@@ -61,6 +64,9 @@ const authenticate = async (email: string, password: string) => {
     FichierModule,
     ParametresModule,
     ZoneAlerteComputedModule,
+    StatisticDepartementModule,
+    UsageFeedbackModule,
+    StatisticModule,
   ],
   controllers: [],
   providers: [],

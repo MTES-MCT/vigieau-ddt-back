@@ -9,7 +9,7 @@ import { User } from '../user/entities/user.entity';
 import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 import {
   FindOptionsWhere,
-  In,
+  In, IsNull,
   LessThan,
   LessThanOrEqual, MoreThanOrEqual,
   Not,
@@ -33,6 +33,8 @@ import { MailService } from '../shared/services/mail.service';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
 import { Departement } from '../departement/entities/departement.entity';
 import moment, { Moment } from 'moment';
+import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
+import deepClone from 'lodash.clonedeep';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -50,6 +52,7 @@ export class ArreteRestrictionService {
     private readonly mailService: MailService,
     @Inject(forwardRef(() => ZoneAlerteComputedService))
     private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
+    private readonly statisticDepartementService: StatisticDepartementService,
   ) {
   }
 
@@ -145,6 +148,8 @@ export class ArreteRestrictionService {
         arretesCadre: {
           id: true,
           numero: true,
+          dateDebut: true,
+          dateFin: true,
           fichier: {
             url: true,
           },
@@ -160,8 +165,8 @@ export class ArreteRestrictionService {
         statut: In(['a_venir', 'publie', 'abroge']),
       },
       order: {
-        dateDebut: 'ASC'
-      }
+        dateDebut: 'ASC',
+      },
     });
   }
 
@@ -376,6 +381,72 @@ export class ArreteRestrictionService {
     });
   }
 
+  async findByDepartementAndDate(
+    depCode: string,
+    date: Moment,
+  ): Promise<ArreteRestriction[]> {
+    return this.arreteRestrictionRepository.find({
+      select: {
+        id: true,
+        numero: true,
+        statut: true,
+        niveauGraviteSpecifiqueEap: true,
+        ressourceEapCommunique: true,
+        restrictions: {
+          id: true,
+          nomGroupementAep: true,
+          niveauGravite: true,
+          zoneAlerte: {
+            id: true,
+            code: true,
+            nom: true,
+            type: true,
+            disabled: true,
+          },
+          arreteCadre: {
+            id: true,
+          },
+          communes: {
+            id: true,
+            nom: true,
+            code: true,
+          },
+        },
+        departement: {
+          id: true,
+          code: true,
+          nom: true,
+        },
+      },
+      relations: [
+        'restrictions',
+        'restrictions.zoneAlerte',
+        'restrictions.zonesAlerteComputed',
+        'restrictions.arreteCadre',
+        'restrictions.communes',
+        'departement',
+      ],
+      where: [
+        {
+          departement: {
+            code: depCode,
+          },
+          statut: In(['publie', 'abroge']),
+          dateDebut: LessThanOrEqual(date.format('YYYY-MM-DD')),
+          dateFin: MoreThanOrEqual(date.format('YYYY-MM-DD')),
+        },
+        {
+          departement: {
+            code: depCode,
+          },
+          statut: In(['publie', 'abroge']),
+          dateDebut: LessThanOrEqual(date.format('YYYY-MM-DD')),
+          dateFin: IsNull(),
+        },
+      ],
+    });
+  }
+
   async findByDate(date: Moment) {
     return this.arreteRestrictionRepository.find({
       select: {
@@ -407,11 +478,18 @@ export class ArreteRestrictionService {
         'arretesCadre',
         'arretesCadre.fichier',
       ],
-      where: {
-        statut: In(['publie', 'abroge']),
-        dateDebut: LessThanOrEqual(date.format('YYYY-MM-DD')),
-        dateFin: MoreThanOrEqual(date.format('YYYY-MM-DD')),
-      },
+      where: [
+        {
+          statut: In(['publie', 'abroge']),
+          dateDebut: LessThanOrEqual(date.format('YYYY-MM-DD')),
+          dateFin: MoreThanOrEqual(date.format('YYYY-MM-DD')),
+        },
+        {
+          statut: In(['publie', 'abroge']),
+          dateDebut: LessThanOrEqual(date.format('YYYY-MM-DD')),
+          dateFin: IsNull(),
+        },
+      ],
     });
   }
 
@@ -446,6 +524,7 @@ export class ArreteRestrictionService {
       });
     arreteRestriction.restrictions =
       await this.restrictionService.updateAll(updateArreteRestrictionDto, arreteRestriction.id);
+    this.checkModifications(oldAr, arreteRestriction, currentUser);
     return arreteRestriction;
   }
 
@@ -776,6 +855,7 @@ export class ArreteRestrictionService {
     await this.arreteRestrictionRepository.delete(id);
     if (arrete.statut === 'publie') {
       this.zoneAlerteComputedService.askCompute([arrete.departement.id]);
+      this.statisticDepartementService.computeDepartementStatistics();
     }
     return;
   }
@@ -918,6 +998,7 @@ export class ArreteRestrictionService {
     await Promise.all(promises);
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
     this.zoneAlerteComputedService.askCompute(departements ? departements.map(d => d.id) : []);
+    this.statisticDepartementService.computeDepartementStatistics();
   }
 
   /**
@@ -1004,5 +1085,117 @@ export class ArreteRestrictionService {
       .groupBy('arrete_restriction.id')
       .addGroupBy('departement.id')
       .getMany();
+  }
+
+  private async checkModifications(oldAr: ArreteRestriction, newAr: ArreteRestriction, currentUser: User) {
+    if (oldAr.statut !== 'publie') {
+      return;
+    }
+    const model = {
+      numero: true,
+      niveauGraviteSpecifiqueEap: true,
+      ressourceEapCommunique: true,
+      arreteRestrictionAbroge: {
+        id: true,
+        numero: true,
+      },
+      arretesCadre: [{
+        id: true,
+        numero: true,
+      }],
+      restrictions: [{
+        id: true,
+        zoneAlerte: {
+          id: true,
+          code: true,
+          nom: true,
+        },
+        niveauGravite: true,
+        communes: [{
+          code: true,
+          nom: true,
+        }],
+      }],
+    };
+    const oldArLight = this.filterObjectByModel(oldAr, model);
+    const newArLight = this.filterObjectByModel(newAr, model);
+    const diff = this.compare(deepClone(oldArLight), deepClone(newArLight));
+    if(Object.keys(diff).length > 0) {
+      await this.mailService.sendEmail(
+        'secheresse@beta.gouv.fr',
+        `Des modifications importantes ont été apportées à l’arrêté ${oldAr.numero}`,
+        'maj_ar',
+        {
+          date: new Date().toLocaleDateString(),
+          userEmail: currentUser.email,
+          userDepartement: currentUser.role_departement,
+          arreteNumero: oldAr.numero,
+          oldAr: JSON.stringify(oldArLight),
+          newAr: JSON.stringify(newArLight),
+          diffAr: JSON.stringify(diff),
+          arreteLien: `https://${process.env.DOMAIN_NAME}/arrete-restriction/${oldAr.id}/edition`,
+        },
+      );
+    }
+  }
+
+  private compare(original: any, copy: any) {
+    for (let [k, v] of Object.entries(original)) {
+      if (typeof v === 'object' && v !== null) {
+        if (!copy.hasOwnProperty(k)) {
+          copy[k] = v;
+        } else {
+          this.compare(v, copy?.[k]);
+        }
+      } else {
+        if (Object.is(v, copy?.[k])) {
+          delete copy?.[k];
+        }
+      }
+    }
+    return copy;
+  }
+
+  private filterObjectByModel(obj: any, model: any): any {
+    const filteredObj: any = {};
+
+    for (const key in model) {
+      if (obj && key in obj) {
+        if (typeof obj[key] === 'object' && !Array.isArray(obj[key]) && typeof model[key] === 'object' && !Array.isArray(model[key])) {
+          filteredObj[key] = this.filterObjectByModel(obj[key], model[key]);
+        } else if (Array.isArray(obj[key]) && Array.isArray(model[key]) && model[key].length > 0) {
+          filteredObj[key] = obj[key].map((item: any) => {
+            if (typeof item === 'object' && !Array.isArray(item)) {
+              return this.filterObjectByModel(item, model[key][0]);
+            }
+            return item;
+          });
+        } else {
+          filteredObj[key] = obj[key];
+        }
+      }
+    }
+
+    return this.removeEmpty(filteredObj);
+  }
+
+  private removeEmpty(object) {
+    Object
+      .entries(object)
+      .forEach(([k, v]) => {
+        if (v && typeof v === 'object') {
+          this.removeEmpty(v);
+        }
+        if (v && typeof v === 'object' && !Object.keys(v).length || v === null || v === undefined) {
+          if (Array.isArray(object)) {
+            // @ts-ignore
+            object.splice(k, 1);
+            this.removeEmpty(object);
+          } else {
+            delete object[k];
+          }
+        }
+      });
+    return object;
   }
 }
