@@ -593,7 +593,7 @@ export class ArreteRestrictionService {
         arreteRestrictionPdf,
         `arrete-restriction/${ar.id}/`,
       );
-      toSave.fichier = { id: newFile.id };
+      toSave.fichier = { id: newFile.id, nom: newFile.nom };
     }
     toSave =
       moment(publishArreteRestrictionDto.dateDebut).isSameOrBefore(moment(), 'day')
@@ -602,7 +602,7 @@ export class ArreteRestrictionService {
           ? { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } }
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
-    const toRerturn = await this.arreteRestrictionRepository.save(toSave);
+    const toReturn = await this.arreteRestrictionRepository.save(toSave);
 
     // Gestion des abrogations associées
     if (ar.arreteRestrictionAbroge) {
@@ -625,7 +625,8 @@ export class ArreteRestrictionService {
       }
     }
     await this.updateArreteRestrictionStatut([ar.departement]);
-    return toRerturn;
+    this.checkModifications(ar, toReturn, currentUser, true);
+    return toReturn;
   }
 
   async repeal(
@@ -1087,11 +1088,16 @@ export class ArreteRestrictionService {
       .getMany();
   }
 
-  private async checkModifications(oldAr: ArreteRestriction, newAr: ArreteRestriction, currentUser: User) {
+  private async checkModifications(oldAr: ArreteRestriction, newAr: ArreteRestriction, currentUser: User, publish = false) {
     if (oldAr.statut !== 'publie') {
       return;
     }
-    const model = {
+    const model = publish ? {
+      dateDebut: true,
+      fichier: {
+        nom: true,
+      }
+    } : {
       numero: true,
       niveauGraviteSpecifiqueEap: true,
       ressourceEapCommunique: true,

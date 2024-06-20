@@ -702,7 +702,7 @@ export class ArreteCadreService {
         {
           departementNom: newAc.departementPilote.nom,
           acNumero: newAc.numero,
-          lien: `https://${process.env.DOMAIN_NAME}/arrete-cadre/${newAc.id}/edition`,
+          lien: `https://${process.env.DOMAIN_NAME}/arrete-cadre`,
           departementsTermine: newDepsFinalise,
           departementsEnAttente: newDepsEnAttente,
         },
