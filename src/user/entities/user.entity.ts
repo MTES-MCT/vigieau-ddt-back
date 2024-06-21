@@ -29,6 +29,9 @@ export class User extends BaseEntity {
   @Column({ nullable: true, length: 10 })
   role_departement: string;
 
+  @Column('text',{ nullable: true, array: true })
+  role_departements: string[];
+
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
 }

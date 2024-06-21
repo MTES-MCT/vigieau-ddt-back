@@ -32,9 +32,9 @@ export class UsageService {
       .leftJoin('arreteCadre.departements', 'departements')
       .where('usage."arreteCadreId" is not null')
       .andWhere(
-        curentUser.role === 'mte' ? '1 = 1' : 'departements.code = :code_dep',
+        curentUser.role === 'mte' ? '1 = 1' : 'departements.code IN(:...code_dep)',
         {
-          code_dep: curentUser.role_departement,
+          code_dep: curentUser.role_departements,
         },
       )
       .orderBy('usage.nom', 'ASC')

@@ -32,7 +32,7 @@ export class StatisticDepartementService {
     if (!currentUser || currentUser.role === 'mte') {
       return this.statisticDepartements;
     } else {
-      return this.statisticDepartements.filter(s => s.departement.code === currentUser.role_departement);
+      return this.statisticDepartements.filter(s => currentUser.role_departements.includes(s.departement.code));
     }
   }
 

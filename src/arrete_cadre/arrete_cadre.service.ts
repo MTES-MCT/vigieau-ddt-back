@@ -76,7 +76,7 @@ export class ArreteCadreService {
         code:
           !currentUser || currentUser.role === 'mte'
             ? depCode
-            : currentUser.role_departement,
+            : In(currentUser.role_departements),
       },
     };
     const acToReturn = await this.arreteCadreRepository.find({
@@ -149,14 +149,14 @@ export class ArreteCadreService {
     return acToReturn.filter((ac) => !ac.zonesAlerte.some((za) => za.disabled));
   }
 
-  async findOne(id: number, curentUser?: User) {
+  async findOne(id: number, currentUser?: User) {
     const whereClause: FindOptionsWhere<ArreteCadre> | null =
-      !curentUser || curentUser.role === 'mte'
+      !currentUser || currentUser.role === 'mte'
         ? { id }
         : {
           id,
           departements: {
-            code: curentUser.role_departement,
+            code: In(currentUser.role_departements),
           },
         };
     const [arreteCadre, usagesArreteCadre, departements] = await Promise.all([
@@ -547,7 +547,7 @@ export class ArreteCadreService {
       (user.role === 'mte' ||
         (arreteCadre.statut !== 'abroge' &&
           arreteCadre.departements.some(
-            (d) => d.code === user.role_departement,
+            (d) => user.role_departements.includes(d.code),
           ) &&
           !arreteCadre.zonesAlerte.some((za) => za.disabled)))
     );
@@ -566,7 +566,7 @@ export class ArreteCadreService {
         !arrete.arretesRestriction.some((ar) =>
           ['a_venir', 'publie', 'abroge'].includes(ar.statut),
         ) &&
-        arrete.departements.some((d) => d.code === user.role_departement))
+        arrete.departements.some((d) => user.role_departements.includes(d.code)))
     );
   }
 
@@ -589,7 +589,7 @@ export class ArreteCadreService {
       arrete &&
       ['a_venir', 'publie'].includes(arrete.statut) &&
       (user.role === 'mte' ||
-        arrete.departements.some((d) => d.code === user.role_departement))
+        arrete.departements.some((d) => user.role_departements.includes(d.code)))
     );
   }
 
@@ -702,7 +702,7 @@ export class ArreteCadreService {
         {
           departementNom: newAc.departementPilote.nom,
           acNumero: newAc.numero,
-          lien: `https://${process.env.DOMAIN_NAME}/arrete-cadre/${newAc.id}/edition`,
+          lien: `https://${process.env.DOMAIN_NAME}/arrete-cadre`,
           departementsTermine: newDepsFinalise,
           departementsEnAttente: newDepsEnAttente,
         },
@@ -717,7 +717,7 @@ export class ArreteCadreService {
     const depsToSendMail = newAc.departements.filter((d) => {
       return (
         !oldAc?.departements.some((od) => od.id === d.id) &&
-        !(user.role === 'mte' || d.code === user.role_departement)
+        !(user.role === 'mte' || user.role_departements.includes(d.code))
       );
     });
     if (depsToSendMail.length < 1) {

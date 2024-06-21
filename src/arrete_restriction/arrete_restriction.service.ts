@@ -92,7 +92,7 @@ export class ArreteRestrictionService {
         code:
           !currentUser || currentUser.role === 'mte'
             ? depCode
-            : currentUser.role_departement,
+            : In(currentUser.role_departements),
       },
     };
     return this.arreteRestrictionRepository.find({
@@ -177,7 +177,7 @@ export class ArreteRestrictionService {
         : {
           id,
           departement: {
-            code: currentUser.role_departement,
+            code: In(currentUser.role_departements),
           },
         };
     const [ar, acs] = await Promise.all([
@@ -593,7 +593,7 @@ export class ArreteRestrictionService {
         arreteRestrictionPdf,
         `arrete-restriction/${ar.id}/`,
       );
-      toSave.fichier = { id: newFile.id };
+      toSave.fichier = { id: newFile.id, nom: newFile.nom };
     }
     toSave =
       moment(publishArreteRestrictionDto.dateDebut).isSameOrBefore(moment(), 'day')
@@ -602,7 +602,7 @@ export class ArreteRestrictionService {
           ? { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } }
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
-    const toRerturn = await this.arreteRestrictionRepository.save(toSave);
+    const toReturn = await this.arreteRestrictionRepository.save(toSave);
 
     // Gestion des abrogations associées
     if (ar.arreteRestrictionAbroge) {
@@ -625,7 +625,8 @@ export class ArreteRestrictionService {
       }
     }
     await this.updateArreteRestrictionStatut([ar.departement]);
-    return toRerturn;
+    this.checkModifications(ar, toReturn, currentUser, true);
+    return toReturn;
   }
 
   async repeal(
@@ -882,7 +883,7 @@ export class ArreteRestrictionService {
       (!containUrl || !!arreteRestriction.fichier) &&
       (user.role === 'mte' ||
         (arreteRestriction.statut !== 'abroge' &&
-          arreteRestriction.departement.code === user.role_departement &&
+          user.role_departements.includes(arreteRestriction.departement.code) &&
           !arreteRestriction.restrictions.some((r) => r.zoneAlerte?.disabled)))
     );
   }
@@ -895,7 +896,7 @@ export class ArreteRestrictionService {
     return (
       arrete &&
       (user.role === 'mte' ||
-        (arrete.departement.code === user.role_departement &&
+        (user.role_departements.includes(arrete.departement.code) &&
           ['a_valider'].includes(arrete.statut)))
     );
   }
@@ -918,7 +919,7 @@ export class ArreteRestrictionService {
     return (
       arrete &&
       ['a_venir', 'publie'].includes(arrete.statut) &&
-      (user.role === 'mte' || arrete.departement.code === user.role_departement)
+      (user.role === 'mte' || user.role_departements.includes(arrete.departement.code))
     );
   }
 
@@ -1087,11 +1088,16 @@ export class ArreteRestrictionService {
       .getMany();
   }
 
-  private async checkModifications(oldAr: ArreteRestriction, newAr: ArreteRestriction, currentUser: User) {
+  private async checkModifications(oldAr: ArreteRestriction, newAr: ArreteRestriction, currentUser: User, publish = false) {
     if (oldAr.statut !== 'publie') {
       return;
     }
-    const model = {
+    const model = publish ? {
+      dateDebut: true,
+      fichier: {
+        nom: true,
+      }
+    } : {
       numero: true,
       niveauGraviteSpecifiqueEap: true,
       ressourceEapCommunique: true,
@@ -1128,7 +1134,7 @@ export class ArreteRestrictionService {
         {
           date: new Date().toLocaleDateString(),
           userEmail: currentUser.email,
-          userDepartement: currentUser.role_departement,
+          userDepartement: currentUser.role_departements?.join(', '),
           arreteNumero: oldAr.numero,
           oldAr: JSON.stringify(oldArLight),
           newAr: JSON.stringify(newArLight),

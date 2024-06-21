@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { DeleteResult, Like, Repository } from 'typeorm';
+import { DeleteResult, In, Like, Repository } from 'typeorm';
 import { Departement } from '../departement/entities/departement.entity';
 
 @Injectable()
@@ -11,13 +11,13 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  findAll(curentUser?: User): Promise<User[]> {
+  findAll(currentUser?: User): Promise<User[]> {
     const where =
-      !curentUser || curentUser.role === 'mte'
+      !currentUser || currentUser.role === 'mte'
         ? {}
         : {
-            role: curentUser.role,
-            role_departement: curentUser.role_departement,
+            role: currentUser.role,
+            role_departement: In(currentUser.role_departements),
           };
     return this.userRepository.find({ where, order: { email: 'ASC' }});
   }
@@ -42,7 +42,7 @@ export class UserService {
       .leftJoinAndSelect(
         Departement,
         'departement',
-        'departement.code = user.role_departement',
+        'departement.code IN(user.role_departements)',
       )
       .where('departement.id IN (:...depIds)', { depIds })
       .getMany();
@@ -54,7 +54,7 @@ export class UserService {
       .leftJoinAndSelect(
         Departement,
         'departement',
-        'departement.code = user.role_departement',
+        'departement.code IN(user.role_departements)',
       )
       .where('departement.code IN (:...depCodes)', { depCodes })
       .getMany();
@@ -64,7 +64,7 @@ export class UserService {
     if (
       curentUser.role === 'departement' &&
       (user.role !== 'departement' ||
-        curentUser.role_departement !== user.role_departement)
+        user.role_departements.some(d => !curentUser.role_departements.includes(d)))
     ) {
       throw new HttpException(
         "Vous ne pouvez créer un utilisateur qu'avec un droit sur votre département.",
@@ -98,7 +98,7 @@ export class UserService {
       }
       if (
         userToDelete.role !== curentUser.role ||
-        userToDelete.role_departement !== curentUser.role_departement
+        userToDelete.role_departements.some(d => !curentUser.role_departements.includes(d))
       ) {
         throw new HttpException(
           'Vous ne pouvez supprimer des utilisateurs que sur votre département.',
@@ -111,7 +111,7 @@ export class UserService {
 
   private _formatUser(user: User) {
     if (user.role === 'mte') {
-      user.role_departement = null;
+      user.role_departements = null;
     }
     return user;
   }

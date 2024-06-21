@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsArray, IsString } from 'class-validator';
 import { UserRole } from '../type/user-role.type';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -39,4 +39,12 @@ export class UserDto {
       "Département associé à l'utilisateur lorsque son rôle n'est pas MTE",
   })
   roleDepartement: string;
+
+  @IsArray()
+  @ApiProperty({
+    example: '["01"]',
+    description:
+      "Départements associés à l'utilisateur lorsque son rôle n'est pas MTE",
+  })
+  roleDepartements: string[];
 }
