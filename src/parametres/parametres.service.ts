@@ -21,7 +21,7 @@ export class ParametresService {
         ? {}
         : {
           departement: {
-            code: currentUser.role_departement,
+            code: In(currentUser.role_departements),
           },
         };
     return this.parametresRepository.find({
@@ -65,7 +65,7 @@ export class ParametresService {
     if (
       currentUser &&
       currentUser.role !== 'mte' &&
-      currentUser.role_departement !== depCode
+      !currentUser.role_departements.includes(depCode)
     ) {
       throw new HttpException(
         'Vous n\'avez pas les droits pour modifier ces paramètres',

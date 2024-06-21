@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { UsageFeedback } from './entities/usage_feedback.entity';
 
 @Injectable()
@@ -18,7 +18,7 @@ export class UsageFeedbackService {
         restriction: {
           arreteRestriction: {
             departement: {
-              code: currentUser.role_departement,
+              code: In(currentUser.role_departements),
             },
           },
         },

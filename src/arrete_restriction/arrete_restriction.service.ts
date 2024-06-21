@@ -92,7 +92,7 @@ export class ArreteRestrictionService {
         code:
           !currentUser || currentUser.role === 'mte'
             ? depCode
-            : currentUser.role_departement,
+            : In(currentUser.role_departements),
       },
     };
     return this.arreteRestrictionRepository.find({
@@ -177,7 +177,7 @@ export class ArreteRestrictionService {
         : {
           id,
           departement: {
-            code: currentUser.role_departement,
+            code: In(currentUser.role_departements),
           },
         };
     const [ar, acs] = await Promise.all([
@@ -883,7 +883,7 @@ export class ArreteRestrictionService {
       (!containUrl || !!arreteRestriction.fichier) &&
       (user.role === 'mte' ||
         (arreteRestriction.statut !== 'abroge' &&
-          arreteRestriction.departement.code === user.role_departement &&
+          user.role_departements.includes(arreteRestriction.departement.code) &&
           !arreteRestriction.restrictions.some((r) => r.zoneAlerte?.disabled)))
     );
   }
@@ -896,7 +896,7 @@ export class ArreteRestrictionService {
     return (
       arrete &&
       (user.role === 'mte' ||
-        (arrete.departement.code === user.role_departement &&
+        (user.role_departements.includes(arrete.departement.code) &&
           ['a_valider'].includes(arrete.statut)))
     );
   }
@@ -919,7 +919,7 @@ export class ArreteRestrictionService {
     return (
       arrete &&
       ['a_venir', 'publie'].includes(arrete.statut) &&
-      (user.role === 'mte' || arrete.departement.code === user.role_departement)
+      (user.role === 'mte' || user.role_departements.includes(arrete.departement.code))
     );
   }
 
@@ -1134,7 +1134,7 @@ export class ArreteRestrictionService {
         {
           date: new Date().toLocaleDateString(),
           userEmail: currentUser.email,
-          userDepartement: currentUser.role_departement,
+          userDepartement: currentUser.role_departements?.join(', '),
           arreteNumero: oldAr.numero,
           oldAr: JSON.stringify(oldArLight),
           newAr: JSON.stringify(newArLight),
