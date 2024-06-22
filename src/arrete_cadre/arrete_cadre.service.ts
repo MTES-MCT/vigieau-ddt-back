@@ -74,7 +74,7 @@ export class ArreteCadreService {
       statut: In(['a_venir', 'publie']),
       departements: {
         code:
-          !currentUser || currentUser.role === 'mte'
+          !currentUser || currentUser.role === 'mte' || depCode
             ? depCode
             : In(currentUser.role_departements),
       },
