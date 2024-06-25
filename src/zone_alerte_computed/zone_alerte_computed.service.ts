@@ -65,7 +65,8 @@ export class ZoneAlerteComputedService {
 
   async askCompute(depsIds?: number[], force = false, dateCompute?: string) {
     this.departementsToUpdate = this.departementsToUpdate.concat(depsIds);
-    if (dateCompute && (!this.dateHistoricToCompute || this.dateHistoricToCompute.isAfter(moment(dateCompute)))) {
+    if (dateCompute && moment().diff(moment(dateCompute, 'YYYY-MM-DD'), 'days') >= 1
+      && (!this.dateHistoricToCompute || this.dateHistoricToCompute.isAfter(moment(dateCompute)))) {
       this.dateHistoricToCompute = moment(dateCompute);
     }
     if ((this.isComputing && this.askForCompute && !force)

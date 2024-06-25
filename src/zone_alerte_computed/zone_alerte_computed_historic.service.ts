@@ -156,7 +156,7 @@ export class ZoneAlerteComputedHistoricService {
     // const dateFin = moment('23/06/2024', 'DD/MM/YYYY');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
-      this.logger.log(`COMPUTING ZONES D'ALERTES - BEGIN`);
+      this.logger.log(`COMPUTING ZONES D'ALERTES ${m.format('DD/MM/YYYY')} - BEGIN`);
       let departements = await this.departementService.findAllLight();
 
       for (const departement of departements) {
@@ -187,7 +187,7 @@ export class ZoneAlerteComputedHistoricService {
         await this.computeCommunesIntersected(departement);
       }
       // On récupère toutes les restrictions en cours
-      this.logger.log(`COMPUTING ZONES D'ALERTES - END`);
+      this.logger.log(`COMPUTING ZONES D'ALERTES ${m.format('DD/MM/YYYY')} - END`);
       await this.computeGeoJson(m);
     }
   }
