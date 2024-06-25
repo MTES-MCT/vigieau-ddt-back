@@ -16,6 +16,8 @@ import { ConfigService } from '@nestjs/config';
 import { RestrictionService } from '../restriction/restriction.service';
 import { DatagouvService } from '../datagouv/datagouv.service';
 import { StatisticService } from '../statistic/statistic.service';
+import moment, { Moment } from 'moment';
+import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_historic.service';
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -26,6 +28,7 @@ export class ZoneAlerteComputedService {
   private isComputing = false;
   private askForCompute = false;
   private departementsToUpdate = [];
+  private dateHistoricToCompute: Moment | null = null;
 
   constructor(
     @InjectRepository(ZoneAlerteComputed)
@@ -41,6 +44,7 @@ export class ZoneAlerteComputedService {
     @Inject(forwardRef(() => DatagouvService))
     private readonly datagouvService: DatagouvService,
     private readonly statisticService: StatisticService,
+    private readonly zoneAlerteComputedHistoricService: ZoneAlerteComputedHistoricService,
   ) {
   }
 
@@ -59,8 +63,11 @@ export class ZoneAlerteComputedService {
       .getRawOne();
   }
 
-  async askCompute(depsIds?: number[], force = false) {
+  async askCompute(depsIds?: number[], force = false, dateCompute?: string) {
     this.departementsToUpdate = this.departementsToUpdate.concat(depsIds);
+    if (dateCompute && (!this.dateHistoricToCompute || this.dateHistoricToCompute.isAfter(moment(dateCompute)))) {
+      this.dateHistoricToCompute = moment(dateCompute);
+    }
     if ((this.isComputing && this.askForCompute && !force)
       || (!this.askForCompute && force)) {
       return;
@@ -543,10 +550,10 @@ export class ZoneAlerteComputedService {
       buffer: dataGeojson,
     };
     try {
-      const fileNameToSaveGeoJson = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.geojson`;
-      await this.s3Service.copyFile(fileToTransferGeojson.originalname, fileNameToSaveGeoJson, 'geojson/');
       // @ts-ignore
       const s3ResponseGeojson = await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
+      const fileNameToSaveGeoJson = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.geojson`;
+      await this.s3Service.copyFile(fileToTransferGeojson.originalname, fileNameToSaveGeoJson, 'geojson/');
       await this.datagouvService.uploadToDatagouv('geojson', s3ResponseGeojson.Location, 'Carte des zones et arrêtés en vigueur - GeoJSON', true);
     } catch (e) {
       this.logger.error('ERROR COPYING GEOJSON', e);
@@ -558,20 +565,21 @@ export class ZoneAlerteComputedService {
         originalname: 'zones_arretes_en_vigueur.pmtiles',
         buffer: data,
       };
+      // @ts-ignore
+      const s3Response = await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
       try {
         const fileNameToSave = `zones_arretes_en_vigueur_${date.toISOString().split('T')[0]}.pmtiles`;
         await this.s3Service.copyFile(fileToTransfer.originalname, fileNameToSave, 'pmtiles/');
       } catch (e) {
         this.logger.error('ERROR COPYING PMTILES', e);
       }
-      // @ts-ignore
-      const s3Response = await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
       await this.zoneAlerteComputedRepository.update({}, { enabled: true });
 
       await this.datagouvService.uploadToDatagouv('pmtiles', s3Response.Location, 'Carte des zones et arrêtés en vigueur - PMTILES', true);
     } catch (e) {
       this.logger.error('ERROR GENERATING PMTILES', e);
     }
+    this.computeHistoric();
     this.statisticService.computeDepartementsSituation(allZonesComputed);
   }
 
@@ -598,6 +606,14 @@ export class ZoneAlerteComputedService {
       }
     });
     await this.zoneAlerteComputedRepository.save(toSave);
+  }
+
+  computeHistoric() {
+    if (this.askForCompute || !this.dateHistoricToCompute) {
+      return;
+    }
+    this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(this.dateHistoricToCompute);
+    this.dateHistoricToCompute = null;
   }
 
   async getZonesAlerteComputedByDepartement(departement: Departement): Promise<ZoneAlerteComputed[]> {
