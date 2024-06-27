@@ -7,10 +7,13 @@ import { ConfigService } from '@nestjs/config';
 import { writeFile } from 'node:fs/promises';
 import { HttpService } from '@nestjs/axios';
 import fs from 'fs';
-import { catchError, lastValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, lastValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
 import moment from 'moment';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
+import { S3Service } from '../shared/services/s3.service';
+import { Moment } from 'moment/moment';
+import JSZip from 'jszip';
 
 @Injectable()
 export class DatagouvService {
@@ -42,7 +45,8 @@ export class DatagouvService {
               private readonly arreteRestrictionService: ArreteRestrictionService,
               private readonly configService: ConfigService,
               @Inject(forwardRef(() => ZoneAlerteComputedService))
-              private readonly zoneAlerteComputedService: ZoneAlerteComputedService) {
+              private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
+              private readonly s3Service: S3Service) {
     this.path = this.configService.get('PATH_TO_WRITE_FILE');
     this.datagouvApiKey = this.configService.get('API_DATAGOUV_KEY');
     this.datagouvApiUrl = `${this.configService.get('API_DATAGOUV')}/datasets/${this.configService.get('API_DATAGOUV_DATASET')}`;
@@ -58,6 +62,7 @@ export class DatagouvService {
     await this.updateArretes();
     await this.updateHistoriqueArretes();
     await this.updateRestrictions();
+    await this.updateMaps();
     this.logger.log('MISE A JOUR DATAGOUV - FIN');
   }
 
@@ -161,50 +166,50 @@ export class DatagouvService {
         },
       };
       const usages = zoneAlerte.restriction.usages
-          .filter(usage => {
-            if (zoneAlerte.type === 'SUP') {
-              return usage.concerneEsu;
-            } else if (zoneAlerte.type === 'SOU') {
-              return usage.concerneEso;
-            } else if (zoneAlerte.type === 'AEP') {
-              return usage.concerneAep;
-            }
-            return false;
-          })
-          .map(usage => {
-            let description = '';
-            switch (zoneAlerte.niveauGravite) {
-              case 'vigilance':
-                description = usage.descriptionVigilance;
-                break;
-              case 'alerte':
-                description = usage.descriptionAlerte;
-                break;
-              case 'alerte_renforcee':
-                description = usage.descriptionAlerteRenforcee;
-                break;
-              case 'crise':
-                description = usage.descriptionCrise;
-                break;
-            }
-            return {
-              nom: usage.nom,
-              thematique: usage.thematique.nom,
-              concerne_particulier: usage.concerneParticulier,
-              concerne_entreprise: usage.concerneEntreprise,
-              concerne_collectivite: usage.concerneCollectivite,
-              concerne_exploitation: usage.concerneExploitation,
-              description: description,
-            };
-          });
+        .filter(usage => {
+          if (zoneAlerte.type === 'SUP') {
+            return usage.concerneEsu;
+          } else if (zoneAlerte.type === 'SOU') {
+            return usage.concerneEso;
+          } else if (zoneAlerte.type === 'AEP') {
+            return usage.concerneAep;
+          }
+          return false;
+        })
+        .map(usage => {
+          let description = '';
+          switch (zoneAlerte.niveauGravite) {
+            case 'vigilance':
+              description = usage.descriptionVigilance;
+              break;
+            case 'alerte':
+              description = usage.descriptionAlerte;
+              break;
+            case 'alerte_renforcee':
+              description = usage.descriptionAlerteRenforcee;
+              break;
+            case 'crise':
+              description = usage.descriptionCrise;
+              break;
+          }
+          return {
+            nom: usage.nom,
+            thematique: usage.thematique.nom,
+            concerne_particulier: usage.concerneParticulier,
+            concerne_entreprise: usage.concerneEntreprise,
+            concerne_collectivite: usage.concerneCollectivite,
+            concerne_exploitation: usage.concerneExploitation,
+            description: description,
+          };
+        });
       usages.forEach(u => {
         formatRestrictions.push({
           ...restriction,
           usage: {
-            u
+            u,
           },
         });
-      })
+      });
     });
     const csv = json2csv(formatRestrictions, {
       arrayIndexesAsKeys: true,
@@ -215,6 +220,54 @@ export class DatagouvService {
     await this.uploadToDatagouv('restrictions', 'restrictions.csv', 'Restrictions');
 
     this.logger.log('MISE A JOUR DATAGOUV - RESTRICTIONS - FIN');
+  }
+
+  async updateMaps(date?: Moment) {
+    const dateDebut = date ? date : moment();
+
+    for (let y = dateDebut.year(); y <= moment().year(); y++) {
+      await this.generateMapsArchive(dateDebut, y, true);
+      await this.generateMapsArchive(dateDebut, y, false);
+    }
+  }
+
+  async generateMapsArchive(dateDebut: Moment, year: number, geojson?: boolean) {
+    const path = this.configService.get('PATH_TO_WRITE_FILE');
+    const geojsonOrPmtiles = geojson ? 'geojson' : 'pmtiles';
+
+    console.log(`GENERATION DE L'ARCHIVE ${geojsonOrPmtiles} DE L'ANNEE ${year}`);
+    // On récupère le zip existant, si il n'existe pas on le crée
+    let dataZip;
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get(
+          `${this.configService.get('S3_VHOST')}${this.configService.get('S3_PREFIX')}${geojsonOrPmtiles}/zones_${geojsonOrPmtiles}_${year}.zip`,
+          { responseType: 'arraybuffer' },
+        ),
+      );
+      dataZip = data;
+    } catch (e) {
+      this.logger.error(`ARCHIVE ${this.configService.get('S3_VHOST')}${this.configService.get('S3_PREFIX')}${geojsonOrPmtiles}/zones_${geojsonOrPmtiles}_${year}.zip non accessible`, e);
+    }
+    const zip = dataZip ? await JSZip.loadAsync(dataZip) : new JSZip();
+
+    for (let m = dateDebut;
+         m.diff(moment(), 'days', true) <= 0 && m.year() === year;
+         m.add(1, 'days')) {
+      const fileName = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles}`;
+      const fileData = fs.readFileSync(`${path}/${fileName}`);
+      zip.remove(fileName);
+      zip.file(fileName, fileData);
+    }
+
+    const newZipData = await zip.generateAsync({ type: 'nodebuffer' });
+    const fileToTransfer= {
+      originalname: `zones_${geojsonOrPmtiles}_${year}.zip`,
+      buffer: newZipData,
+    };
+    // @ts-ignore
+    const s3Response = await this.s3Service.uploadFile(fileToTransfer, `${geojsonOrPmtiles}/`);
+    console.log(`FIN GENERATION DE L'ARCHIVE ${geojsonOrPmtiles} DE L'ANNEE ${year}`);
   }
 
   async uploadToDatagouv(resource: string, fileName: string, title: string, isUrl = false) {

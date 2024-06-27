@@ -18,6 +18,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ZoneAlerteComputedHistoric } from './entities/zone_alerte_computed_historic.entity';
 import { Utils } from '../core/utils';
 import { RestrictionService } from '../restriction/restriction.service';
+import { DatagouvService } from '../datagouv/datagouv.service';
 
 const exec = util.promisify(require('child_process').exec);
 
@@ -35,9 +36,10 @@ export class ZoneAlerteComputedHistoricService {
               private readonly communeService: CommuneService,
               @InjectRepository(ZoneAlerteComputedHistoric)
               private readonly zoneAlerteComputedHistoricRepository: Repository<ZoneAlerteComputedHistoric>,
-              private readonly restrictionService: RestrictionService,) {
+              private readonly restrictionService: RestrictionService,
+              private readonly dataGouvService: DatagouvService,) {
     // setTimeout(() => {
-    //   this.computeHistoricMaps();
+    //   this.uploadZip();
     // }, 5000);
   }
 
@@ -151,11 +153,11 @@ export class ZoneAlerteComputedHistoricService {
   }
 
   async computeHistoricMapsComputed(date?: Moment) {
-    const dateDebut = date ? date : moment('19/06/2024', 'DD/MM/YYYY');
+    const dateDebut = date ? date : moment();
     const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('23/06/2024', 'DD/MM/YYYY');
 
-    for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
+    for (let m = moment(dateDebut); m.diff(dateFin, 'days', true) <= 0; m.add(1, 'days')) {
       this.logger.log(`COMPUTING ZONES D'ALERTES ${m.format('DD/MM/YYYY')} - BEGIN`);
       let departements = await this.departementService.findAllLight();
 
@@ -190,6 +192,7 @@ export class ZoneAlerteComputedHistoricService {
       this.logger.log(`COMPUTING ZONES D'ALERTES ${m.format('DD/MM/YYYY')} - END`);
       await this.computeGeoJson(m);
     }
+    await this.dataGouvService.updateMaps(dateDebut);
   }
 
   async computeRegleAr(departement: Departement, date: Moment) {
@@ -698,8 +701,8 @@ export class ZoneAlerteComputedHistoricService {
       this.logger.error('ERROR UPLOADING GEOJSON', e);
     }
     try {
-      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur.pmtiles ${path}/zones_arretes_en_vigueur.geojson`);
-      const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur.pmtiles`);
+      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles ${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.geojson`);
+      const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles`);
       const fileToTransfer = {
         originalname: `zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles`,
         buffer: data,
