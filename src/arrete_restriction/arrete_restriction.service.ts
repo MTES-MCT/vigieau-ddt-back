@@ -624,7 +624,7 @@ export class ArreteRestrictionService {
         );
       }
     }
-    await this.updateArreteRestrictionStatut([ar.departement]);
+    await this.updateArreteRestrictionStatut([ar.departement], ar.dateDebut);
     this.checkModifications(ar, toReturn, currentUser, true);
     return toReturn;
   }
@@ -655,7 +655,7 @@ export class ArreteRestrictionService {
       toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
     }
     const toReturn = await this.arreteRestrictionRepository.save(toSave);
-    await this.updateArreteRestrictionStatut([ar.departement]);
+    await this.updateArreteRestrictionStatut([ar.departement], ar.dateFin);
     // TODO si tout les AR associés à un AC sont abrogés, il faut abroger l'AC
     return toReturn;
   }
@@ -855,7 +855,7 @@ export class ArreteRestrictionService {
 
     await this.arreteRestrictionRepository.delete(id);
     if (arrete.statut === 'publie') {
-      this.zoneAlerteComputedService.askCompute([arrete.departement.id]);
+      this.zoneAlerteComputedService.askCompute([arrete.departement.id], false, arrete.dateDebut);
       this.statisticDepartementService.computeDepartementStatistics();
     }
     return;
@@ -927,7 +927,7 @@ export class ArreteRestrictionService {
    * Mis à jour des statuts des AR en fonction de ceux des ACs
    * On reprend tout pour éviter que certains AR soient passés entre les mailles du filet (notamment l'historique ou autre)
    */
-  async updateArreteRestrictionStatut(departements?: Departement[]) {
+  async updateArreteRestrictionStatut(departements?: Departement[], date?: string) {
     const arAVenir = await this.arreteRestrictionRepository.find({
       where: {
         statut: 'a_venir',
@@ -998,8 +998,8 @@ export class ArreteRestrictionService {
     ));
     await Promise.all(promises);
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
-    this.zoneAlerteComputedService.askCompute(departements ? departements.map(d => d.id) : []);
-    this.statisticDepartementService.computeDepartementStatistics();
+    await this.statisticDepartementService.computeDepartementStatistics();
+    this.zoneAlerteComputedService.askCompute(departements ? departements.map(d => d.id) : [], false, date);
   }
 
   /**

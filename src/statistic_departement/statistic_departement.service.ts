@@ -114,7 +114,7 @@ export class StatisticDepartementService {
         }
       });
 
-      await this.statisticDepartementRepository.delete({ departement: d });
+      await this.statisticDepartementRepository.delete({ departement: { id: d.id } });
       await this.statisticDepartementRepository.save(statisticDepartement);
     }
     this.loadStatDep();
