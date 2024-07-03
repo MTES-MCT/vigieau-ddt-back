@@ -610,7 +610,7 @@ export class ZoneAlerteComputedService {
     const yesterday = moment().subtract(1, 'days');
     // Récupérer la date de début la plus ancienne des ARs modifiés la veille
     const dateHistoricToCompute = (await this.arreteResrictionService.findMinDateDebutByDate(yesterday)).dateDebut;
-    if(dateHistoricToCompute) {
+    if(dateHistoricToCompute && moment().diff(moment(dateHistoricToCompute, 'YYYY-MM-DD'), 'days') >= 1) {
       this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(moment(dateHistoricToCompute));
     }
   }
