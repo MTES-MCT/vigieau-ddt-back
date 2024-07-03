@@ -10,6 +10,9 @@ export class StatisticDepartement extends BaseEntity {
   @ManyToOne(() => Departement, (departement) => departement.statisticDepartement)
   departement: Departement;
 
+  @Column('jsonb',{ nullable: true })
+  visits: any[];
+
   @Column({ nullable: false })
   totalVisits: number;
 

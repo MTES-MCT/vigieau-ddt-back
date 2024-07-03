@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { Like, MoreThanOrEqual, Repository } from 'typeorm';
 import { StatisticDepartement } from './entities/statistic_departement.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Statistic } from '../statistic/entities/statistic.entity';
@@ -14,6 +14,7 @@ import { User } from '../user/entities/user.entity';
 export class StatisticDepartementService {
   private readonly logger = new RegleauLogger('StatisticDepartementService');
   private statisticDepartements: StatisticDepartement[] = [];
+  releaseDate = '2023-07-11';
 
   constructor(
     @InjectRepository(StatisticDepartement)
@@ -38,7 +39,7 @@ export class StatisticDepartementService {
 
   async loadStatDep() {
     this.statisticDepartements = await this.statisticDepartementRepository.find({
-      relations: ['departement']
+      relations: ['departement'],
     });
   }
 
@@ -46,6 +47,9 @@ export class StatisticDepartementService {
   async computeDepartementStatistics() {
     this.logger.log('Computing departement statistics...');
     const stats: Statistic[] = await this.statisticRepository.find({
+      where: {
+        date: MoreThanOrEqual(this.releaseDate),
+      },
       order: {
         date: 'ASC',
       },
@@ -56,6 +60,7 @@ export class StatisticDepartementService {
     for (const d of departements) {
       const statisticDepartement = {
         departement: d,
+        visits: [],
         totalVisits: 0,
         weekVisits: 0,
         monthVisits: 0,
@@ -73,6 +78,10 @@ export class StatisticDepartementService {
       for (const statByDay of stats) {
         const depVisits = statByDay.departementRepartition ? statByDay.departementRepartition[d.code] : 0;
         statisticDepartement.totalVisits += depVisits;
+        statisticDepartement.visits.push({
+          date: statByDay.date,
+          visits: depVisits,
+        });
 
         const today = new Date();
         const date = new Date(statByDay.date);
@@ -105,7 +114,7 @@ export class StatisticDepartementService {
         }
       });
 
-      await this.statisticDepartementRepository.delete({ departement: d });
+      await this.statisticDepartementRepository.delete({ departement: { id: d.id } });
       await this.statisticDepartementRepository.save(statisticDepartement);
     }
     this.loadStatDep();

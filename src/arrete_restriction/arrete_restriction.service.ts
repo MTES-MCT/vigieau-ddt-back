@@ -493,6 +493,16 @@ export class ArreteRestrictionService {
     });
   }
 
+  async findMinDateDebutByDate(date: Moment): Promise<any> {
+    return this.arreteRestrictionRepository.createQueryBuilder('arrete_restriction')
+      .select('MIN(arrete_restriction.dateDebut)','dateDebut')
+      .where('arrete_restriction.statut IN (:...statuts)', {
+        statuts: ['a_venir', 'publie', 'abroge'],
+      })
+      .andWhere('arrete_restriction.updated_at::DATE = :date', {date})
+      .getRawOne();
+  }
+
   async create(
     createArreteRestrictionDto: CreateUpdateArreteRestrictionDto,
     currentUser?: User,
@@ -515,6 +525,23 @@ export class ArreteRestrictionService {
         `Vous ne pouvez éditer un arrêté de restriction que si il est sur votre département et n'est pas abrogé.`,
         HttpStatus.FORBIDDEN,
       );
+    }
+    if (oldAr.statut !== 'a_valider') {
+      //@ts-expect-error type
+      const arBis: ArreteRestriction = {
+        ...oldAr,
+        ...{
+          restrictions: updateArreteRestrictionDto.restrictions,
+          arreteRestrictionAbroge: updateArreteRestrictionDto.arreteRestrictionAbroge,
+        },
+      };
+      const checkReturn = await this.checkBeforePublish(arBis);
+      if (checkReturn.errors.length > 0) {
+        throw new HttpException(
+          `Impossible de modifier l'arrête de restriction.\n${checkReturn.errors.join('\n')}`,
+          HttpStatus.FORBIDDEN,
+        );
+      }
     }
     // await this.checkAci(updateArreteRestrictionDto, true, currentUser);
     const arreteRestriction: ArreteRestriction =
@@ -624,7 +651,7 @@ export class ArreteRestrictionService {
         );
       }
     }
-    await this.updateArreteRestrictionStatut([ar.departement]);
+    this.updateArreteRestrictionStatut([ar.departement]);
     this.checkModifications(ar, toReturn, currentUser, true);
     return toReturn;
   }
@@ -855,7 +882,7 @@ export class ArreteRestrictionService {
 
     await this.arreteRestrictionRepository.delete(id);
     if (arrete.statut === 'publie') {
-      this.zoneAlerteComputedService.askCompute([arrete.departement.id]);
+      this.zoneAlerteComputedService.askCompute([arrete.departement.id], false);
       this.statisticDepartementService.computeDepartementStatistics();
     }
     return;
@@ -927,7 +954,7 @@ export class ArreteRestrictionService {
    * Mis à jour des statuts des AR en fonction de ceux des ACs
    * On reprend tout pour éviter que certains AR soient passés entre les mailles du filet (notamment l'historique ou autre)
    */
-  async updateArreteRestrictionStatut(departements?: Departement[]) {
+  async updateArreteRestrictionStatut(departements?: Departement[], computeHistoric?: boolean) {
     const arAVenir = await this.arreteRestrictionRepository.find({
       where: {
         statut: 'a_venir',
@@ -998,8 +1025,8 @@ export class ArreteRestrictionService {
     ));
     await Promise.all(promises);
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
-    this.zoneAlerteComputedService.askCompute(departements ? departements.map(d => d.id) : []);
-    this.statisticDepartementService.computeDepartementStatistics();
+    await this.statisticDepartementService.computeDepartementStatistics();
+    this.zoneAlerteComputedService.askCompute(departements ? departements.map(d => d.id) : [], false, computeHistoric);
   }
 
   /**
@@ -1096,7 +1123,7 @@ export class ArreteRestrictionService {
       dateDebut: true,
       fichier: {
         nom: true,
-      }
+      },
     } : {
       numero: true,
       niveauGraviteSpecifiqueEap: true,
@@ -1126,7 +1153,7 @@ export class ArreteRestrictionService {
     const oldArLight = this.filterObjectByModel(oldAr, model);
     const newArLight = this.filterObjectByModel(newAr, model);
     const diff = this.compare(deepClone(oldArLight), deepClone(newArLight));
-    if(Object.keys(diff).length > 0) {
+    if (Object.keys(diff).length > 0) {
       await this.mailService.sendEmail(
         'secheresse@beta.gouv.fr',
         `Des modifications importantes ont été apportées à l’arrêté ${oldAr.numero}`,

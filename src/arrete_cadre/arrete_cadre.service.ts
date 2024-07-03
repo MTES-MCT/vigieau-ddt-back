@@ -446,7 +446,7 @@ export class ArreteCadreService {
         }
       }
     }
-    await this.arreteRestrictionService.updateArreteRestrictionStatut(ac.departements);
+    this.arreteRestrictionService.updateArreteRestrictionStatut(ac.departements);
     return toReturn;
   }
 
@@ -769,7 +769,7 @@ export class ArreteCadreService {
     );
     this.logger.log(`${acPerime.length} Arrêtés Cadre abrogés`);
 
-    this.arreteRestrictionService.updateArreteRestrictionStatut();
+    this.arreteRestrictionService.updateArreteRestrictionStatut(null, true);
   }
 
   /**

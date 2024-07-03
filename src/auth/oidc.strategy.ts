@@ -10,6 +10,7 @@ import {
 } from 'openid-client';
 import { UserService } from '../user/user.service';
 import random = generators.random;
+import { RegleauLogger } from '../logger/regleau.logger';
 
 export const buildOpenIdClient = async () => {
   const TrustIssuer = await Issuer.discover(
@@ -27,6 +28,8 @@ export const buildOpenIdClient = async () => {
 };
 
 export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
+  private readonly _logger = new RegleauLogger('OidcStrategy');
+
   client: Client;
 
   constructor(
@@ -56,6 +59,7 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
     const userInDb = await this.userService.findOne(userinfo?.email);
 
     if (!userInDb) {
+      this._logger.error('ERROR LOGIN VALIDATE - USER NOT IN DB -', JSON.stringify(userinfo));
       throw new UnauthorizedException();
     }
 

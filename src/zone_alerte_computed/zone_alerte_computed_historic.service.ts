@@ -18,6 +18,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ZoneAlerteComputedHistoric } from './entities/zone_alerte_computed_historic.entity';
 import { Utils } from '../core/utils';
 import { RestrictionService } from '../restriction/restriction.service';
+import { DatagouvService } from '../datagouv/datagouv.service';
 
 const exec = util.promisify(require('child_process').exec);
 
@@ -35,9 +36,10 @@ export class ZoneAlerteComputedHistoricService {
               private readonly communeService: CommuneService,
               @InjectRepository(ZoneAlerteComputedHistoric)
               private readonly zoneAlerteComputedHistoricRepository: Repository<ZoneAlerteComputedHistoric>,
-              private readonly restrictionService: RestrictionService,) {
+              private readonly restrictionService: RestrictionService,
+              private readonly dataGouvService: DatagouvService,) {
     // setTimeout(() => {
-    //   this.computeHistoricMaps();
+    //   this.uploadZip();
     // }, 5000);
   }
 
@@ -58,7 +60,7 @@ export class ZoneAlerteComputedHistoricService {
 
   async computeHistoricMaps() {
     const dateDebut = moment('01/01/2013', 'DD/MM/YYYY');
-    const dateFin = moment('  31/12/2014', 'DD/MM/YYYY');
+    const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('28/04/2024', 'DD/MM/YYYY');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
@@ -128,19 +130,19 @@ export class ZoneAlerteComputedHistoricService {
       const fileNameToSave = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}`;
       await writeFile(`${path}/${fileNameToSave}.geojson`, JSON.stringify(geojson));
       try {
-        // await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/${fileNameToSave}.pmtiles ${path}/${fileNameToSave}.geojson`);
-        // const dataPmtiles = fs.readFileSync(`${path}/${fileNameToSave}.pmtiles`);
-        // const fileToTransferPmtiles = {
-        //   originalname: `${fileNameToSave}.pmtiles`,
-        //   buffer: dataPmtiles,
-        // };
+        await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/${fileNameToSave}.pmtiles ${path}/${fileNameToSave}.geojson`);
+        const dataPmtiles = fs.readFileSync(`${path}/${fileNameToSave}.pmtiles`);
+        const fileToTransferPmtiles = {
+          originalname: `${fileNameToSave}.pmtiles`,
+          buffer: dataPmtiles,
+        };
         const dataGeojson = fs.readFileSync(`${path}/${fileNameToSave}.geojson`);
         const fileToTransferGeojson = {
           originalname: `${fileNameToSave}.geojson`,
           buffer: dataGeojson,
         };
         // @ts-ignore
-        // await this.s3Service.uploadFile(fileToTransferPmtiles, 'pmtiles/');
+        await this.s3Service.uploadFile(fileToTransferPmtiles, 'pmtiles/');
         // @ts-ignore
         await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
       } catch (e) {
@@ -150,12 +152,13 @@ export class ZoneAlerteComputedHistoricService {
     }
   }
 
-  async computeHistoricMapsComputed() {
-    const dateDebut = moment('17/06/2024', 'DD/MM/YYYY');
-    const dateFin = moment('17/06/2024', 'DD/MM/YYYY');
+  async computeHistoricMapsComputed(date?: Moment) {
+    const dateDebut = date ? date : moment();
+    const dateFin = moment().subtract(1, 'days');
+    // const dateFin = moment('23/06/2024', 'DD/MM/YYYY');
 
-    for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
-      this.logger.log(`COMPUTING ZONES D'ALERTES - BEGIN`);
+    for (let m = moment(dateDebut); m.diff(dateFin, 'days', true) <= 0; m.add(1, 'days')) {
+      this.logger.log(`COMPUTING ZONES D'ALERTES ${m.format('DD/MM/YYYY')} - BEGIN`);
       let departements = await this.departementService.findAllLight();
 
       for (const departement of departements) {
@@ -186,9 +189,10 @@ export class ZoneAlerteComputedHistoricService {
         await this.computeCommunesIntersected(departement);
       }
       // On récupère toutes les restrictions en cours
-      this.logger.log(`COMPUTING ZONES D'ALERTES - END`);
+      this.logger.log(`COMPUTING ZONES D'ALERTES ${m.format('DD/MM/YYYY')} - END`);
       await this.computeGeoJson(m);
     }
+    await this.dataGouvService.updateMaps(dateDebut);
   }
 
   async computeRegleAr(departement: Departement, date: Moment) {
@@ -693,13 +697,12 @@ export class ZoneAlerteComputedHistoricService {
     try {
       // @ts-ignore
       const s3ResponseGeojson = await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
-      // await this.datagouvService.uploadToDatagouv('geojson', s3ResponseGeojson.Location, 'Carte des zones et arrêtés en vigueur - GeoJSON', true);
     } catch (e) {
-      this.logger.error('ERROR COPYING GEOJSON', e);
+      this.logger.error('ERROR UPLOADING GEOJSON', e);
     }
     try {
-      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur.pmtiles ${path}/zones_arretes_en_vigueur.geojson`);
-      const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur.pmtiles`);
+      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles ${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.geojson`);
+      const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles`);
       const fileToTransfer = {
         originalname: `zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles`,
         buffer: data,
@@ -707,10 +710,8 @@ export class ZoneAlerteComputedHistoricService {
       // @ts-ignore
       const s3Response = await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
       await this.zoneAlerteComputedHistoricRepository.update({}, { enabled: true });
-
-      // await this.datagouvService.uploadToDatagouv('pmtiles', s3Response.Location, 'Carte des zones et arrêtés en vigueur - PMTILES', true);
     } catch (e) {
-      this.logger.error('ERROR GENERATING PMTILES', e);
+      this.logger.error('ERROR UPLOADING / GENERATING PMTILES', e);
     }
     this.statisticService.computeDepartementsSituation(allZonesComputed, date.format('YYYY-MM-DD'));
   }
