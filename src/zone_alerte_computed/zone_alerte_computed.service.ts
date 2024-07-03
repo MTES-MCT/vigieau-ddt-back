@@ -28,7 +28,6 @@ export class ZoneAlerteComputedService {
   private isComputing = false;
   private askForCompute = false;
   private departementsToUpdate = [];
-  private dateHistoricToCompute: Moment | null = null;
 
   constructor(
     @InjectRepository(ZoneAlerteComputed)
@@ -63,12 +62,8 @@ export class ZoneAlerteComputedService {
       .getRawOne();
   }
 
-  async askCompute(depsIds?: number[], force = false, dateCompute?: string) {
+  async askCompute(depsIds?: number[], force = false, computeHistoric = false) {
     this.departementsToUpdate = this.departementsToUpdate.concat(depsIds);
-    if (dateCompute && moment().diff(moment(dateCompute, 'YYYY-MM-DD'), 'days') >= 1
-      && (!this.dateHistoricToCompute || this.dateHistoricToCompute.isAfter(moment(dateCompute)))) {
-      this.dateHistoricToCompute = moment(dateCompute);
-    }
     if ((this.isComputing && this.askForCompute && !force)
       || (!this.askForCompute && force)) {
       return;
@@ -77,14 +72,14 @@ export class ZoneAlerteComputedService {
       this.askForCompute = true;
       // On check toutes les 10s si on peut calculer
       setTimeout(() => {
-        this.askCompute([], true);
+        this.askCompute([], true, computeHistoric);
       }, 10 * 1000);
       return;
     }
     try {
       this.askForCompute = false;
       this.isComputing = true;
-      await this.computeAll([...new Set(this.departementsToUpdate)]);
+      await this.computeAll([...new Set(this.departementsToUpdate)], computeHistoric);
     } catch (e) {
     }
     this.isComputing = false;
@@ -107,7 +102,7 @@ export class ZoneAlerteComputedService {
     return zoneFull;
   }
 
-  async computeAll(depsId?: number[]) {
+  async computeAll(depsId?: number[], computeHistoric?: boolean) {
     this.logger.log(`COMPUTING ZONES D'ALERTES - BEGIN`);
     this.departementsToUpdate = [];
     let departements = await this.departementService.findAllLight();
@@ -143,7 +138,7 @@ export class ZoneAlerteComputedService {
     }
     // On récupère toutes les restrictions en cours
     this.logger.log(`COMPUTING ZONES D'ALERTES - END`);
-    await this.computeGeoJson();
+    await this.computeGeoJson(computeHistoric);
   }
 
   async computeRegleAr(departement: Departement) {
@@ -431,7 +426,7 @@ export class ZoneAlerteComputedService {
       .execute();
   }
 
-  async computeGeoJson() {
+  async computeGeoJson(computeHistoric?: boolean) {
     let allZonesComputed: any = await this.zoneAlerteComputedRepository.find({
       select: {
         id: true,
@@ -580,7 +575,9 @@ export class ZoneAlerteComputedService {
     } catch (e) {
       this.logger.error('ERROR GENERATING PMTILES', e);
     }
-    this.computeHistoric();
+    if(computeHistoric) {
+      this.computeHistoric();
+    }
     this.statisticService.computeDepartementsSituation(allZonesComputed);
   }
 
@@ -609,12 +606,13 @@ export class ZoneAlerteComputedService {
     await this.zoneAlerteComputedRepository.save(toSave);
   }
 
-  computeHistoric() {
-    if (this.askForCompute || !this.dateHistoricToCompute) {
-      return;
+  async computeHistoric() {
+    const yesterday = moment().subtract(1, 'days');
+    // Récupérer la date de début la plus ancienne des ARs modifiés la veille
+    const dateHistoricToCompute = (await this.arreteResrictionService.findMinDateDebutByDate(yesterday)).dateDebut;
+    if(dateHistoricToCompute) {
+      this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(moment(dateHistoricToCompute));
     }
-    // this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(this.dateHistoricToCompute);
-    this.dateHistoricToCompute = null;
   }
 
   async getZonesAlerteComputedByDepartement(departement: Departement): Promise<ZoneAlerteComputed[]> {

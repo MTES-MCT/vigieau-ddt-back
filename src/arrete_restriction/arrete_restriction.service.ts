@@ -493,6 +493,16 @@ export class ArreteRestrictionService {
     });
   }
 
+  async findMinDateDebutByDate(date: Moment): Promise<any> {
+    return this.arreteRestrictionRepository.createQueryBuilder('arrete_restriction')
+      .select('MIN(arrete_restriction.dateDebut)','dateDebut')
+      .where('arrete_restriction.statut IN (:...statuts)', {
+        statuts: ['a_venir', 'publie', 'abroge'],
+      })
+      .andWhere('arrete_restriction.updated_at::DATE = :date', {date})
+      .getRawOne();
+  }
+
   async create(
     createArreteRestrictionDto: CreateUpdateArreteRestrictionDto,
     currentUser?: User,
@@ -516,7 +526,7 @@ export class ArreteRestrictionService {
         HttpStatus.FORBIDDEN,
       );
     }
-    if(oldAr.statut !== 'a_valider') {
+    if (oldAr.statut !== 'a_valider') {
       //@ts-expect-error type
       const arBis: ArreteRestriction = {
         ...oldAr,
@@ -641,7 +651,7 @@ export class ArreteRestrictionService {
         );
       }
     }
-    this.updateArreteRestrictionStatut([ar.departement], ar.dateDebut);
+    this.updateArreteRestrictionStatut([ar.departement]);
     this.checkModifications(ar, toReturn, currentUser, true);
     return toReturn;
   }
@@ -672,7 +682,7 @@ export class ArreteRestrictionService {
       toSave = { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } };
     }
     const toReturn = await this.arreteRestrictionRepository.save(toSave);
-    await this.updateArreteRestrictionStatut([ar.departement], ar.dateFin);
+    await this.updateArreteRestrictionStatut([ar.departement]);
     // TODO si tout les AR associés à un AC sont abrogés, il faut abroger l'AC
     return toReturn;
   }
@@ -872,7 +882,7 @@ export class ArreteRestrictionService {
 
     await this.arreteRestrictionRepository.delete(id);
     if (arrete.statut === 'publie') {
-      this.zoneAlerteComputedService.askCompute([arrete.departement.id], false, arrete.dateDebut);
+      this.zoneAlerteComputedService.askCompute([arrete.departement.id], false);
       this.statisticDepartementService.computeDepartementStatistics();
     }
     return;
@@ -944,7 +954,7 @@ export class ArreteRestrictionService {
    * Mis à jour des statuts des AR en fonction de ceux des ACs
    * On reprend tout pour éviter que certains AR soient passés entre les mailles du filet (notamment l'historique ou autre)
    */
-  async updateArreteRestrictionStatut(departements?: Departement[], date?: string) {
+  async updateArreteRestrictionStatut(departements?: Departement[], computeHistoric?: boolean) {
     const arAVenir = await this.arreteRestrictionRepository.find({
       where: {
         statut: 'a_venir',
@@ -1016,7 +1026,7 @@ export class ArreteRestrictionService {
     await Promise.all(promises);
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
     await this.statisticDepartementService.computeDepartementStatistics();
-    this.zoneAlerteComputedService.askCompute(departements ? departements.map(d => d.id) : [], false, date);
+    this.zoneAlerteComputedService.askCompute(departements ? departements.map(d => d.id) : [], false, computeHistoric);
   }
 
   /**
