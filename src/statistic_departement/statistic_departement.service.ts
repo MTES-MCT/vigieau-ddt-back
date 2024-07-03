@@ -14,7 +14,7 @@ import { User } from '../user/entities/user.entity';
 export class StatisticDepartementService {
   private readonly logger = new RegleauLogger('StatisticDepartementService');
   private statisticDepartements: StatisticDepartement[] = [];
-  releaseDate = '2023-07-11';
+  releaseDate = '2023-07-12';
 
   constructor(
     @InjectRepository(StatisticDepartement)
