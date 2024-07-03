@@ -8,7 +8,7 @@ export class UsageFeedback extends BaseEntity {
 
   @ManyToOne(() => Usage,
     (usage) => usage.usageFeedbacks,
-    { nullable: false })
+    { nullable: false, onDelete: 'CASCADE' })
   usage: Usage;
 
   @Column({ nullable: true, length: 255 })
