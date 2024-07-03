@@ -516,6 +516,23 @@ export class ArreteRestrictionService {
         HttpStatus.FORBIDDEN,
       );
     }
+    if(oldAr.statut !== 'a_valider') {
+      //@ts-expect-error type
+      const arBis: ArreteRestriction = {
+        ...oldAr,
+        ...{
+          restrictions: updateArreteRestrictionDto.restrictions,
+          arreteRestrictionAbroge: updateArreteRestrictionDto.arreteRestrictionAbroge,
+        },
+      };
+      const checkReturn = await this.checkBeforePublish(arBis);
+      if (checkReturn.errors.length > 0) {
+        throw new HttpException(
+          `Impossible de modifier l'arrête de restriction.\n${checkReturn.errors.join('\n')}`,
+          HttpStatus.FORBIDDEN,
+        );
+      }
+    }
     // await this.checkAci(updateArreteRestrictionDto, true, currentUser);
     const arreteRestriction: ArreteRestriction =
       await this.arreteRestrictionRepository.save({
@@ -624,7 +641,7 @@ export class ArreteRestrictionService {
         );
       }
     }
-    await this.updateArreteRestrictionStatut([ar.departement], ar.dateDebut);
+    this.updateArreteRestrictionStatut([ar.departement], ar.dateDebut);
     this.checkModifications(ar, toReturn, currentUser, true);
     return toReturn;
   }
@@ -1096,7 +1113,7 @@ export class ArreteRestrictionService {
       dateDebut: true,
       fichier: {
         nom: true,
-      }
+      },
     } : {
       numero: true,
       niveauGraviteSpecifiqueEap: true,
@@ -1126,7 +1143,7 @@ export class ArreteRestrictionService {
     const oldArLight = this.filterObjectByModel(oldAr, model);
     const newArLight = this.filterObjectByModel(newAr, model);
     const diff = this.compare(deepClone(oldArLight), deepClone(newArLight));
-    if(Object.keys(diff).length > 0) {
+    if (Object.keys(diff).length > 0) {
       await this.mailService.sendEmail(
         'secheresse@beta.gouv.fr',
         `Des modifications importantes ont été apportées à l’arrêté ${oldAr.numero}`,

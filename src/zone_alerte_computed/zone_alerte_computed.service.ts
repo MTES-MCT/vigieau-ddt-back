@@ -613,7 +613,7 @@ export class ZoneAlerteComputedService {
     if (this.askForCompute || !this.dateHistoricToCompute) {
       return;
     }
-    this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(this.dateHistoricToCompute);
+    // this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(this.dateHistoricToCompute);
     this.dateHistoricToCompute = null;
   }
 
