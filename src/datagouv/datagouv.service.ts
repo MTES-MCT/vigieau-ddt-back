@@ -255,9 +255,13 @@ export class DatagouvService {
          m.diff(moment(), 'days', true) <= 0 && m.year() === year;
          m.add(1, 'days')) {
       const fileName = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles}`;
-      const fileData = fs.readFileSync(`${path}/${fileName}`);
-      zip.remove(fileName);
-      zip.file(fileName, fileData);
+      try {
+        const fileData = fs.readFileSync(`${path}/${fileName}`);
+        zip.remove(fileName);
+        zip.file(fileName, fileData);
+      } catch(e) {
+        this.logger.error(`ARCHIVE FICHIER ${fileName} non accessible`, e);
+      }
     }
 
     const newZipData = await zip.generateAsync({ type: 'nodebuffer' });

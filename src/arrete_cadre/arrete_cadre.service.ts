@@ -446,7 +446,7 @@ export class ArreteCadreService {
         }
       }
     }
-    await this.arreteRestrictionService.updateArreteRestrictionStatut(ac.departements);
+    this.arreteRestrictionService.updateArreteRestrictionStatut(ac.departements);
     return toReturn;
   }
 

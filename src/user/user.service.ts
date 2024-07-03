@@ -42,7 +42,7 @@ export class UserService {
       .leftJoinAndSelect(
         Departement,
         'departement',
-        'departement.code IN(user.role_departements)',
+        'departement.code IN(SELECT unnest(user.role_departements))',
       )
       .where('departement.id IN (:...depIds)', { depIds })
       .getMany();
