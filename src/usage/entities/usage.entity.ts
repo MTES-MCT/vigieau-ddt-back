@@ -4,13 +4,11 @@ import {
   Entity,
   Index,
   ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn, Unique,
 } from 'typeorm';
 import { Thematique } from '../../thematique/entities/thematique.entity';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
-import { UsageFeedback } from '../../usage_feedback/entities/usage_feedback.entity';
 
 @Entity()
 @Unique(['nom', 'thematique', 'arreteCadre'])
@@ -79,7 +77,4 @@ export class Usage extends BaseEntity {
   )
   @Index()
   restriction: Restriction;
-
-  @OneToMany(() => UsageFeedback, (usageFeedbacks) => usageFeedbacks.usage)
-  usageFeedbacks: UsageFeedback[];
 }
