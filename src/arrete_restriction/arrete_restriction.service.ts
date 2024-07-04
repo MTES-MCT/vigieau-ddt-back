@@ -630,6 +630,9 @@ export class ArreteRestrictionService {
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
     const toReturn = await this.arreteRestrictionRepository.save(toSave);
+    if(!arreteRestrictionPdf) {
+      toReturn.fichier = ar.fichier;
+    }
 
     // Gestion des abrogations associées
     if (ar.arreteRestrictionAbroge) {
@@ -1145,8 +1148,7 @@ export class ArreteRestrictionService {
         },
         niveauGravite: true,
         communes: [{
-          code: true,
-          nom: true,
+          id: true,
         }],
       }],
     };
@@ -1186,7 +1188,7 @@ export class ArreteRestrictionService {
         }
       }
     }
-    return copy;
+    return this.removeEmpty(copy);
   }
 
   private filterObjectByModel(obj: any, model: any): any {
