@@ -19,6 +19,9 @@ export class ZoneAlerte extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ nullable: true })
+  idSandre: number;
+
   @Column({ nullable: false, length: 200 })
   nom: string;
 
@@ -33,9 +36,6 @@ export class ZoneAlerte extends BaseEntity {
 
   @Column({ nullable: true })
   numeroVersionSandre: number;
-
-  @Column({ nullable: true })
-  idSandre: number;
 
   @Column({
     type: 'geometry',

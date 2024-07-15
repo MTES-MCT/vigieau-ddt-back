@@ -482,7 +482,7 @@ export class ZoneAlerteComputedHistoricService {
 
   async computeCommunesIntersected(departement: Departement) {
     const zones = await this.zoneAlerteComputedHistoricRepository.createQueryBuilder('zone_alerte_computed_historic')
-      .select(['zone_alerte_computed_historic.id', 'zone_alerte_computed_historic.nom', 'zone_alerte_computed_historic.code', 'zone_alerte_computed_historic.type'])
+      .select(['zone_alerte_computed_historic.id', 'zone_alerte_computed_historic.idSandre', 'zone_alerte_computed_historic.nom', 'zone_alerte_computed_historic.code', 'zone_alerte_computed_historic.type'])
       .leftJoin('zone_alerte_computed_historic.departement', 'departement')
       .leftJoinAndSelect('commune', 'commune', 'commune.departement = departement.id AND ST_INTERSECTS(zone_alerte_computed_historic.geom, commune.geom) AND ST_Area(ST_Intersection(zone_alerte_computed_historic.geom, commune.geom)) > 0.000000001')
       .where('departement.id = :id', { id: departement.id })
@@ -510,6 +510,7 @@ export class ZoneAlerteComputedHistoricService {
       .createQueryBuilder('zone_alerte_computed_historic')
       .select('ST_AsGeoJSON(ST_TRANSFORM(zone_alerte_computed_historic.geom, 4326))', 'geom')
       .addSelect('zone_alerte_computed_historic.id', 'id')
+      .addSelect('zone_alerte_computed_historic.idSandre', 'idSandre')
       .addSelect('zone_alerte_computed_historic.nom', 'nom')
       .addSelect('zone_alerte_computed_historic.code', 'code')
       .addSelect('zone_alerte_computed_historic.type', 'type')
@@ -580,6 +581,7 @@ export class ZoneAlerteComputedHistoricService {
     let allZonesComputed: any = await this.zoneAlerteComputedHistoricRepository.find({
       select: {
         id: true,
+        idSandre: true,
         code: true,
         nom: true,
         type: true,
@@ -635,6 +637,7 @@ export class ZoneAlerteComputedHistoricService {
         geometry: z.geom,
         properties: {
           id: z.id,
+          idSandre: z.idSandre,
           nom: z.nom,
           code: z.code,
           type: z.type,
