@@ -26,7 +26,8 @@ export class UserService {
     if (!email) {
       return null;
     }
-    return this.userRepository.findOne({ where: { email } });
+    const emailToSearch = email.toLowerCase().trim();
+    return this.userRepository.findOne({ where: { email: emailToSearch } });
   }
 
   updateName(email: string, firstName: string, lastName: string) {
