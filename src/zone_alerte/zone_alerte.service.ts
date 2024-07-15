@@ -33,6 +33,7 @@ export class ZoneAlerteService {
     return this.zoneAlerteRepository
       .createQueryBuilder('zone_alerte')
       .select('zone_alerte.id', 'id')
+      .select('zone_alerte.idSandre', 'idSandre')
       .addSelect('zone_alerte.code', 'code')
       .addSelect('zone_alerte.nom', 'nom')
       .addSelect('zone_alerte.type', 'type')

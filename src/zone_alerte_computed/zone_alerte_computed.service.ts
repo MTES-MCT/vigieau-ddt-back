@@ -51,6 +51,7 @@ export class ZoneAlerteComputedService {
     return this.zoneAlerteComputedRepository
       .createQueryBuilder('zone_alerte_computed')
       .select('zone_alerte_computed.id', 'id')
+      .select('zone_alerte_computed.idSandre', 'idSandre')
       .addSelect('zone_alerte_computed.code', 'code')
       .addSelect('zone_alerte_computed.nom', 'nom')
       .addSelect('zone_alerte_computed.type', 'type')
@@ -583,7 +584,7 @@ export class ZoneAlerteComputedService {
 
   async computeCommunesIntersected(departement: Departement) {
     const zones = await this.zoneAlerteComputedRepository.createQueryBuilder('zone_alerte_computed')
-      .select(['zone_alerte_computed.id', 'zone_alerte_computed.nom', 'zone_alerte_computed.code', 'zone_alerte_computed.type'])
+      .select(['zone_alerte_computed.id', 'zone_alerte_computed.idSandre', 'zone_alerte_computed.nom', 'zone_alerte_computed.code', 'zone_alerte_computed.type'])
       .leftJoin('zone_alerte_computed.departement', 'departement')
       .leftJoinAndSelect('commune', 'commune', 'commune.departement = departement.id AND ST_INTERSECTS(zone_alerte_computed.geom, commune.geom) AND ST_Area(ST_Intersection(zone_alerte_computed.geom, commune.geom)) > 0.000000001')
       .where('departement.id = :id', { id: departement.id })
@@ -620,6 +621,7 @@ export class ZoneAlerteComputedService {
       .createQueryBuilder('zone_alerte_computed')
       .select('ST_AsGeoJSON(ST_TRANSFORM(zone_alerte_computed.geom, 4326))', 'geom')
       .addSelect('zone_alerte_computed.id', 'id')
+      .addSelect('zone_alerte_computed.idSandre', 'idSandre')
       .addSelect('zone_alerte_computed.nom', 'nom')
       .addSelect('zone_alerte_computed.code', 'code')
       .addSelect('zone_alerte_computed.type', 'type')
@@ -660,6 +662,7 @@ export class ZoneAlerteComputedService {
     return this.zoneAlerteComputedRepository
       .createQueryBuilder('zone_alerte_computed')
       .select('zone_alerte_computed.id', 'id')
+      .addSelect('zone_alerte_computed.idSandre', 'idSandre')
       .addSelect('zone_alerte_computed.code', 'code')
       .addSelect('zone_alerte_computed.nom', 'nom')
       .addSelect('zone_alerte_computed.type', 'type')
@@ -673,6 +676,7 @@ export class ZoneAlerteComputedService {
     return this.zoneAlerteComputedRepository.find({
       select: {
         id: true,
+        idSandre: true,
         code: true,
         nom: true,
         type: true,
