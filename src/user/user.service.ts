@@ -26,7 +26,8 @@ export class UserService {
     if (!email) {
       return null;
     }
-    return this.userRepository.findOne({ where: { email } });
+    const emailToSearch = email.toLowerCase().trim();
+    return this.userRepository.findOne({ where: { email: emailToSearch } });
   }
 
   updateName(email: string, firstName: string, lastName: string) {
@@ -60,11 +61,11 @@ export class UserService {
       .getMany();
   }
 
-  async create(curentUser: User, user: User): Promise<User> {
+  async create(currentUser: User, user: User): Promise<User> {
     if (
-      curentUser.role === 'departement' &&
+      currentUser.role === 'departement' &&
       (user.role !== 'departement' ||
-        user.role_departements.some(d => !curentUser.role_departements.includes(d)))
+        user.role_departements.some(d => !currentUser.role_departements.includes(d)))
     ) {
       throw new HttpException(
         "Vous ne pouvez créer un utilisateur qu'avec un droit sur votre département.",
@@ -87,8 +88,8 @@ export class UserService {
     return this.findOne(email);
   }
 
-  async remove(curentUser: User, email: string) {
-    if (curentUser.role === 'departement') {
+  async remove(currentUser: User, email: string) {
+    if (currentUser.role === 'departement') {
       const userToDelete = await this.findOne(email);
       if (!userToDelete) {
         throw new HttpException(
@@ -97,11 +98,11 @@ export class UserService {
         );
       }
       if (
-        userToDelete.role !== curentUser.role ||
-        userToDelete.role_departements.some(d => !curentUser.role_departements.includes(d))
+        userToDelete.role !== currentUser.role ||
+        userToDelete.role_departements.some(d => !currentUser.role_departements.includes(d))
       ) {
         throw new HttpException(
-          'Vous ne pouvez supprimer des utilisateurs que sur votre département.',
+          'Vous ne pouvez supprimer des utilisateurs que sur vos départements.',
           HttpStatus.FORBIDDEN,
         );
       }
