@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Not, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { Restriction } from './entities/restriction.entity';
-import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
 import { UsageService } from '../usage/usage.service';
 import { CreateUpdateArreteRestrictionDto } from '../arrete_restriction/dto/create_update_arrete_restriction.dto';
 import { CreateUpdateRestrictionDto } from './dto/create_update_restriction.dto';
