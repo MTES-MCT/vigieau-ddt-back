@@ -92,6 +92,7 @@ export const arreteRestrictionPaginateConfig: PaginateConfig<ArreteRestriction> 
       'arretesCadre.numero',
       'departement.id',
       'departement.code',
+      'departement.nom',
       'restrictions.id',
       'restrictions.zoneAlerte.id',
       'restrictions.zoneAlerte.disabled',
