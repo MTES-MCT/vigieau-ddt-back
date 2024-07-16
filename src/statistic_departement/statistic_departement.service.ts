@@ -114,6 +114,7 @@ export class StatisticDepartementService {
         }
       });
 
+      this.logger.log(`Deleting and saving statistic departement for ${d.code}`);
       await this.statisticDepartementRepository.delete({ departement: { id: d.id } });
       await this.statisticDepartementRepository.save(statisticDepartement);
     }

@@ -1028,7 +1028,11 @@ export class ArreteRestrictionService {
     ));
     await Promise.all(promises);
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
-    await this.statisticDepartementService.computeDepartementStatistics();
+    try {
+      await this.statisticDepartementService.computeDepartementStatistics();
+    } catch(e) {
+      this.logger.error('ERREUR COMPUTE DEPARTEMENTS STATISTICS', e);
+    }
     this.zoneAlerteComputedService.askCompute(departements ? departements.map(d => d.id) : [], false, computeHistoric);
   }
 
