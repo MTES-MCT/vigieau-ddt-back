@@ -733,7 +733,6 @@ export class ZoneAlerteComputedService {
         'area',
       )
       .where('zone_alerte_computed.id IN(:...ids)', { ids: zones.map(z => z.id) })
-      .printSql()
       .getRawOne();
   }
 }
