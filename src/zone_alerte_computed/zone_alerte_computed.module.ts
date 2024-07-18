@@ -12,6 +12,7 @@ import { DatagouvModule } from '../datagouv/datagouv.module';
 import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_historic.service';
 import { StatisticModule } from '../statistic/statistic.module';
 import { ZoneAlerteComputedHistoric } from './entities/zone_alerte_computed_historic.entity';
+import { StatisticDepartementModule } from '../statistic_departement/statistic_departement.module';
 
 @Module({
   imports: [
@@ -24,10 +25,12 @@ import { ZoneAlerteComputedHistoric } from './entities/zone_alerte_computed_hist
     SharedModule,
     RestrictionModule,
     forwardRef(() => DatagouvModule),
-    StatisticModule
+    StatisticModule,
+    forwardRef(() => StatisticDepartementModule),
   ],
   controllers: [],
   providers: [ZoneAlerteComputedService, ZoneAlerteComputedHistoricService],
   exports: [ZoneAlerteComputedService],
 })
-export class ZoneAlerteComputedModule {}
+export class ZoneAlerteComputedModule {
+}

@@ -57,28 +57,6 @@ export class ZoneAlerteService {
     });
   }
 
-  findByDepartementWithRestrictions(departementCode: string): Promise<ZoneAlerte[]> {
-    return this.zoneAlerteRepository.find({
-      relations: ['departement', 'restrictions', 'restrictions.arreteRestriction'],
-      where: [{
-        departement: {
-          code: departementCode,
-        },
-        restrictions: {
-          arreteRestriction: {
-            statut: 'publie',
-          },
-        },
-        disabled: false,
-      }, {
-        departement: {
-          code: departementCode,
-        },
-        disabled: false,
-      }],
-    });
-  }
-
   findByArreteCadre(acId: number): Promise<ZoneAlerte[]> {
     return this.zoneAlerteRepository
       .createQueryBuilder('zone_alerte')

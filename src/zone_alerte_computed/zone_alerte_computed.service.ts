@@ -18,6 +18,7 @@ import { DatagouvService } from '../datagouv/datagouv.service';
 import { StatisticService } from '../statistic/statistic.service';
 import moment, { Moment } from 'moment';
 import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_historic.service';
+import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -43,6 +44,8 @@ export class ZoneAlerteComputedService {
     @Inject(forwardRef(() => DatagouvService))
     private readonly datagouvService: DatagouvService,
     private readonly statisticService: StatisticService,
+    @Inject(forwardRef(() => StatisticDepartementService))
+    private readonly statisticDepartementService: StatisticDepartementService,
     private readonly zoneAlerteComputedHistoricService: ZoneAlerteComputedHistoricService,
   ) {
   }
@@ -51,7 +54,7 @@ export class ZoneAlerteComputedService {
     return this.zoneAlerteComputedRepository
       .createQueryBuilder('zone_alerte_computed')
       .select('zone_alerte_computed.id', 'id')
-      .select('zone_alerte_computed.idSandre', 'idSandre')
+      .addSelect('zone_alerte_computed.idSandre', 'idSandre')
       .addSelect('zone_alerte_computed.code', 'code')
       .addSelect('zone_alerte_computed.nom', 'nom')
       .addSelect('zone_alerte_computed.type', 'type')
@@ -579,6 +582,7 @@ export class ZoneAlerteComputedService {
     if(computeHistoric) {
       this.computeHistoric();
     }
+    this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, date);
     this.statisticService.computeDepartementsSituation(allZonesComputed);
   }
 
@@ -719,5 +723,17 @@ export class ZoneAlerteComputedService {
         'departement',
       ],
     });
+  }
+
+  async getZonesArea(zones: ZoneAlerteComputed[]) {
+    return this.zoneAlerteComputedRepository
+      .createQueryBuilder('zone_alerte_computed')
+      .select(
+        'SUM(ST_Area(zone_alerte_computed.geom::geography)/1000000)',
+        'area',
+      )
+      .where('zone_alerte_computed.id IN(:...ids)', { ids: zones.map(z => z.id) })
+      .printSql()
+      .getRawOne();
   }
 }

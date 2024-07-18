@@ -13,6 +13,9 @@ export class StatisticDepartement extends BaseEntity {
   @Column('jsonb',{ nullable: true })
   visits: any[];
 
+  @Column('jsonb',{ nullable: true })
+  restrictions: any[];
+
   @Column({ nullable: false })
   totalVisits: number;
 
@@ -27,7 +30,4 @@ export class StatisticDepartement extends BaseEntity {
 
   @Column({ nullable: false })
   subscriptions: number;
-
-  @Column('json', { nullable: false })
-  zones: any;
 }

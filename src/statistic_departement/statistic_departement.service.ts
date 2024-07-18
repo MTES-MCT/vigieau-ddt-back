@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, MoreThanOrEqual, Repository } from 'typeorm';
@@ -7,8 +7,9 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Statistic } from '../statistic/entities/statistic.entity';
 import { DepartementService } from '../departement/departement.service';
 import { AbonnementMail } from '../core/entities/abonnement_mail.entity';
-import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { User } from '../user/entities/user.entity';
+import { ZoneAlerteComputed } from '../zone_alerte_computed/entities/zone_alerte_computed.entity';
+import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
 
 @Injectable()
 export class StatisticDepartementService {
@@ -24,7 +25,8 @@ export class StatisticDepartementService {
     @InjectRepository(AbonnementMail)
     private readonly abonnementMailRepository: Repository<AbonnementMail>,
     private readonly departementService: DepartementService,
-    private readonly zoneAlerteService: ZoneAlerteService,
+    @Inject(forwardRef(() => ZoneAlerteComputedService))
+    private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
   ) {
     this.loadStatDep();
   }
@@ -46,6 +48,16 @@ export class StatisticDepartementService {
   @Cron(CronExpression.EVERY_2_HOURS)
   async computeDepartementStatistics() {
     this.logger.log('Computing departement statistics...');
+    const statsDepartement: StatisticDepartement[] = await this.statisticDepartementRepository.find({
+      select: {
+        id: true,
+        departement: {
+          id: true,
+          code: true,
+        },
+      },
+      relations: ['departement'],
+    });
     const stats: Statistic[] = await this.statisticRepository.find({
       where: {
         date: MoreThanOrEqual(this.releaseDate),
@@ -66,13 +78,6 @@ export class StatisticDepartementService {
         monthVisits: 0,
         yearVisits: 0,
         subscriptions: 0,
-        zones: {
-          pas_restriction: 0,
-          vigilance: 0,
-          alerte: 0,
-          alerte_renforcee: 0,
-          crise: 0,
-        },
       };
 
       for (const statByDay of stats) {
@@ -105,19 +110,98 @@ export class StatisticDepartementService {
         },
       });
 
-      const zones = await this.zoneAlerteService.findByDepartementWithRestrictions(d.code);
-      zones.forEach(z => {
-        if (!z.restrictions || !z.restrictions[0] || !z.restrictions[0].niveauGravite) {
-          statisticDepartement.zones.pas_restriction++;
-        } else {
-          statisticDepartement.zones[z.restrictions[0].niveauGravite]++;
-        }
-      });
-
-      this.logger.log(`Deleting and saving statistic departement for ${d.code}`);
-      await this.statisticDepartementRepository.delete({ departement: { id: d.id } });
-      await this.statisticDepartementRepository.save(statisticDepartement);
+      this.logger.log(`Saving statistic departement for ${d.code}`);
+      const statDepartement = statsDepartement.find(s => s.departement.id === d.id);
+      if (statDepartement) {
+        await this.statisticDepartementRepository.update({ id: statDepartement.id }, statisticDepartement);
+      } else {
+        await this.statisticDepartementRepository.save(statisticDepartement);
+      }
     }
     this.loadStatDep();
+  }
+
+  async computeDepartementStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date) {
+    this.logger.log('Computing departement statistics restrictions ...');
+    const statsDepartement: StatisticDepartement[] = await this.statisticDepartementRepository.find({
+      select: {
+        id: true,
+        restrictions: true,
+        departement: {
+          id: true,
+          code: true,
+        },
+      },
+      relations: ['departement'],
+    });
+
+    const departements = await this.departementService.findAllLight();
+
+    for (const d of departements) {
+      let statDepartement = statsDepartement.find(s => s.departement.code === d.code);
+      if (!statDepartement) {
+        // @ts-ignore
+        statDepartement = {
+          departement: d,
+          visits: [],
+          totalVisits: 0,
+          weekVisits: 0,
+          monthVisits: 0,
+          yearVisits: 0,
+          subscriptions: 0,
+          restrictions: [],
+        };
+      }
+      if(!statDepartement.restrictions) {
+        statDepartement.restrictions = [];
+      }
+
+      let restrictionIndex = statDepartement.restrictions.findIndex(r => r.date === date.toISOString().split('T')[0]);
+      const restriction = {
+        date: date.toISOString().split('T')[0],
+        SOU: {
+          vigilance: 0,
+          alerte: 0,
+          alerte_renforcee: 0,
+          crise: 0,
+        },
+        SUP: {
+          vigilance: 0,
+          alerte: 0,
+          alerte_renforcee: 0,
+          crise: 0,
+        },
+        AEP: {
+          vigilance: 0,
+          alerte: 0,
+          alerte_renforcee: 0,
+          crise: 0,
+        },
+      };
+      const zonesDep = zones.filter(z => z.departement.code === d.code);
+      const zonesType = ['SUP', 'SOU', 'AEP'];
+      const niveauxGravite = ['vigilance', 'alerte', 'alerte_renforcee', 'crise'];
+      for (let i = 0; i < zonesType.length; i++) {
+        const type = zonesType[i];
+        const zonesDepType = zonesDep.filter(z => z.type === type);
+        for (let j = 0; j < niveauxGravite.length; j++) {
+          const niveauGravite = niveauxGravite[j];
+          const zonesDepTypeNiveauGravite = zonesDepType.filter(z => z.restriction?.niveauGravite === niveauGravite);
+          restriction[type][niveauGravite] = zonesDepTypeNiveauGravite.length > 0 ?
+            (await this.zoneAlerteComputedService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) : 0;
+        }
+      }
+      if (restrictionIndex >= 0) {
+        statDepartement.restrictions[restrictionIndex] = restriction;
+      } else {
+        statDepartement.restrictions.push(restriction);
+      }
+
+      if (statDepartement.id) {
+        await this.statisticDepartementRepository.update({ id: statDepartement.id }, { restrictions: statDepartement.restrictions });
+      } else {
+        await this.statisticDepartementRepository.save(statDepartement);
+      }
+    }
   }
 }
