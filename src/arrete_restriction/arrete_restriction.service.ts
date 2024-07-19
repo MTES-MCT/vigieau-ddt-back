@@ -699,7 +699,7 @@ export class ArreteRestrictionService {
     const maxDateDebut = new Date(
       Math.max.apply(
         null,
-        ar.arretesCadre.map((ac) =>
+        ar.arretesCadre.filter(ac => ac.dateDebut).map((ac) =>
           ac.dateDebut ?
             new Date(ac.dateDebut).getTime() : null,
         ),
@@ -709,7 +709,7 @@ export class ArreteRestrictionService {
       ? new Date(
         Math.min.apply(
           null,
-          ar.arretesCadre.map((ac) =>
+          ar.arretesCadre.filter(ac => ac.dateFin).map((ac) =>
             ac.dateFin ?
               new Date(ac.dateFin).getTime() : null),
         ),
