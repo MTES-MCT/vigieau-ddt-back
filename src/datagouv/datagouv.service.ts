@@ -36,7 +36,7 @@ export class DatagouvService {
     'arretes_2022': '4489197f-63ce-4c8c-aff1-d2e1b02d2943',
     'arretes_2023': '9091f47f-b5b9-4569-b3c9-252f2eae185e',
     'pmtiles': 'a101ef59-0999-4b9a-a682-6f9b79d53c7e',
-    'geojson': '16770f6d-8c7a-4601-9a37-cbf23861476b',
+    'geojson': 'bfba7898-aed3-40ec-aa74-abb73b92a363',
     'restrictions': 'e403a885-5eaf-411d-a03e-751a9c22930d',
   };
 
