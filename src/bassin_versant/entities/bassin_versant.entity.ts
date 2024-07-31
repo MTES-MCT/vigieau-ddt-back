@@ -1,13 +1,14 @@
 import {
   BaseEntity,
   Column,
-  Entity,
+  Entity, JoinTable, ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ZoneAlerte } from '../../zone_alerte/entities/zone_alerte.entity';
 import { ZoneAlerteComputed } from '../../zone_alerte_computed/entities/zone_alerte_computed.entity';
 import { ZoneAlerteComputedHistoric } from '../../zone_alerte_computed/entities/zone_alerte_computed_historic.entity';
+import { Departement } from '../../departement/entities/departement.entity';
 
 @Entity()
 export class BassinVersant extends BaseEntity {
@@ -28,4 +29,10 @@ export class BassinVersant extends BaseEntity {
 
   @OneToMany(() => ZoneAlerteComputedHistoric, (zoneAlerteComputedHistoric) => zoneAlerteComputedHistoric.bassinVersant)
   zoneAlerteComputedHistoric: ZoneAlerteComputedHistoric[];
+
+  @ManyToMany(() => Departement, (departement) => departement.bassinsVersants)
+  @JoinTable({
+    name: 'bassin_versant_departement',
+  })
+  departements: Departement[];
 }

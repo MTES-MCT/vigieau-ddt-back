@@ -18,6 +18,7 @@ import { Parametres } from '../../parametres/entities/parametres.entity';
 import { ZoneAlerteComputed } from '../../zone_alerte_computed/entities/zone_alerte_computed.entity';
 import { StatisticDepartement } from '../../statistic_departement/entities/statistic_departement.entity';
 import { ZoneAlerteComputedHistoric } from '../../zone_alerte_computed/entities/zone_alerte_computed_historic.entity';
+import { BassinVersant } from '../../bassin_versant/entities/bassin_versant.entity';
 
 @Entity()
 export class Departement extends BaseEntity {
@@ -39,6 +40,9 @@ export class Departement extends BaseEntity {
 
   @ManyToOne(() => Region, (region) => region.departements)
   region: Region;
+
+  @ManyToMany(() => BassinVersant, (bassinVersant) => bassinVersant.departements)
+  bassinsVersants: BassinVersant[];
 
   @OneToMany(() => Commune, (communes) => communes.departement)
   communes: Commune[];
