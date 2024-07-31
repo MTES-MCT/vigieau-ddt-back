@@ -62,7 +62,7 @@ export class ZoneAlerteComputedHistoricService {
   }
 
   async computeHistoricMaps() {
-    const dateDebut = moment('04/12/2019', 'DD/MM/YYYY');
+    const dateDebut = moment('01/08/2023', 'DD/MM/YYYY');
     // const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('28/04/2024', 'DD/MM/YYYY');
     const dateFin = moment('28/04/2024', 'DD/MM/YYYY');
