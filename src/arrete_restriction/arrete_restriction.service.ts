@@ -1166,7 +1166,7 @@ export class ArreteRestrictionService {
     const diff = this.compare(deepClone(oldArLight), deepClone(newArLight));
     if (Object.keys(diff).length > 0) {
       await this.mailService.sendEmail(
-        'secheresse@beta.gouv.fr',
+        process.env.MAIL_MTE,
         `Des modifications importantes ont été apportées à l’arrêté ${oldAr.numero}`,
         'maj_ar',
         {

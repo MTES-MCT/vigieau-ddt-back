@@ -42,7 +42,7 @@ export class ZoneAlerteComputedHistoricService {
               private readonly statisticDepartementService: StatisticDepartementService,
               private readonly dataGouvService: DatagouvService) {
     setTimeout(() => {
-      this.computeHistoricMaps();
+      // this.computeHistoricMapsComputed();
     }, 5000);
   }
 
@@ -77,94 +77,94 @@ export class ZoneAlerteComputedHistoricService {
         return z;
       }), new Date(m.format('YYYY-MM-DD')));
 
-      // const zasFormated = await Promise.all(zas.map(async z => {
-      //   z.geom = JSON.parse((await this.zoneAlerteService.findOne(z.id)).geom);
-      //   return {
-      //     type: 'Feature',
-      //     geometry: z.geom,
-      //     properties: {
-      //       id: z.id,
-      //       idSandre: z.idSandre,
-      //       nom: z.nom,
-      //       code: z.code,
-      //       type: z.type,
-      //       niveauGravite: z.restrictions[0].niveauGravite,
-      //       departement: z.departement,
-      //       arreteRestriction: {
-      //         id: z.restrictions[0].arreteRestriction.id,
-      //         numero: z.restrictions[0].arreteRestriction.numero,
-      //         dateDebut: z.restrictions[0].arreteRestriction.dateDebut,
-      //         dateFin: z.restrictions[0].arreteRestriction.dateFin,
-      //         dateSignature: z.restrictions[0].arreteRestriction.dateSignature,
-      //         fichier: z.restrictions[0].arreteRestriction.fichier?.url,
-      //       },
-      //       restrictions: z.restrictions[0].usages.map(u => {
-      //         let d;
-      //         switch (z.restrictions[0].niveauGravite) {
-      //           case 'vigilance':
-      //             d = u.descriptionVigilance;
-      //             break;
-      //           case 'alerte':
-      //             d = u.descriptionAlerte;
-      //             break;
-      //           case 'alerte_renforcee':
-      //             d = u.descriptionAlerteRenforcee;
-      //             break;
-      //           case 'crise':
-      //             d = u.descriptionCrise;
-      //             break;
-      //         }
-      //         return {
-      //           nom: u.nom,
-      //           thematique: u.thematique.nom,
-      //           concerneParticulier: u.concerneParticulier,
-      //           concerneEntreprise: u.concerneEntreprise,
-      //           concerneCollectivite: u.concerneCollectivite,
-      //           concerneExploitation: u.concerneExploitation,
-      //           concerneEso: u.concerneEso,
-      //           concerneEsu: u.concerneEsu,
-      //           concerneAep: u.concerneAep,
-      //           description: d,
-      //         };
-      //       }),
-      //     },
-      //   };
-      // }));
-      //
-      // const geojson = {
-      //   'type': 'FeatureCollection',
-      //   'features': zasFormated,
-      // };
-      //
-      // const path = this.configService.get('PATH_TO_WRITE_FILE');
-      //
-      // const fileNameToSave = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}`;
-      // await writeFile(`${path}/${fileNameToSave}.geojson`, JSON.stringify(geojson));
-      // try {
-      //   await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/${fileNameToSave}.pmtiles ${path}/${fileNameToSave}.geojson`);
-      //   const dataPmtiles = fs.readFileSync(`${path}/${fileNameToSave}.pmtiles`);
-      //   const fileToTransferPmtiles = {
-      //     originalname: `${fileNameToSave}.pmtiles`,
-      //     buffer: dataPmtiles,
-      //   };
-      //   const dataGeojson = fs.readFileSync(`${path}/${fileNameToSave}.geojson`);
-      //   const fileToTransferGeojson = {
-      //     originalname: `${fileNameToSave}.geojson`,
-      //     buffer: dataGeojson,
-      //   };
-      //   // @ts-ignore
-      //   await this.s3Service.uploadFile(fileToTransferPmtiles, 'pmtiles/');
-      //   // @ts-ignore
-      //   await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
-      // } catch (e) {
-      //   this.logger.error('ERROR GENERATING PMTILES', e);
-      // }
-      // await this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
+      const zasFormated = await Promise.all(zas.map(async z => {
+        z.geom = JSON.parse((await this.zoneAlerteService.findOne(z.id)).geom);
+        return {
+          type: 'Feature',
+          geometry: z.geom,
+          properties: {
+            id: z.id,
+            idSandre: z.idSandre,
+            nom: z.nom,
+            code: z.code,
+            type: z.type,
+            niveauGravite: z.restrictions[0].niveauGravite,
+            departement: z.departement,
+            arreteRestriction: {
+              id: z.restrictions[0].arreteRestriction.id,
+              numero: z.restrictions[0].arreteRestriction.numero,
+              dateDebut: z.restrictions[0].arreteRestriction.dateDebut,
+              dateFin: z.restrictions[0].arreteRestriction.dateFin,
+              dateSignature: z.restrictions[0].arreteRestriction.dateSignature,
+              fichier: z.restrictions[0].arreteRestriction.fichier?.url,
+            },
+            restrictions: z.restrictions[0].usages.map(u => {
+              let d;
+              switch (z.restrictions[0].niveauGravite) {
+                case 'vigilance':
+                  d = u.descriptionVigilance;
+                  break;
+                case 'alerte':
+                  d = u.descriptionAlerte;
+                  break;
+                case 'alerte_renforcee':
+                  d = u.descriptionAlerteRenforcee;
+                  break;
+                case 'crise':
+                  d = u.descriptionCrise;
+                  break;
+              }
+              return {
+                nom: u.nom,
+                thematique: u.thematique.nom,
+                concerneParticulier: u.concerneParticulier,
+                concerneEntreprise: u.concerneEntreprise,
+                concerneCollectivite: u.concerneCollectivite,
+                concerneExploitation: u.concerneExploitation,
+                concerneEso: u.concerneEso,
+                concerneEsu: u.concerneEsu,
+                concerneAep: u.concerneAep,
+                description: d,
+              };
+            }),
+          },
+        };
+      }));
+
+      const geojson = {
+        'type': 'FeatureCollection',
+        'features': zasFormated,
+      };
+
+      const path = this.configService.get('PATH_TO_WRITE_FILE');
+
+      const fileNameToSave = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}`;
+      await writeFile(`${path}/${fileNameToSave}.geojson`, JSON.stringify(geojson));
+      try {
+        await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/${fileNameToSave}.pmtiles ${path}/${fileNameToSave}.geojson`);
+        const dataPmtiles = fs.readFileSync(`${path}/${fileNameToSave}.pmtiles`);
+        const fileToTransferPmtiles = {
+          originalname: `${fileNameToSave}.pmtiles`,
+          buffer: dataPmtiles,
+        };
+        const dataGeojson = fs.readFileSync(`${path}/${fileNameToSave}.geojson`);
+        const fileToTransferGeojson = {
+          originalname: `${fileNameToSave}.geojson`,
+          buffer: dataGeojson,
+        };
+        // @ts-ignore
+        await this.s3Service.uploadFile(fileToTransferPmtiles, 'pmtiles/');
+        // @ts-ignore
+        await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
+      } catch (e) {
+        this.logger.error('ERROR GENERATING PMTILES', e);
+      }
+      await this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
     }
   }
 
   async computeHistoricMapsComputed(date?: Moment) {
-    const dateDebut = date ? date : moment();
+    const dateDebut = moment('29/04/2024', 'DD/MM/YYYY');
     const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('23/06/2024', 'DD/MM/YYYY');
 
@@ -201,9 +201,10 @@ export class ZoneAlerteComputedHistoricService {
       }
       // On récupère toutes les restrictions en cours
       this.logger.log(`COMPUTING ZONES D'ALERTES ${m.format('DD/MM/YYYY')} - END`);
+
       await this.computeGeoJson(m);
     }
-    await this.dataGouvService.updateMaps(dateDebut);
+    // await this.dataGouvService.updateMaps(dateDebut);
   }
 
   async computeRegleAr(departement: Departement, date: Moment) {
@@ -640,6 +641,10 @@ export class ZoneAlerteComputedHistoricService {
         'restriction.arreteRestriction.fichier',
       ],
     });
+
+    // @ts-ignore
+    await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')));
+    return;
 
     const allZones = await Promise.all(allZonesComputed.map(async z => {
       z.geom = JSON.parse((await this.findOne(z.id)).geom);

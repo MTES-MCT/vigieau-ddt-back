@@ -260,6 +260,7 @@ export class ZoneAlerteService {
           {
             arretesCadre: arretesCadre,
           },
+          true,
         );
       }
     } catch (error) {

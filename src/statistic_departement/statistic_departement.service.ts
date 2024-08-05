@@ -204,7 +204,7 @@ export class StatisticDepartementService {
           const niveauGravite = niveauxGravite[j];
           const zonesDepTypeNiveauGravite = zonesDepType.filter(z => z.restriction?.niveauGravite === niveauGravite);
           restriction[type][niveauGravite] = zonesDepTypeNiveauGravite.length > 0 ?
-            (await this.zoneAlerteService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) : 0;
+            (await this.zoneAlerteComputedService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) : 0;
           // restriction[type][niveauGravite] = zonesDepTypeNiveauGravite.length > 0 ?
           //   (await this.zoneAlerteComputedService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) : 0;
         }

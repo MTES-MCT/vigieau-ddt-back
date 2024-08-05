@@ -31,8 +31,8 @@ export class MailService {
     template: string,
     context?: any,
   ): Promise<any> {
-    if(!process.env.MAIL_USER) {
-      this.logger.log(`EMAIL NOT SEND - NO MAIL_USER ${email} WITH SUBJECT: ${subject} WITH TEMPLATE: ${template}`)
+    if (!process.env.MAIL_USER) {
+      this.logger.log(`EMAIL NOT SEND - NO MAIL_USER ${email} WITH SUBJECT: ${subject} WITH TEMPLATE: ${template}`);
       return;
     }
     return this.mailerService
@@ -76,8 +76,13 @@ export class MailService {
     subject: string,
     template: string,
     context?: any,
+    sendToMte?: boolean,
   ): Promise<any> {
     const users = await this.userService.findByDepartementsCode([depCode]);
+    if (sendToMte) {
+      // @ts-ignore
+      users.push({ email: process.env.MAIL_MTE });
+    }
     return Promise.all(
       users.map((u) => u.email).map((email) => this.sendEmail(email, subject, template, context)),
     );

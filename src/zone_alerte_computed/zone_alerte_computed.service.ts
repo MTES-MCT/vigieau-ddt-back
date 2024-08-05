@@ -434,6 +434,7 @@ export class ZoneAlerteComputedService {
     let allZonesComputed: any = await this.zoneAlerteComputedRepository.find({
       select: {
         id: true,
+        idSandre: true,
         code: true,
         nom: true,
         type: true,
@@ -489,6 +490,7 @@ export class ZoneAlerteComputedService {
         geometry: z.geom,
         properties: {
           id: z.id,
+          idSandre: z.idSandre,
           nom: z.nom,
           code: z.code,
           type: z.type,
