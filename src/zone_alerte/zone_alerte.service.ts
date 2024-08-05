@@ -11,6 +11,7 @@ import { DepartementService } from '../departement/departement.service';
 import { BassinVersantService } from '../bassin_versant/bassin_versant.service';
 import { MailService } from '../shared/services/mail.service';
 import { ArreteCadreService } from '../arrete_cadre/arrete_cadre.service';
+import { ZoneAlerteComputed } from '../zone_alerte_computed/entities/zone_alerte_computed.entity';
 
 @Injectable()
 export class ZoneAlerteService {
@@ -259,10 +260,22 @@ export class ZoneAlerteService {
           {
             arretesCadre: arretesCadre,
           },
+          true,
         );
       }
     } catch (error) {
       this.logger.error(`ERREUR LORS DE LA MISE A JOUR DES ZONES D\'ALERTES DU DEPARTEMENT ${depCode}`, error);
     }
+  }
+
+  async getZonesArea(zones: any[]) {
+    return this.zoneAlerteRepository
+      .createQueryBuilder('zone_alerte')
+      .select(
+        'SUM(ST_Area(ST_TRANSFORM(zone_alerte.geom, 4326)::geography)/1000000)',
+        'area',
+      )
+      .where('zone_alerte.id IN(:...ids)', { ids: zones.map(z => z.id) })
+      .getRawOne();
   }
 }

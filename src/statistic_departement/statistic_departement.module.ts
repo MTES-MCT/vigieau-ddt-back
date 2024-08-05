@@ -7,12 +7,14 @@ import { DepartementModule } from '../departement/departement.module';
 import { AbonnementMail } from '../core/entities/abonnement_mail.entity';
 import { StatisticDepartementController } from './statistic_departement.controller';
 import { ZoneAlerteComputedModule } from '../zone_alerte_computed/zone_alerte_computed.module';
+import { ZoneAlerteModule } from '../zone_alerte/zone_alerte.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([StatisticDepartement, Statistic, AbonnementMail]),
     DepartementModule,
     forwardRef(() => ZoneAlerteComputedModule),
+    ZoneAlerteModule,
   ],
   providers: [StatisticDepartementService],
   exports: [StatisticDepartementService],

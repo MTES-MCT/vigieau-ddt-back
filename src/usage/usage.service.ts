@@ -144,9 +144,23 @@ export class UsageService {
     });
   }
 
-  async updateUsagesArByArreteCadreId(usagesAc: Usage[], acId: number) {
-    const usagesToUpdate = usagesAc.map((u) => {
-      return {
+  async updateUsagesArByArreteCadreId(oldUsagesAc: Usage[], usagesAc: Usage[], acId: number) {
+    const updates = [];
+    for (const u of usagesAc) {
+      const oldUsage = oldUsagesAc.find(ou => ou.id === u.id);
+      const tmp = await this.usageRepository.find({
+        where: {
+          restriction: {
+            arreteRestriction: {
+              arretesCadre: {
+                id: acId,
+              },
+            },
+          },
+          nom: oldUsage.nom,
+        },
+      });
+      const usageUpdated = {
         nom: u.nom,
         thematique: u.thematique,
         concerneParticulier: u.concerneParticulier,
@@ -160,24 +174,9 @@ export class UsageService {
         descriptionAlerte: u.descriptionAlerte,
         descriptionAlerteRenforcee: u.descriptionAlerteRenforcee,
         descriptionCrise: u.descriptionCrise,
-      };
-    });
-    const updates = [];
-    for (const u of usagesToUpdate) {
-      const tmp = await this.usageRepository.find({
-        where: {
-          restriction: {
-            arreteRestriction: {
-              arretesCadre: {
-                id: acId,
-              },
-            },
-          },
-          nom: u.nom,
-        },
-      });
+      }
       tmp.forEach((usageToUpdate) => {
-        updates.push(this.usageRepository.update(usageToUpdate.id, u));
+        updates.push(this.usageRepository.update(usageToUpdate.id, usageUpdated));
       });
     }
     await Promise.all(updates);

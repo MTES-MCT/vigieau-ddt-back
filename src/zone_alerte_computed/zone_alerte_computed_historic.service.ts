@@ -19,6 +19,7 @@ import { ZoneAlerteComputedHistoric } from './entities/zone_alerte_computed_hist
 import { Utils } from '../core/utils';
 import { RestrictionService } from '../restriction/restriction.service';
 import { DatagouvService } from '../datagouv/datagouv.service';
+import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 
 const exec = util.promisify(require('child_process').exec);
 
@@ -37,10 +38,12 @@ export class ZoneAlerteComputedHistoricService {
               @InjectRepository(ZoneAlerteComputedHistoric)
               private readonly zoneAlerteComputedHistoricRepository: Repository<ZoneAlerteComputedHistoric>,
               private readonly restrictionService: RestrictionService,
-              private readonly dataGouvService: DatagouvService,) {
-    // setTimeout(() => {
-    //   this.uploadZip();
-    // }, 5000);
+              @Inject(forwardRef(() => StatisticDepartementService))
+              private readonly statisticDepartementService: StatisticDepartementService,
+              private readonly dataGouvService: DatagouvService) {
+    setTimeout(() => {
+      // this.computeHistoricMapsComputed();
+    }, 5000);
   }
 
   findOne(id: number): Promise<any> {
@@ -59,13 +62,21 @@ export class ZoneAlerteComputedHistoricService {
   }
 
   async computeHistoricMaps() {
-    const dateDebut = moment('01/01/2013', 'DD/MM/YYYY');
-    const dateFin = moment().subtract(1, 'days');
+    const dateDebut = moment('12/05/2023', 'DD/MM/YYYY');
+    // const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('28/04/2024', 'DD/MM/YYYY');
+    const dateFin = moment('01/08/2023', 'DD/MM/YYYY');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
       const ars = await this.arreteResrictionService.findByDate(m);
       let zas: ZoneAlerte[] = await this.zoneAlerteService.findByArreteRestriction(ars.map(ar => ar.id));
+      // @ts-ignore
+      await this.statisticDepartementService.computeDepartementStatisticsRestrictions(zas.map(z => {
+        // @ts-ignore
+        z.restriction = z.restrictions[0];
+        return z;
+      }), new Date(m.format('YYYY-MM-DD')));
+
       const zasFormated = await Promise.all(zas.map(async z => {
         z.geom = JSON.parse((await this.zoneAlerteService.findOne(z.id)).geom);
         return {
@@ -153,7 +164,7 @@ export class ZoneAlerteComputedHistoricService {
   }
 
   async computeHistoricMapsComputed(date?: Moment) {
-    const dateDebut = date ? date : moment();
+    const dateDebut = moment('29/04/2024', 'DD/MM/YYYY');
     const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('23/06/2024', 'DD/MM/YYYY');
 
@@ -190,9 +201,10 @@ export class ZoneAlerteComputedHistoricService {
       }
       // On récupère toutes les restrictions en cours
       this.logger.log(`COMPUTING ZONES D'ALERTES ${m.format('DD/MM/YYYY')} - END`);
+
       await this.computeGeoJson(m);
     }
-    await this.dataGouvService.updateMaps(dateDebut);
+    // await this.dataGouvService.updateMaps(dateDebut);
   }
 
   async computeRegleAr(departement: Departement, date: Moment) {
@@ -629,6 +641,10 @@ export class ZoneAlerteComputedHistoricService {
         'restriction.arreteRestriction.fichier',
       ],
     });
+
+    // @ts-ignore
+    await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')));
+    return;
 
     const allZones = await Promise.all(allZonesComputed.map(async z => {
       z.geom = JSON.parse((await this.findOne(z.id)).geom);

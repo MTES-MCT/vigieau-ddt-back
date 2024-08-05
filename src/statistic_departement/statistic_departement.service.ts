@@ -10,6 +10,7 @@ import { AbonnementMail } from '../core/entities/abonnement_mail.entity';
 import { User } from '../user/entities/user.entity';
 import { ZoneAlerteComputed } from '../zone_alerte_computed/entities/zone_alerte_computed.entity';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
+import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 
 @Injectable()
 export class StatisticDepartementService {
@@ -27,6 +28,7 @@ export class StatisticDepartementService {
     private readonly departementService: DepartementService,
     @Inject(forwardRef(() => ZoneAlerteComputedService))
     private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
+    private readonly zoneAlerteService: ZoneAlerteService,
   ) {
     this.loadStatDep();
     setTimeout(() => {
@@ -45,6 +47,20 @@ export class StatisticDepartementService {
 
   async loadStatDep() {
     this.statisticDepartements = await this.statisticDepartementRepository.find({
+      select: {
+        id: true,
+        visits: true,
+        totalVisits: true,
+        weekVisits: true,
+        monthVisits: true,
+        yearVisits: true,
+        subscriptions: true,
+        departement: {
+          id: true,
+          code: true,
+          nom: true,
+        },
+      },
       relations: ['departement'],
     });
   }
@@ -126,7 +142,7 @@ export class StatisticDepartementService {
   }
 
   async computeDepartementStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date) {
-    this.logger.log('Computing departement statistics restrictions ...');
+    this.logger.log(`COMPUTING DEPARTEMENT STATISTICS RESTRICTIONS - ${date.toISOString().split('T')[0]}`);
     const statsDepartement: StatisticDepartement[] = await this.statisticDepartementRepository.find({
       select: {
         id: true,
@@ -193,6 +209,8 @@ export class StatisticDepartementService {
           const zonesDepTypeNiveauGravite = zonesDepType.filter(z => z.restriction?.niveauGravite === niveauGravite);
           restriction[type][niveauGravite] = zonesDepTypeNiveauGravite.length > 0 ?
             (await this.zoneAlerteComputedService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) : 0;
+          // restriction[type][niveauGravite] = zonesDepTypeNiveauGravite.length > 0 ?
+          //   (await this.zoneAlerteComputedService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) : 0;
         }
       }
       if (restrictionIndex >= 0) {
@@ -200,6 +218,7 @@ export class StatisticDepartementService {
       } else {
         statDepartement.restrictions.push(restriction);
       }
+      statDepartement.restrictions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       if (statDepartement.id) {
         await this.statisticDepartementRepository.update({ id: statDepartement.id }, { restrictions: statDepartement.restrictions });

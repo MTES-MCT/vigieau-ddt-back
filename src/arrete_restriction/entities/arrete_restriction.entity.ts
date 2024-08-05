@@ -20,7 +20,7 @@ import { Fichier } from '../../fichier/entities/fichier.entity';
 import { UsageFeedback } from '../../usage_feedback/entities/usage_feedback.entity';
 
 @Entity()
-export class  ArreteRestriction extends BaseEntity {
+export class ArreteRestriction extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

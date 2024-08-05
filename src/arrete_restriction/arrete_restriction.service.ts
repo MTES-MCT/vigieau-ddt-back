@@ -495,11 +495,11 @@ export class ArreteRestrictionService {
 
   async findMinDateDebutByDate(date: Moment): Promise<any> {
     return this.arreteRestrictionRepository.createQueryBuilder('arrete_restriction')
-      .select('MIN(arrete_restriction.dateDebut)','dateDebut')
+      .select('MIN(arrete_restriction.dateDebut)', 'dateDebut')
       .where('arrete_restriction.statut IN (:...statuts)', {
         statuts: ['a_venir', 'publie', 'abroge'],
       })
-      .andWhere('arrete_restriction.updated_at::DATE = :date', {date})
+      .andWhere('arrete_restriction.updated_at::DATE = :date', { date })
       .getRawOne();
   }
 
@@ -630,7 +630,7 @@ export class ArreteRestrictionService {
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
     const toReturn = await this.arreteRestrictionRepository.save(toSave);
-    if(!arreteRestrictionPdf) {
+    if (!arreteRestrictionPdf) {
       toReturn.fichier = ar.fichier;
     }
 
@@ -883,6 +883,11 @@ export class ArreteRestrictionService {
       );
     }
 
+    await this.arreteRestrictionRepository.update({
+      arreteRestrictionAbroge: { id: id },
+    }, {
+      arreteRestrictionAbroge: null,
+    });
     await this.arreteRestrictionRepository.delete(id);
     if (arrete.statut === 'publie') {
       this.zoneAlerteComputedService.askCompute([arrete.departement.id], false);
@@ -1030,7 +1035,7 @@ export class ArreteRestrictionService {
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
     try {
       await this.statisticDepartementService.computeDepartementStatistics();
-    } catch(e) {
+    } catch (e) {
       this.logger.error('ERREUR COMPUTE DEPARTEMENTS STATISTICS', e);
     }
     this.zoneAlerteComputedService.askCompute(departements ? departements.map(d => d.id) : [], false, computeHistoric);
@@ -1161,7 +1166,7 @@ export class ArreteRestrictionService {
     const diff = this.compare(deepClone(oldArLight), deepClone(newArLight));
     if (Object.keys(diff).length > 0) {
       await this.mailService.sendEmail(
-        'secheresse@beta.gouv.fr',
+        process.env.MAIL_MTE,
         `Des modifications importantes ont été apportées à l’arrêté ${oldAr.numero}`,
         'maj_ar',
         {
