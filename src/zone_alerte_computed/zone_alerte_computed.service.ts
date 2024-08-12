@@ -19,6 +19,7 @@ import { StatisticService } from '../statistic/statistic.service';
 import moment, { Moment } from 'moment';
 import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_historic.service';
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
+import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -46,6 +47,8 @@ export class ZoneAlerteComputedService {
     private readonly statisticService: StatisticService,
     @Inject(forwardRef(() => StatisticDepartementService))
     private readonly statisticDepartementService: StatisticDepartementService,
+    @Inject(forwardRef(() => StatisticCommuneService))
+    private readonly statisticCommuneService: StatisticCommuneService,
     private readonly zoneAlerteComputedHistoricService: ZoneAlerteComputedHistoricService,
   ) {
   }
@@ -585,6 +588,7 @@ export class ZoneAlerteComputedService {
       this.computeHistoric();
     }
     this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, date);
+    this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, date);
     this.statisticService.computeDepartementsSituation(allZonesComputed);
   }
 
@@ -675,6 +679,18 @@ export class ZoneAlerteComputedService {
       .where('zone_alerte_computed.id != :id', { id: zoneId })
       .andWhere('zone_alerte_computed.id IN(:...ids)', { ids: otherZonesId })
       .andWhere('ST_INTERSECTS(zone_alerte_computed.geom, (SELECT zaBis.geom FROM zone_alerte_computed as zaBis WHERE zaBis.id = :id))', { id: zoneId })
+      .getRawMany();
+  }
+
+  getZonesIntersectedWithCommune(zones: ZoneAlerteComputed[], communeId: number) {
+    return this.zoneAlerteComputedRepository
+      .createQueryBuilder('zone_alerte_computed')
+      .select('zone_alerte_computed.id', 'id')
+      .addSelect('zone_alerte_computed.code', 'code')
+      .addSelect('zone_alerte_computed.nom', 'nom')
+      .addSelect('zone_alerte_computed.type', 'type')
+      .where('zone_alerte_computed.id IN(:...zonesId)', { zonesId: zones.map(z => z.id) })
+      .andWhere('ST_INTERSECTS(zone_alerte_computed.geom, (SELECT c.geom FROM commune as c WHERE c.id = :communeId))', { communeId })
       .getRawMany();
   }
 

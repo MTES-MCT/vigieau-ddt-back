@@ -278,4 +278,16 @@ export class ZoneAlerteService {
       .where('zone_alerte.id IN(:...ids)', { ids: zones.map(z => z.id) })
       .getRawOne();
   }
+
+  getZonesIntersectedWithCommune(zones: ZoneAlerte[], communeId: number) {
+    return this.zoneAlerteRepository
+      .createQueryBuilder('zone_alerte')
+      .select('zone_alerte.id', 'id')
+      .addSelect('zone_alerte.code', 'code')
+      .addSelect('zone_alerte.nom', 'nom')
+      .addSelect('zone_alerte.type', 'type')
+      .where('zone_alerte.id IN(:...zonesId)', { zonesId: zones.map(z => z.id) })
+      .andWhere('ST_INTERSECTS(ST_TRANSFORM(zone_alerte.geom, 4326), (SELECT ST_TRANSFORM(c.geom, 4326) FROM commune as c WHERE c.id = :communeId))', { communeId })
+      .getRawMany();
+  }
 }
