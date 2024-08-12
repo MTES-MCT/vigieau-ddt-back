@@ -743,7 +743,7 @@ export class ArreteCadreService {
   /**
    * Mis à jour des statuts des AC tous les jours à 2h du matin
    */
-  // @Cron(CronExpression.EVERY_DAY_AT_2AM)
+  @Cron(CronExpression.EVERY_DAY_AT_2AM)
   async updateArreteCadreStatut() {
     const acAVenir = await this.arreteCadreRepository.find({
       where: {
@@ -777,7 +777,7 @@ export class ArreteCadreService {
   /**
    * Vérification s'il faut envoyer des mails de relance tous les jours à 8h du matin
    */
-  // @Cron(CronExpression.EVERY_DAY_AT_8AM)
+  @Cron(CronExpression.EVERY_DAY_AT_8AM)
   async sendArreteCadreEmails() {
     const [ac15ARelancer, ac2ARelancer] = await Promise.all([
       this.getAcAtXDays(15),
