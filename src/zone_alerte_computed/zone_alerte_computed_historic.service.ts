@@ -65,10 +65,10 @@ export class ZoneAlerteComputedHistoricService {
   }
 
   async computeHistoricMaps() {
-    const dateDebut = moment('27/07/2015', 'DD/MM/YYYY');
+    const dateDebut = moment('30/12/2018', 'DD/MM/YYYY');
     // const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('28/04/2024', 'DD/MM/YYYY');
-    const dateFin = moment('31/12/2016', 'DD/MM/YYYY');
+    const dateFin = moment('31/12/2020', 'DD/MM/YYYY');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
       const ars = await this.arreteResrictionService.findByDate(m);
@@ -173,7 +173,7 @@ export class ZoneAlerteComputedHistoricService {
   }
 
   async computeHistoricMapsComputed(date?: Moment) {
-    const dateDebut = moment('29/04/2024', 'DD/MM/YYYY');
+    const dateDebut = date ? date : moment();
     const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('23/06/2024', 'DD/MM/YYYY');
 
@@ -213,7 +213,7 @@ export class ZoneAlerteComputedHistoricService {
 
       await this.computeGeoJson(m);
     }
-    // await this.dataGouvService.updateMaps(dateDebut);
+    await this.dataGouvService.updateMaps(dateDebut);
   }
 
   async computeRegleAr(departement: Departement, date: Moment) {
@@ -651,10 +651,6 @@ export class ZoneAlerteComputedHistoricService {
       ],
     });
 
-    await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')));
-    await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')));
-    return;
-
     const allZones = await Promise.all(allZonesComputed.map(async z => {
       z.geom = JSON.parse((await this.findOne(z.id)).geom);
       return {
@@ -742,5 +738,6 @@ export class ZoneAlerteComputedHistoricService {
       this.logger.error('ERROR UPLOADING / GENERATING PMTILES', e);
     }
     this.statisticService.computeDepartementsSituation(allZonesComputed, date.format('YYYY-MM-DD'));
+    this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')));
   }
 }

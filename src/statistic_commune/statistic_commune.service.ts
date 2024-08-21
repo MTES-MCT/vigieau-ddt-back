@@ -106,7 +106,7 @@ export class StatisticCommuneService {
     this.logger.log('COMPUTE BY MONTH');
 
     const dateDebut = moment('01/01/2013', 'DD/MM/YYYY');
-    const dateFin = moment('31/12/2014', 'DD/MM/YYYY');
+    const dateFin = moment('31/10/2018', 'DD/MM/YYYY');
 
     const communes = await this.communeService.findAllLight();
 
@@ -119,22 +119,25 @@ export class StatisticCommuneService {
   async computeCommuneStatisticsRestrictionsByMonth(date: Date, communes: Commune[]) {
     const dateMoment = moment(date);
 
-    const statsCommune: StatisticCommune[] = await this.statisticCommuneRepository.find({
-      select: {
-        id: true,
-        restrictions: true,
-        restrictionsByMonth: true,
-        commune: {
-          id: true,
-          code: true,
-        },
-      },
-      relations: ['commune'],
-    });
-
     for (let i = 0; i < communes.length; i++) {
       const c = communes[i];
-      let statCommune = statsCommune.find(s => s.commune.code === c.code);
+      let statCommune = await this.statisticCommuneRepository.findOne({
+        select: {
+          id: true,
+          restrictions: true,
+          restrictionsByMonth: true,
+          commune: {
+            id: true,
+            code: true,
+          },
+        },
+        relations: ['commune'],
+        where: {
+          commune: {
+            id: c.id,
+          }
+        }
+      });
       if (!statCommune) {
         continue;
       }
