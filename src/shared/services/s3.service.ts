@@ -69,7 +69,7 @@ export class S3Service {
   async uploadFile(file: Express.Multer.File, prefix: string = '') {
     const { originalname } = file;
 
-    console.log('UPLOADING ', prefix, originalname);
+    this.logger.log(`UPLOADING ${prefix} ${originalname}`);
     return await this.s3_upload(
       file.buffer,
       process.env.S3_BUCKET,
@@ -92,16 +92,18 @@ export class S3Service {
   }
 
   async copyFile(fileName: string, newFileName: string, prefix: string = '') {
-    const oldFileUrl = process.env.S3_BUCKET + '/' + (process.env.S3_PREFIX || '') + prefix + fileName;
+    const oldFileUrl = '/' + process.env.S3_BUCKET + '/' + (process.env.S3_PREFIX || '') + prefix + fileName;
     const newFileUrl = (process.env.S3_PREFIX || '') + prefix + newFileName;
-    console.log('COPY FILE ', oldFileUrl, newFileUrl);
+    this.logger.log(`COPY FILE ${oldFileUrl} -> ${newFileUrl}`);
 
     const client = this.client;
     const params = {
       Bucket: process.env.S3_BUCKET,
       CopySource: encodeURI(oldFileUrl),
       Key: String(newFileUrl),
+      ACL: 'public-read',
     }
+    //@ts-ignore
     return await client.send(new CopyObjectCommand(params));
   }
 
