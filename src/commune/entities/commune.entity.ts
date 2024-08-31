@@ -4,7 +4,7 @@ import {
   CreateDateColumn,
   Entity,
   ManyToMany,
-  ManyToOne,
+  ManyToOne, OneToMany,
   Polygon,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -12,6 +12,7 @@ import { Departement } from '../../departement/entities/departement.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
 import { ZoneAlerteComputed } from '../../zone_alerte_computed/entities/zone_alerte_computed.entity';
 import { ZoneAlerteComputedHistoric } from '../../zone_alerte_computed/entities/zone_alerte_computed_historic.entity';
+import { StatisticCommune } from '../../statistic_commune/entities/statistic_commune.entity';
 
 @Entity()
 export class Commune extends BaseEntity {
@@ -57,4 +58,7 @@ export class Commune extends BaseEntity {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @OneToMany(() => StatisticCommune, (statisticCommune) => statisticCommune.commune)
+  statisticCommune: StatisticCommune[];
 }

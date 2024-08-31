@@ -13,6 +13,7 @@ import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_histor
 import { StatisticModule } from '../statistic/statistic.module';
 import { ZoneAlerteComputedHistoric } from './entities/zone_alerte_computed_historic.entity';
 import { StatisticDepartementModule } from '../statistic_departement/statistic_departement.module';
+import { StatisticCommuneModule } from '../statistic_commune/statistic_commune.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { StatisticDepartementModule } from '../statistic_departement/statistic_d
     forwardRef(() => DatagouvModule),
     StatisticModule,
     forwardRef(() => StatisticDepartementModule),
+    forwardRef(() => StatisticCommuneModule),
   ],
   controllers: [],
   providers: [ZoneAlerteComputedService, ZoneAlerteComputedHistoricService],

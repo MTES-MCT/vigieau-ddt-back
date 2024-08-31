@@ -25,7 +25,7 @@ export class CommuneService {
 
   async initDatas() {
     const communes = await this.communeRepository.count();
-    if(communes === 0) {
+    if (communes === 0) {
       this.updateCommuneRef();
     }
   }
@@ -45,6 +45,24 @@ export class CommuneService {
       .leftJoin('commune.departement', 'departement')
       .where('departement.code = :depCode', { depCode })
       .getRawMany();
+  }
+
+  findAllLight(): Promise<Commune[]> {
+    return this.communeRepository.find({
+      select: {
+        id: true,
+        code: true,
+        nom: true,
+        departement: {
+          id: true,
+          code: true,
+        },
+      },
+      relations: ['departement'],
+      order: {
+        code: 'ASC',
+      },
+    });
   }
 
   getUnionGeomOfCommunes(communes: Commune[]): Promise<any> {
@@ -74,7 +92,7 @@ export class CommuneService {
       .getRawMany();
     const toReturn = [];
     rawMany.forEach((c) => {
-      if(!toReturn.find((t) => t.id === c.id)) {
+      if (!toReturn.find((t) => t.id === c.id)) {
         toReturn.push({
           id: c.id,
           code: c.code,
@@ -116,7 +134,7 @@ export class CommuneService {
       .getRawMany();
     const toReturn = [];
     rawMany.forEach((c) => {
-      if(!toReturn.find((t) => t.id === c.id)) {
+      if (!toReturn.find((t) => t.id === c.id)) {
         toReturn.push({
           id: c.id,
           code: c.code,

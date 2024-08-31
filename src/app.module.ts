@@ -28,6 +28,13 @@ import { RestrictionModule } from './restriction/restriction.module';
 import { BassinVersantModule } from './bassin_versant/bassin_versant.module';
 import { AbonnementMail } from './core/entities/abonnement_mail.entity';
 import { DatagouvModule } from './datagouv/datagouv.module';
+import { StatisticCommuneModule } from './statistic_commune/statistic_commune.module';
+import { StatisticDepartementModule } from './statistic_departement/statistic_departement.module';
+import { FichierModule } from './fichier/fichier.module';
+import { ParametresModule } from './parametres/parametres.module';
+import { ZoneAlerteComputedModule } from './zone_alerte_computed/zone_alerte_computed.module';
+import { UsageFeedbackModule } from './usage_feedback/usage_feedback.module';
+import { StatisticModule } from './statistic/statistic.module';
 
 // @ts-ignore
 @Module({
@@ -55,10 +62,10 @@ import { DatagouvModule } from './datagouv/datagouv.module';
         extra:
           process.env.NODE_ENV !== 'local'
             ? {
-                ssl: {
-                  rejectUnauthorized: false,
-                },
-              }
+              ssl: {
+                rejectUnauthorized: false,
+              },
+            }
             : {},
       }),
       dataSourceFactory: async (options) => {
@@ -116,6 +123,13 @@ import { DatagouvModule } from './datagouv/datagouv.module';
     RestrictionModule,
     BassinVersantModule,
     DatagouvModule,
+    StatisticCommuneModule,
+    StatisticDepartementModule,
+    FichierModule,
+    ParametresModule,
+    ZoneAlerteComputedModule,
+    UsageFeedbackModule,
+    StatisticModule,
   ],
   controllers: [AppController],
   providers: [
@@ -129,4 +143,5 @@ import { DatagouvModule } from './datagouv/datagouv.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule {
+}
