@@ -57,7 +57,7 @@ import { StatisticModule } from './statistic/statistic.module';
           migrationsDir: 'src/migrations',
         },
         synchronize: false,
-        maxQueryExecutionTime: 1000,
+        // maxQueryExecutionTime: 1000,
         ssl: process.env.NODE_ENV !== 'local',
         extra:
           process.env.NODE_ENV !== 'local'

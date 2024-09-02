@@ -4,7 +4,7 @@ import {
   CreateDateColumn,
   Entity,
   ManyToMany,
-  ManyToOne, OneToMany,
+  ManyToOne, OneToMany, OneToOne,
   Polygon,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -59,6 +59,6 @@ export class Commune extends BaseEntity {
   @CreateDateColumn()
   createdAt: Date;
 
-  @OneToMany(() => StatisticCommune, (statisticCommune) => statisticCommune.commune)
-  statisticCommune: StatisticCommune[];
+  @OneToOne(() => StatisticCommune, (statisticCommune) => statisticCommune.commune)
+  statisticCommune: StatisticCommune;
 }

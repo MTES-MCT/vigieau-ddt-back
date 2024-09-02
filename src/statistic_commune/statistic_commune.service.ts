@@ -30,75 +30,60 @@ export class StatisticCommuneService {
 
   async computeCommuneStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date) {
     this.logger.log(`COMPUTING COMMUNE STATISTICS RESTRICTIONS - ${date.toISOString().split('T')[0]}`);
-    const communes = await this.communeService.findAllLight();
 
-    for (let i = 0; i < communes.length; i++) {
-      const c = communes[i];
-      let statCommune = await this.statisticCommuneRepository.findOne({
-        select: {
-          id: true,
-          restrictions: true,
-          restrictionsByMonth: true,
-          commune: {
-            id: true,
-            code: true,
-          },
-        },
-        relations: ['commune'],
-        where: {
-          commune: {
-            id: c.id,
-          }
+    const batchSize = 1000;
+    const communeSize = await this.communeService.count();
+    for (let i = 0; i < communeSize; i += batchSize) {
+      const toSave = [];
+      const communes = await this.communeService.findWithStats(batchSize, i);
+      for (let j = 0; j < communes.length; j++) {
+        const c = communes[j];
+        let statCommune = c.statisticCommune;
+        if (!statCommune) {
+          // @ts-ignore
+          statCommune = {
+            commune: c,
+            restrictions: [],
+          };
         }
-      });
-      if (!statCommune) {
-        // @ts-ignore
-        statCommune = {
-          commune: c,
-          restrictions: [],
+        if (!statCommune.restrictions) {
+          statCommune.restrictions = [];
+        }
+
+        let restrictionIndex = statCommune.restrictions.findIndex(r => r.date === date.toISOString().split('T')[0]);
+        const restriction = {
+          date: date.toISOString().split('T')[0],
+          SOU: null,
+          SUP: null,
+          AEP: null,
         };
-      }
-      if (!statCommune.restrictions) {
-        statCommune.restrictions = [];
-      }
+        const zonesDep = zones.filter(z => z.departement.code === c.departement.code);
+        // let zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteComputedService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
+        // @ts-ignore
+        let zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
+        zonesCommune = zonesDep.filter(z => zonesCommune.some(zc => zc.id === z.id));
+        const zonesType = ['SUP', 'SOU', 'AEP'];
+        const niveauxGravite = ['vigilance', 'alerte', 'alerte_renforcee', 'crise'];
 
-      let restrictionIndex = statCommune.restrictions.findIndex(r => r.date === date.toISOString().split('T')[0]);
-      const restriction = {
-        date: date.toISOString().split('T')[0],
-        SOU: null,
-        SUP: null,
-        AEP: null,
-      };
-      const zonesDep = zones.filter(z => z.departement.code === c.departement.code);
-      // let zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteComputedService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
-      // @ts-ignore
-      let zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
-      zonesCommune = zonesDep.filter(z => zonesCommune.some(zc => zc.id === z.id));
-      const zonesType = ['SUP', 'SOU', 'AEP'];
-      const niveauxGravite = ['vigilance', 'alerte', 'alerte_renforcee', 'crise'];
+        zonesType.forEach(zoneType => {
+          const zonesCommuneType = zonesCommune.filter(z => z.type === zoneType);
 
-      zonesType.forEach(zoneType => {
-        const zonesCommuneType = zonesCommune.filter(z => z.type === zoneType);
-
-        niveauxGravite.forEach(niveauGravite => {
-          if (zonesCommuneType.some(z => z.restriction.niveauGravite === niveauGravite)) {
-            restriction[zoneType] = niveauGravite;
-          }
+          niveauxGravite.forEach(niveauGravite => {
+            if (zonesCommuneType.some(z => z.restriction.niveauGravite === niveauGravite)) {
+              restriction[zoneType] = niveauGravite;
+            }
+          });
         });
-      });
 
-      if (restrictionIndex >= 0) {
-        statCommune.restrictions[restrictionIndex] = restriction;
-      } else {
-        statCommune.restrictions.push(restriction);
+        if (restrictionIndex >= 0) {
+          statCommune.restrictions[restrictionIndex] = restriction;
+        } else {
+          statCommune.restrictions.push(restriction);
+        }
+        statCommune.restrictions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        toSave.push(statCommune);
       }
-      statCommune.restrictions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      if (statCommune.id) {
-        await this.statisticCommuneRepository.update({ id: statCommune.id }, { restrictions: statCommune.restrictions });
-      } else {
-        await this.statisticCommuneRepository.save(statCommune);
-      }
+      await this.statisticCommuneRepository.save(toSave);
     }
   }
 
@@ -119,59 +104,51 @@ export class StatisticCommuneService {
   async computeCommuneStatisticsRestrictionsByMonth(date: Date, communes: Commune[]) {
     const dateMoment = moment(date);
 
-    for (let i = 0; i < communes.length; i++) {
-      const c = communes[i];
-      let statCommune = await this.statisticCommuneRepository.findOne({
-        select: {
-          id: true,
-          restrictions: true,
-          restrictionsByMonth: true,
-          commune: {
-            id: true,
-            code: true,
-          },
-        },
-        relations: ['commune'],
-        where: {
-          commune: {
-            id: c.id,
-          }
+    const batchSize = 1000;
+    const communeSize = await this.communeService.count();
+    for (let i = 0; i < communeSize; i += batchSize) {
+      const toSave = [];
+      const communes = await this.communeService.findWithStats(batchSize, i * batchSize, true);
+      for (let j = 0; j < communes.length; j++) {
+        const c = communes[j];
+        let statCommune = c.statisticCommune;
+        if (!statCommune) {
+          continue;
         }
-      });
-      if (!statCommune) {
-        continue;
-      }
-      if (!statCommune.restrictionsByMonth) {
-        statCommune.restrictionsByMonth = [];
-      }
+        if (!statCommune.restrictionsByMonth) {
+          statCommune.restrictionsByMonth = [];
+        }
 
-      let restrictionByMonthIndex = statCommune.restrictionsByMonth.findIndex(r => r.date === dateMoment.format('YYYY-MM'));
-      const restrictionByMonth = {
-        date: dateMoment.format('YYYY-MM'),
-        ponderation: 0,
-      };
-      const allRestrictionsByMonth = statCommune.restrictions.filter(r => moment(r.date, 'YYYY-MM-DD').format('YYYY-MM') === dateMoment.format('YYYY-MM'));
-      for (const restriction of allRestrictionsByMonth) {
-        const niveauGraviteMax = [
-          Utils.getNiveau(restriction.AEP),
-          Utils.getNiveau(restriction.SOU),
-          Utils.getNiveau(restriction.SUP),
-        ]
-          .reduce((prev, current) => {
-            return prev > current ? prev : current;
-          });
+        let restrictionByMonthIndex = statCommune.restrictionsByMonth.findIndex(r => r.date === dateMoment.format('YYYY-MM'));
+        const restrictionByMonth = {
+          date: dateMoment.format('YYYY-MM'),
+          ponderation: 0,
+        };
+        const allRestrictionsByMonth = statCommune.restrictions.filter(r => moment(r.date, 'YYYY-MM-DD').format('YYYY-MM') === dateMoment.format('YYYY-MM'));
+        for (const restriction of allRestrictionsByMonth) {
+          const niveauGraviteMax = [
+            Utils.getNiveau(restriction.AEP),
+            Utils.getNiveau(restriction.SOU),
+            Utils.getNiveau(restriction.SUP),
+          ]
+            .reduce((prev, current) => {
+              return prev > current ? prev : current;
+            });
 
-        restrictionByMonth.ponderation += this.getPonderation(niveauGraviteMax);
+          restrictionByMonth.ponderation += this.getPonderation(niveauGraviteMax);
+        }
+
+        if (restrictionByMonthIndex >= 0) {
+          statCommune.restrictionsByMonth[restrictionByMonthIndex] = restrictionByMonth;
+        } else {
+          statCommune.restrictionsByMonth.push(restrictionByMonth);
+        }
+        statCommune.restrictionsByMonth.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const tmp = JSON.parse(JSON.stringify(statCommune));
+        delete tmp.restrictions;
+        toSave.push(tmp);
       }
-
-      if (restrictionByMonthIndex >= 0) {
-        statCommune.restrictionsByMonth[restrictionByMonthIndex] = restrictionByMonth;
-      } else {
-        statCommune.restrictionsByMonth.push(restrictionByMonth);
-      }
-      statCommune.restrictionsByMonth.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      await this.statisticCommuneRepository.update({ id: statCommune.id }, { restrictionsByMonth: statCommune.restrictionsByMonth });
+      await this.statisticCommuneRepository.save(toSave);
     }
   }
 

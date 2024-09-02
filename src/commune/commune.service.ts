@@ -65,6 +65,35 @@ export class CommuneService {
     });
   }
 
+  findWithStats(take: number, skip: number, takeRestrictionsByMonth = false): Promise<Commune[]> {
+    return this.communeRepository.find({
+      select: {
+        id: true,
+        code: true,
+        nom: true,
+        departement: {
+          id: true,
+          code: true,
+        },
+        statisticCommune: {
+          id: true,
+          restrictions: true,
+          restrictionsByMonth: takeRestrictionsByMonth,
+        }
+      },
+      relations: ['departement', 'statisticCommune'],
+      order: {
+        code: 'ASC',
+      },
+      take: take,
+      skip: skip
+    });
+  }
+
+  count(): Promise<number> {
+    return this.communeRepository.count();
+  }
+
   getUnionGeomOfCommunes(communes: Commune[]): Promise<any> {
     return this.communeRepository
       .createQueryBuilder('commune')

@@ -65,10 +65,10 @@ export class ZoneAlerteComputedHistoricService {
   }
 
   async computeHistoricMaps() {
-    const dateDebut = moment('09/02/2020', 'DD/MM/YYYY');
+    const dateDebut = moment('25/02/2016', 'DD/MM/YYYY');
     // const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('28/04/2024', 'DD/MM/YYYY');
-    const dateFin = moment('31/12/2020', 'DD/MM/YYYY');
+    const dateFin = moment('31/12/2016', 'DD/MM/YYYY');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
       const ars = await this.arreteResrictionService.findByDate(m);
@@ -738,6 +738,6 @@ export class ZoneAlerteComputedHistoricService {
       this.logger.error('ERROR UPLOADING / GENERATING PMTILES', e);
     }
     this.statisticService.computeDepartementsSituation(allZonesComputed, date.format('YYYY-MM-DD'));
-    this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')));
+    // this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')));
   }
 }
