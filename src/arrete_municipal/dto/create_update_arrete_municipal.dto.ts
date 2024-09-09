@@ -1,4 +1,4 @@
-import { IsNumber, IsString } from 'class-validator';
+import { IsEmail, IsNumber, IsPhoneNumber, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { FilterOperator, PaginateConfig } from 'nestjs-paginate';
 import { ArreteMunicipal } from '../entities/arrete_municipal.entity';
@@ -36,9 +36,13 @@ export class CreateUpdateArreteMunicipalDto {
   @ApiProperty({ example: 'Doe', description: 'Nom de l\'utilisateur qui a crée l\'arrêté municipal' })
   userLastName: string;
 
-  @IsString()
+  @IsEmail()
   @ApiProperty({ example: 'john.doe@example.com', description: 'Email de l\'utilisateur qui a crée l\'arrêté municipal' })
   userEmail: string;
+
+  @IsPhoneNumber('FR')
+  @ApiProperty({ example: '(+33) 1 22 33 44 55', description: 'Numéro de téléphone de l\'utilisateur qui a crée l\'arrêté municipal' })
+  userPhone: string;
 }
 
 export const arreteMunicipalPaginateConfig: PaginateConfig<ArreteMunicipal> =

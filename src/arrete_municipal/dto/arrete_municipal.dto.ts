@@ -35,6 +35,10 @@ export class ArreteMunicipalDto {
   @ApiProperty({ example: 'john.doe@example.com', description: 'Email de l\'utilisateur qui a crée l\'arrêté municipal' })
   userEmail: string;
 
+  @IsString()
+  @ApiProperty({ example: '(+33) 1 22 33 44 55', description: 'Numéro de téléphone de l\'utilisateur qui a crée l\'arrêté municipal' })
+  userPhone: string;
+
   @IsObject()
   @ApiProperty({ type: FichierDto })
   fichier: FichierDto;
@@ -51,6 +55,7 @@ export const arreteMunicipalPaginateConfig: PaginateConfig<ArreteMunicipal> =
       'userFirstName',
       'userLastName',
       'userEmail',
+      'userPhone',
       'communes.id',
       'communes.code',
       'communes.nom',

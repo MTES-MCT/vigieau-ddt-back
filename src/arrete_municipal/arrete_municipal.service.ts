@@ -76,6 +76,7 @@ export class ArreteMunicipalService {
         userFirstName: true,
         userLastName: true,
         userEmail: true,
+        userPhone: true,
         fichier: {
           id: true,
           nom: true,
@@ -158,6 +159,7 @@ export class ArreteMunicipalService {
         dateFin: am.dateFin,
         communeContactNom: am.userFirstName + ' ' + am.userLastName,
         communeContactEmail: am.userEmail,
+        communeContactTelephone: am.userPhone,
         communeArreteLien: newFile ? newFile.url : '',
         communeLien: `https://${process.env.DOMAIN_NAME}/arrete-municipal`,
       },

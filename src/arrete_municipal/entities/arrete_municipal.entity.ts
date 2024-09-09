@@ -24,8 +24,7 @@ export class ArreteMunicipal extends BaseEntity {
   @Column({ type: 'date', nullable: false })
   dateFin: string;
 
-  @OneToOne(() => Fichier, (fichier) => fichier.arreteMunicipal,
-    { onDelete: 'CASCADE' })
+  @OneToOne(() => Fichier, (fichier) => fichier.arreteMunicipal)
   @JoinColumn()
   fichier: Fichier;
 
@@ -55,6 +54,9 @@ export class ArreteMunicipal extends BaseEntity {
 
   @Column({ nullable: false, length: 200 })
   userEmail: string;
+
+  @Column({ nullable: false, length: 50 })
+  userPhone: string;
 
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
