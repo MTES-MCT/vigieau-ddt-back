@@ -88,28 +88,6 @@ export class ArreteMunicipalController {
     );
   }
 
-  // @Patch(':id')
-  // @ApiOperation({ summary: 'Edition d\'un arrêté municipal' })
-  // @ApiResponse({
-  //   status: 201,
-  //   type: ArreteMunicipalDto,
-  // })
-  // async update(
-  //   @Req() req,
-  //   @Param('id') id: string,
-  //   @Body() updateArreteMunicipalDto: CreateUpdateArreteMunicipalDto,
-  // ): Promise<ArreteMunicipalDto> {
-  //   const arreteMunicipal = await this.arreteMunicipalService.update(
-  //     +id,
-  //     updateArreteMunicipalDto,
-  //     req.session.user,
-  //   );
-  //   return plainToInstance(
-  //     ArreteMunicipalDto,
-  //     camelcaseKeys(arreteMunicipal, { deep: true }),
-  //   );
-  // }
-
   @Post(':id/abroger')
   @ApiOperation({ summary: "Abrogement d'un arrêté municipal" })
   async repeal(

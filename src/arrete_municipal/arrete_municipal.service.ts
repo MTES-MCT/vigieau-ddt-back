@@ -14,6 +14,7 @@ import { ArreteCadre } from '../arrete_cadre/entities/arrete_cadre.entity';
 import { RepealArreteMunicipalDto } from './dto/repeal_arrete_municipal.dto';
 import { CommuneService } from '../commune/commune.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { MailService } from '../shared/services/mail.service';
 
 @Injectable()
 export class ArreteMunicipalService {
@@ -24,6 +25,7 @@ export class ArreteMunicipalService {
     private readonly arreteMunicipalRepository: Repository<ArreteMunicipal>,
     private readonly fichierService: FichierService,
     private readonly communeService: CommuneService,
+    private readonly mailService: MailService,
   ) {
   }
 
@@ -127,13 +129,10 @@ export class ArreteMunicipalService {
       );
     }
     let am: any = await this.arreteMunicipalRepository.save(<any>createArreteMunicipalDto);
-    // Upload du PDF de l'arrêté cadre
+    let newFile = null;
+    // Upload du PDF de l'arrêté municipal
     if (arreteMunicipalPdf) {
-      // if (am.fichier) {
-      //   await this.arreteCadreRepository.update({ id: id }, { fichier: null });
-      //   await this.fichierService.deleteById(ac.fichier.id);
-      // }
-      const newFile = await this.fichierService.create(
+      newFile = await this.fichierService.create(
         arreteMunicipalPdf,
         `arrete-municipal/${am.id}/`,
       );
@@ -146,16 +145,26 @@ export class ArreteMunicipalService {
           ? { ...am, ...{ statut: <StatutArreteMunicipal>'abroge' } }
           : { ...am, ...{ statut: <StatutArreteMunicipal>'publie' } }
         : { ...am, ...{ statut: <StatutArreteMunicipal>'a_venir' } };
-    return this.arreteMunicipalRepository.save(am);
-  }
+    am = await this.arreteMunicipalRepository.save(am);
 
-  async update(
-    id: number,
-    updateArreteMunicipalDto: CreateUpdateArreteMunicipalDto,
-    currentUser: User,
-  ): Promise<any> {
-    // @ts-ignore
-    return this.arreteMunicipalRepository.update({ id }, updateArreteMunicipalDto);
+    const depCode = am.communes[0] ? am.communes[0].code >= '97' ? am.communes[0].code.slice(0, 3) : am.communes[0].code.slice(0, 2) : null;
+    this.mailService.sendEmailsByDepartement(
+      depCode,
+      `Un nouvel arrêté municipal est publié dans votre département`,
+      'creation_am',
+      {
+        communeNom: am.communes?.map(c => c.nom).join(', '),
+        dateDebut: am.dateDebut,
+        dateFin: am.dateFin,
+        communeContactNom: am.userFirstName + ' ' + am.userLastName,
+        communeContactEmail: am.userEmail,
+        communeArreteLien: newFile ? newFile.url : '',
+        communeLien: `https://${process.env.DOMAIN_NAME}/arrete-municipal`,
+      },
+      true,
+    );
+
+    return am;
   }
 
   async repeal(
