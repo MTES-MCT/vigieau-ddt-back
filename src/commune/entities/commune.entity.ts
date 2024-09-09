@@ -4,7 +4,8 @@ import {
   CreateDateColumn,
   Entity,
   ManyToMany,
-  ManyToOne, OneToMany, OneToOne,
+  ManyToOne,
+  OneToOne,
   Polygon,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -13,6 +14,7 @@ import { Restriction } from '../../restriction/entities/restriction.entity';
 import { ZoneAlerteComputed } from '../../zone_alerte_computed/entities/zone_alerte_computed.entity';
 import { ZoneAlerteComputedHistoric } from '../../zone_alerte_computed/entities/zone_alerte_computed_historic.entity';
 import { StatisticCommune } from '../../statistic_commune/entities/statistic_commune.entity';
+import { ArreteMunicipal } from '../../arrete_municipal/entities/arrete_municipal.entity';
 
 @Entity()
 export class Commune extends BaseEntity {
@@ -27,6 +29,9 @@ export class Commune extends BaseEntity {
 
   @Column({ nullable: true })
   population: number;
+
+  @Column({ nullable: true })
+  siren: string;
 
   @Column({
     type: 'geometry',
@@ -53,12 +58,17 @@ export class Commune extends BaseEntity {
   })
   zonesAlerteComputedHistoric: ZoneAlerteComputedHistoric[];
 
+  @OneToOne(() => StatisticCommune, (statisticCommune) => statisticCommune.commune)
+  statisticCommune: StatisticCommune;
+
+  @ManyToMany(() => ArreteMunicipal, (arreteMunicipal) => arreteMunicipal.communes, {
+    persistence: false,
+  })
+  arretesMunicipaux: ArreteMunicipal[];
+
   @Column({ nullable: false, default: false })
   disabled: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
-
-  @OneToOne(() => StatisticCommune, (statisticCommune) => statisticCommune.commune)
-  statisticCommune: StatisticCommune;
 }

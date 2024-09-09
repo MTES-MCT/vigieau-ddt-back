@@ -11,6 +11,8 @@ import {
 import { UserService } from '../user/user.service';
 import random = generators.random;
 import { RegleauLogger } from '../logger/regleau.logger';
+import { CommuneService } from '../commune/commune.service';
+import { Commune } from '../commune/entities/commune.entity';
 
 export const buildOpenIdClient = async () => {
   const TrustIssuer = await Issuer.discover(
@@ -34,6 +36,7 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
 
   constructor(
     private readonly userService: UserService,
+    private readonly communeService: CommuneService,
     client: Client,
   ) {
     super({
@@ -56,8 +59,24 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
 
   async validate(tokenset: TokenSet): Promise<any> {
     const userinfo: UserinfoResponse = await this.client.userinfo(tokenset);
-    const userInDb = await this.userService.findOne(userinfo?.email);
+    let userInDb = await this.userService.findOne(userinfo?.email);
 
+    /**
+     * Si l'utilisateur n'existe pas en BDD, on vérifie son numéro SIREN associé afin d'associer sa commune
+     * Si il y a une commune associée à un numéro SIREN, on crée l'utilisateur automatiquement
+     */
+    if (!userInDb && userinfo.siren) {
+      const commune: Commune = await this.communeService.findBySiren(<string>userinfo.siren);
+      if (commune) {
+        const userToCreate = {
+          email: userinfo.email.toLowerCase(),
+          role: 'commune',
+          role_communes: [commune.code],
+        };
+        // @ts-ignore
+        userInDb = await this.userService.create({ role: 'mte' }, userToCreate);
+      }
+    }
     if (!userInDb) {
       this._logger.error('ERROR LOGIN VALIDATE - USER NOT IN DB -', JSON.stringify(userinfo));
       throw new UnauthorizedException();

@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_restriction.entity';
+import { ArreteMunicipal } from '../../arrete_municipal/entities/arrete_municipal.entity';
 
 @Entity()
 export class Fichier extends BaseEntity {
@@ -26,7 +27,10 @@ export class Fichier extends BaseEntity {
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
 
-  @OneToOne(() => ArreteCadre, (arreteCadre) => arreteCadre.fichier)
+  @OneToOne(
+    () => ArreteCadre,
+    (arreteCadre) => arreteCadre.fichier,
+  )
   arreteCadre: ArreteCadre;
 
   @OneToOne(
@@ -34,6 +38,12 @@ export class Fichier extends BaseEntity {
     (arreteRestriction) => arreteRestriction.fichier,
   )
   arreteRestriction: ArreteRestriction;
+
+  @OneToOne(
+    () => ArreteMunicipal,
+    (arreteMunicipal) => arreteMunicipal.fichier,
+  )
+  arreteMunicipal: ArreteMunicipal;
 
   @Column({ default: false })
   migrate: boolean;

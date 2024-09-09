@@ -45,7 +45,7 @@ export class ZoneAlerteComputedHistoricService {
               private readonly statisticCommuneService: StatisticCommuneService,
               private readonly dataGouvService: DatagouvService) {
     setTimeout(() => {
-      this.computeHistoricMaps();
+      // this.computeHistoricMaps();
     }, 5000);
   }
 

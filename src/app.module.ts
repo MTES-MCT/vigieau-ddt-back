@@ -35,6 +35,7 @@ import { ParametresModule } from './parametres/parametres.module';
 import { ZoneAlerteComputedModule } from './zone_alerte_computed/zone_alerte_computed.module';
 import { UsageFeedbackModule } from './usage_feedback/usage_feedback.module';
 import { StatisticModule } from './statistic/statistic.module';
+import { ArreteMunicipalModule } from './arrete_municipal/arrete_municipal.module';
 
 // @ts-ignore
 @Module({
@@ -130,6 +131,7 @@ import { StatisticModule } from './statistic/statistic.module';
     ZoneAlerteComputedModule,
     UsageFeedbackModule,
     StatisticModule,
+    ArreteMunicipalModule,
   ],
   controllers: [AppController],
   providers: [

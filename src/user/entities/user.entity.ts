@@ -20,7 +20,7 @@ export class User extends BaseEntity {
 
   @Column('enum', {
     name: 'role',
-    enum: ['mte', 'departement'],
+    enum: ['mte', 'departement', 'commune'],
     default: 'departement',
     nullable: false,
   })
@@ -31,6 +31,9 @@ export class User extends BaseEntity {
 
   @Column('text',{ nullable: true, array: true })
   role_departements: string[];
+
+  @Column('text',{ nullable: true, array: true })
+  role_communes: string[];
 
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;

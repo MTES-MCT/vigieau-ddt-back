@@ -1,1 +1,1 @@
-export type UserRole = 'mte' | 'departement';
+export type UserRole = 'mte' | 'departement' | 'commune';
