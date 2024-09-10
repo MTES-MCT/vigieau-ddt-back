@@ -30,6 +30,7 @@
       font-size: 16px;
       vertical-align: top;
     }
+
     /* -------------------------------------
     BODY & CONTAINER
 ------------------------------------- */
@@ -60,6 +61,7 @@
       max-width: 600px;
       padding: 0;
     }
+
     /* -------------------------------------
     HEADER, FOOTER, MAIN
 ------------------------------------- */
@@ -74,6 +76,7 @@
       box-sizing: border-box;
       padding: 24px;
     }
+
     /* -------------------------------------
     TYPOGRAPHY
 ------------------------------------- */
@@ -90,6 +93,7 @@
       color: #0867ec;
       text-decoration: underline;
     }
+
     /* -------------------------------------
     BUTTONS
 ------------------------------------- */
@@ -141,6 +145,7 @@
       .btn-primary table td:hover {
         background-color: #1212ff !important;
       }
+
       .btn-primary a:hover {
         background-color: #1212ff !important;
         border-color: #1212ff !important;
@@ -206,32 +211,39 @@
       .main span {
         font-size: 16px !important;
       }
+
       .wrapper {
         padding: 8px !important;
       }
+
       .content {
         padding: 0 !important;
       }
+
       .container {
         padding: 0 !important;
         padding-top: 8px !important;
         width: 100% !important;
       }
+
       .main {
         border-left-width: 0 !important;
         border-radius: 0 !important;
         border-right-width: 0 !important;
       }
+
       .btn table {
         max-width: 100% !important;
         width: 100% !important;
       }
+
       .btn a {
         font-size: 16px !important;
         max-width: 100% !important;
         width: 100% !important;
       }
     }
+
     /* -------------------------------------
     PRESERVE THESE STYLES IN THE HEAD
 ------------------------------------- */
@@ -240,6 +252,7 @@
       .ExternalClass {
         width: 100%;
       }
+
       .ExternalClass,
       .ExternalClass p,
       .ExternalClass span,
@@ -248,6 +261,7 @@
       .ExternalClass div {
         line-height: 100%;
       }
+
       #MessageViewBody a {
         color: inherit;
         text-decoration: none;
@@ -274,13 +288,15 @@
           <tr>
             <td class="wrapper">
               <p>Bonjour,</p>
-              <p>La commune {{ communeNom }} publie un arrêté municipal sur VigiEau.<br/>
-              Durée de l'arrêté : Du {{ dateDebut }} au {{ dateFin }}</p>
-              <p>Contact de la collectivité :<br/>
-              Nom : {{ communeContactNom }}<br/>
-              Email : {{ communeContactEmail }}</p>
+              <p>La commune {{ communeNom }} publie un arrêté municipal sur VigiEau.<br />
+                Durée de l'arrêté : Du {{ dateDebut }} au {{ dateFin }}</p>
+              <p>Contact de la collectivité :<br />
+                Nom : {{ communeContactNom }}<br />
+                Téléphone : {{ communeContactTelephone }}<br />
+                Email : {{ communeContactEmail }}</p>
               <p>
-                Vous pouvez consulter l'arrêté ici : <a href="{{ communeArreteLien }}" target="_blank">lien de consultation de l'arrêté</a>
+                Vous pouvez consulter l'arrêté ici : <a href="{{ communeArreteLien }}" target="_blank">lien de
+                consultation de l'arrêté</a>
               </p>
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
                 <tbody>
@@ -289,7 +305,7 @@
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                       <tbody>
                       <tr>
-                        <td> <a href="{{ communeLien }}" target="_blank">Accéder aux arrêtés municipaux</a> </td>
+                        <td><a href="{{ communeLien }}" target="_blank">Accéder aux arrêtés municipaux</a></td>
                       </tr>
                       </tbody>
                     </table>
