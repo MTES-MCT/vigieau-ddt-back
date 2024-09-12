@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { StatisticCommune } from './entities/statistic_commune.entity';
 import { ZoneAlerteComputed } from '../zone_alerte_computed/entities/zone_alerte_computed.entity';
 import { RegleauLogger } from '../logger/regleau.logger';
@@ -10,6 +10,7 @@ import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { Commune } from '../commune/entities/commune.entity';
 import { Utils } from '../core/utils';
 import moment from 'moment/moment';
+import { ZoneAlerteComputedHistoricService } from '../zone_alerte_computed/zone_alerte_computed_historic.service';
 
 @Injectable()
 export class StatisticCommuneService {
@@ -21,23 +22,28 @@ export class StatisticCommuneService {
     private readonly communeService: CommuneService,
     @Inject(forwardRef(() => ZoneAlerteComputedService))
     private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
+    @Inject(forwardRef(() => ZoneAlerteComputedHistoricService))
+    private readonly zoneAlerteComputedHistoricService: ZoneAlerteComputedHistoricService,
     private readonly zoneAlerteService: ZoneAlerteService,
+    @InjectDataSource()
+    private readonly dataSource: DataSource
   ) {
     setTimeout(() => {
-      // this.computeByMonth()
+      this.computeByMonth();
     }, 5000);
   }
 
-  async computeCommuneStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date) {
-    this.logger.log(`COMPUTING COMMUNE STATISTICS RESTRICTIONS - ${date.toISOString().split('T')[0]}`);
+  async computeCommuneStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date, historic?: boolean) {
+    const dateString = date.toISOString().split('T')[0];
+    this.logger.log(`COMPUTING COMMUNE STATISTICS RESTRICTIONS - ${dateString}`);
 
     const batchSize = 1000;
     const communeSize = await this.communeService.count();
     for (let i = 0; i < communeSize; i += batchSize) {
-      const toSave = [];
+      this.logger.log(`BATCH ${i}`);
       const communes = await this.communeService.findWithStats(batchSize, i);
-      for (let j = 0; j < communes.length; j++) {
-        const c = communes[j];
+
+      await Promise.all(communes.map(async (c: Commune) => {
         let statCommune = c.statisticCommune;
         if (!statCommune) {
           // @ts-ignore
@@ -45,12 +51,9 @@ export class StatisticCommuneService {
             commune: c,
             restrictions: [],
           };
-        }
-        if (!statCommune.restrictions) {
-          statCommune.restrictions = [];
+          statCommune = await this.statisticCommuneRepository.save(statCommune);
         }
 
-        let restrictionIndex = statCommune.restrictions.findIndex(r => r.date === date.toISOString().split('T')[0]);
         const restriction = {
           date: date.toISOString().split('T')[0],
           SOU: null,
@@ -58,9 +61,11 @@ export class StatisticCommuneService {
           AEP: null,
         };
         const zonesDep = zones.filter(z => z.departement.code === c.departement.code);
-        // let zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteComputedService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
+        let zonesCommune = zonesDep.length > 0 ? historic ?
+          await this.zoneAlerteComputedHistoricService.getZonesIntersectedWithCommune(zonesDep, c.id) :
+          await this.zoneAlerteComputedService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
         // @ts-ignore
-        let zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
+        // let zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
         zonesCommune = zonesDep.filter(z => zonesCommune.some(zc => zc.id === z.id));
         const zonesType = ['SUP', 'SOU', 'AEP'];
         const niveauxGravite = ['vigilance', 'alerte', 'alerte_renforcee', 'crise'];
@@ -69,62 +74,82 @@ export class StatisticCommuneService {
           const zonesCommuneType = zonesCommune.filter(z => z.type === zoneType);
 
           niveauxGravite.forEach(niveauGravite => {
-            if (zonesCommuneType.some(z => z.restriction.niveauGravite === niveauGravite)) {
+            if (zonesCommuneType.some(z => z.restriction?.niveauGravite === niveauGravite)) {
               restriction[zoneType] = niveauGravite;
             }
           });
         });
 
-        if (restrictionIndex >= 0) {
-          statCommune.restrictions[restrictionIndex] = restriction;
-        } else {
-          statCommune.restrictions.push(restriction);
-        }
-        statCommune.restrictions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        toSave.push(statCommune);
-      }
-      await this.statisticCommuneRepository.save(toSave);
+        const qb =
+          this.statisticCommuneRepository.createQueryBuilder('statistic_commune')
+            .update()
+            .set({
+              restrictions: () => `
+              (
+        SELECT jsonb_agg(
+            CASE
+                -- Si l'élément "date" est égal à la date du jour, on le remplace
+                WHEN r ->> 'date' = '${dateString}' THEN '${JSON.stringify(restriction)}'::jsonb
+                -- Sinon, on conserve l'élément tel quel
+                ELSE r
+            END
+        )
+        FROM jsonb_array_elements(restrictions) as r
+        -- Si aucun élément avec "date": date du jour n'existe, on ajoute le nouvel élément à la fin
+    ) || CASE 
+            WHEN NOT EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(restrictions) as r
+                WHERE r ->> 'date' = '${dateString}'
+            )
+            THEN '[${JSON.stringify(restriction)}]'::jsonb
+            ELSE '[]'::jsonb
+        END
+              `,
+            })
+            .where('id = :id', { id: statCommune.id });
+        await qb.execute();
+        return;
+      }));
     }
   }
 
   async computeByMonth() {
     this.logger.log('COMPUTE BY MONTH');
 
-    const dateDebut = moment('01/01/2013', 'DD/MM/YYYY');
-    const dateFin = moment('31/10/2018', 'DD/MM/YYYY');
-
-    const communes = await this.communeService.findAllLight();
+    const dateDebut = moment('01/09/2023', 'DD/MM/YYYY');
+    const dateFin = moment('30/09/2024', 'DD/MM/YYYY');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'month')) {
       this.logger.log(`COMPUTE STAT BY MONTH ${m.format('YYYY-MM')}`);
-      await this.computeCommuneStatisticsRestrictionsByMonth(m.toDate(), communes);
+      await this.computeCommuneStatisticsRestrictionsByMonth(m.toDate());
     }
   }
 
-  async computeCommuneStatisticsRestrictionsByMonth(date: Date, communes: Commune[]) {
+  async computeCommuneStatisticsRestrictionsByMonth(date: Date) {
     const dateMoment = moment(date);
 
     const batchSize = 1000;
     const communeSize = await this.communeService.count();
     for (let i = 0; i < communeSize; i += batchSize) {
-      const toSave = [];
-      const communes = await this.communeService.findWithStats(batchSize, i * batchSize, true);
-      for (let j = 0; j < communes.length; j++) {
-        const c = communes[j];
+      this.logger.log(`BATCH ${i}`);
+      const communes = await this.communeService.findWithStats(batchSize, i);
+
+      await Promise.all(communes.map(async (c: Commune) => {
         let statCommune = c.statisticCommune;
         if (!statCommune) {
-          continue;
-        }
-        if (!statCommune.restrictionsByMonth) {
-          statCommune.restrictionsByMonth = [];
+          return;
         }
 
-        let restrictionByMonthIndex = statCommune.restrictionsByMonth.findIndex(r => r.date === dateMoment.format('YYYY-MM'));
         const restrictionByMonth = {
           date: dateMoment.format('YYYY-MM'),
           ponderation: 0,
         };
-        const allRestrictionsByMonth = statCommune.restrictions.filter(r => moment(r.date, 'YYYY-MM-DD').format('YYYY-MM') === dateMoment.format('YYYY-MM'));
+        const allRestrictionsByMonth = (await this.dataSource.query(`
+        SELECT  r
+FROM  statistic_commune sc, jsonb_array_elements(sc.restrictions) r
+where id = ${statCommune.id} and to_char((r->>'date')::date, 'YYYY-MM') = '${dateMoment.format('YYYY-MM')}';
+        `)).map(r => r.r);
         for (const restriction of allRestrictionsByMonth) {
           const niveauGraviteMax = [
             Utils.getNiveau(restriction.AEP),
@@ -138,17 +163,37 @@ export class StatisticCommuneService {
           restrictionByMonth.ponderation += this.getPonderation(niveauGraviteMax);
         }
 
-        if (restrictionByMonthIndex >= 0) {
-          statCommune.restrictionsByMonth[restrictionByMonthIndex] = restrictionByMonth;
-        } else {
-          statCommune.restrictionsByMonth.push(restrictionByMonth);
-        }
-        statCommune.restrictionsByMonth.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        const tmp = JSON.parse(JSON.stringify(statCommune));
-        delete tmp.restrictions;
-        toSave.push(tmp);
-      }
-      await this.statisticCommuneRepository.save(toSave);
+        const qb =
+          this.statisticCommuneRepository.createQueryBuilder('statistic_commune')
+            .update()
+            .set({
+              restrictionsByMonth: () => `
+              (
+        SELECT jsonb_agg(
+            CASE
+                -- Si l'élément "date" est égal à la date du jour, on le remplace
+                WHEN r ->> 'date' = '${dateMoment.format('YYYY-MM')}' THEN '${JSON.stringify(restrictionByMonth)}'::jsonb
+                -- Sinon, on conserve l'élément tel quel
+                ELSE r
+            END
+        )
+        FROM jsonb_array_elements(restrictionsByMonth) as r
+        -- Si aucun élément avec "date": date du jour n'existe, on ajoute le nouvel élément à la fin
+    ) || CASE 
+            WHEN NOT EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(restrictionsByMonth) as r
+                WHERE r ->> 'date' = '${dateMoment.format('YYYY-MM')}'
+            )
+            THEN '[${JSON.stringify(restrictionByMonth)}]'::jsonb
+            ELSE '[]'::jsonb
+        END
+              `,
+            })
+            .where('id = :id', { id: statCommune.id });
+        await qb.execute();
+        return;
+      }));
     }
   }
 

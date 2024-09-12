@@ -12,7 +12,6 @@ import { AxiosError } from 'axios';
 import moment from 'moment';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
 import { S3Service } from '../shared/services/s3.service';
-import { Moment } from 'moment/moment';
 import JSZip from 'jszip';
 
 @Injectable()
@@ -38,6 +37,8 @@ export class DatagouvService {
     'pmtiles': 'a101ef59-0999-4b9a-a682-6f9b79d53c7e',
     'geojson': 'bfba7898-aed3-40ec-aa74-abb73b92a363',
     'restrictions': 'e403a885-5eaf-411d-a03e-751a9c22930d',
+    'pmtiles_archive': 'b0b246c3-f724-4eb2-a83a-c516e0044aa2',
+    'geojson_archive': '3972a125-2372-41f1-b3f5-25794f860414'
   };
 
   constructor(private readonly httpService: HttpService,
@@ -222,7 +223,7 @@ export class DatagouvService {
     this.logger.log('MISE A JOUR DATAGOUV - RESTRICTIONS - FIN');
   }
 
-  async updateMaps(date?: Moment) {
+  async updateMaps(date?: moment.Moment) {
     const dateDebut = date ? date : moment();
 
     for (let y = dateDebut.year(); y <= moment().year(); y++) {
@@ -231,7 +232,7 @@ export class DatagouvService {
     }
   }
 
-  async generateMapsArchive(dateDebut: Moment, year: number, geojson?: boolean) {
+  async generateMapsArchive(dateDebut: moment.Moment, year: number, geojson?: boolean) {
     const path = this.configService.get('PATH_TO_WRITE_FILE');
     const geojsonOrPmtiles = geojson ? 'geojson' : 'pmtiles';
 
@@ -256,9 +257,11 @@ export class DatagouvService {
          m.add(1, 'days')) {
       const fileName = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles}`;
       try {
-        const fileData = fs.readFileSync(`${path}/${fileName}`);
-        zip.remove(fileName);
-        zip.file(fileName, fileData);
+        if(fs.existsSync(`${path}/${fileName}`)) {
+          const fileData = fs.readFileSync(`${path}/${fileName}`);
+          zip.remove(fileName);
+          zip.file(fileName, fileData);
+        }
       } catch(e) {
         this.logger.error(`ARCHIVE FICHIER ${fileName} non accessible`, e);
       }
@@ -271,6 +274,7 @@ export class DatagouvService {
     };
     // @ts-ignore
     const s3Response = await this.s3Service.uploadFile(fileToTransfer, `${geojsonOrPmtiles}/`);
+    await this.uploadToDatagouv(geojson ? 'geojson_archive' : 'pmtiles_archive', s3Response.Location, `Cartes des zones et arrêtés en vigueur - ${geojson ? 'GEOJSON' : 'PMTILES'} - 2024`, true);
     console.log(`FIN GENERATION DE L'ARCHIVE ${geojsonOrPmtiles} DE L'ANNEE ${year}`);
   }
 

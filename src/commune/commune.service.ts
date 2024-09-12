@@ -23,7 +23,6 @@ export class CommuneService {
     private readonly configService: ConfigService,
   ) {
     this.initDatas();
-    this.updateCommuneRef();
   }
 
   async initDatas() {
@@ -80,7 +79,7 @@ export class CommuneService {
     });
   }
 
-  findWithStats(take: number, skip: number, takeRestrictionsByMonth = false): Promise<Commune[]> {
+  findWithStats(take: number, skip: number): Promise<Commune[]> {
     return this.communeRepository.find({
       select: {
         id: true,
@@ -92,8 +91,6 @@ export class CommuneService {
         },
         statisticCommune: {
           id: true,
-          restrictions: true,
-          restrictionsByMonth: takeRestrictionsByMonth,
         },
       },
       relations: ['departement', 'statisticCommune'],
@@ -249,7 +246,7 @@ export class CommuneService {
     for (const d of departements) {
       const url = `${this.configService.get('API_GEO')}/departements/${d.code}/communes?fields=code,nom,contour,population,siren`;
       const { data } = await firstValueFrom(this.httpService.get(url));
-      for (const c of data) {
+      await Promise.all(data.map(async c => {
         const communeExisting = await this.communeRepository.findOne({
           where: { code: c.code },
         });
@@ -272,7 +269,7 @@ export class CommuneService {
           });
           communesAdded++;
         }
-      }
+      }));
     }
     this.logger.log(`${communesUpdated} COMMUNES MIS A JOUR`);
     this.logger.log(`${communesAdded} COMMUNES AJOUTEES`);

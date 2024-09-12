@@ -21,6 +21,7 @@ import { RestrictionService } from '../restriction/restriction.service';
 import { DatagouvService } from '../datagouv/datagouv.service';
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
+import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
 
 const exec = util.promisify(require('child_process').exec);
 
@@ -45,6 +46,7 @@ export class ZoneAlerteComputedHistoricService {
               private readonly statisticCommuneService: StatisticCommuneService,
               private readonly dataGouvService: DatagouvService) {
     setTimeout(() => {
+      // this.computeHistoricMapsComputed(moment('28/04/2024', 'DD/MM/YYYY'));
       // this.computeHistoricMaps();
     }, 5000);
   }
@@ -65,10 +67,10 @@ export class ZoneAlerteComputedHistoricService {
   }
 
   async computeHistoricMaps() {
-    const dateDebut = moment('25/02/2016', 'DD/MM/YYYY');
+    const dateDebut = moment('20/09/2023', 'DD/MM/YYYY');
     // const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('28/04/2024', 'DD/MM/YYYY');
-    const dateFin = moment('31/12/2016', 'DD/MM/YYYY');
+    const dateFin = moment('28/04/2024', 'DD/MM/YYYY');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
       const ars = await this.arreteResrictionService.findByDate(m);
@@ -85,6 +87,7 @@ export class ZoneAlerteComputedHistoricService {
         z.restriction = z.restrictions[0];
         return z;
       }), new Date(m.format('YYYY-MM-DD')));
+      await this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
 
       // const zasFormated = await Promise.all(zas.map(async z => {
       //   z.geom = JSON.parse((await this.zoneAlerteService.findOne(z.id)).geom);
@@ -168,7 +171,6 @@ export class ZoneAlerteComputedHistoricService {
       // } catch (e) {
       //   this.logger.error('ERROR GENERATING PMTILES', e);
       // }
-      // await this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
     }
   }
 
@@ -581,6 +583,18 @@ export class ZoneAlerteComputedHistoricService {
       .getRawMany();
   }
 
+  getZonesIntersectedWithCommune(zones: ZoneAlerteComputedHistoric[], communeId: number) {
+    return this.zoneAlerteComputedHistoricRepository
+      .createQueryBuilder('zone_alerte_computed_historic')
+      .select('zone_alerte_computed_historic.id', 'id')
+      .addSelect('zone_alerte_computed_historic.code', 'code')
+      .addSelect('zone_alerte_computed_historic.nom', 'nom')
+      .addSelect('zone_alerte_computed_historic.type', 'type')
+      .where('zone_alerte_computed_historic.id IN(:...zonesId)', { zonesId: zones.map(z => z.id) })
+      .andWhere('ST_INTERSECTS(zone_alerte_computed_historic.geom, (SELECT c.geom FROM commune as c WHERE c.id = :communeId))', { communeId })
+      .getRawMany();
+  }
+
   async findOneWithCommuneZone(id: number, communeId: number): Promise<any> {
     const zoneFull = await this.zoneAlerteComputedHistoricRepository.findOne({
       where: { id },
@@ -737,7 +751,19 @@ export class ZoneAlerteComputedHistoricService {
     } catch (e) {
       this.logger.error('ERROR UPLOADING / GENERATING PMTILES', e);
     }
-    this.statisticService.computeDepartementsSituation(allZonesComputed, date.format('YYYY-MM-DD'));
-    // this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')));
+    await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
+    await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
+    await this.statisticService.computeDepartementsSituation(allZonesComputed, date.format('YYYY-MM-DD'));
+  }
+
+  async getZonesArea(zones: ZoneAlerteComputed[]) {
+    return this.zoneAlerteComputedHistoricRepository
+      .createQueryBuilder('zone_alerte_computed_historic')
+      .select(
+        'SUM(ST_Area(zone_alerte_computed_historic.geom::geography)/1000000)',
+        'area',
+      )
+      .where('zone_alerte_computed_historic.id IN(:...ids)', { ids: zones.map(z => z.id) })
+      .getRawOne();
   }
 }

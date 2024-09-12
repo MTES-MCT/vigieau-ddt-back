@@ -65,8 +65,8 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
      * Si l'utilisateur n'existe pas en BDD, on vérifie son numéro SIREN associé afin d'associer sa commune
      * Si il y a une commune associée à un numéro SIREN, on crée l'utilisateur automatiquement
      */
-    if (!userInDb && userinfo.siren) {
-      const commune: Commune = await this.communeService.findBySiren(<string>userinfo.siren);
+    if (!userInDb && userinfo.siret) {
+      const commune: Commune = await this.communeService.findBySiren((<string>userinfo.siret).substring(0, 8));
       if (commune) {
         const userToCreate = {
           email: userinfo.email.toLowerCase(),
