@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, MoreThanOrEqual, Repository } from 'typeorm';
+import { IsNull, Like, MoreThanOrEqual, Not, Repository } from 'typeorm';
 import { StatisticDepartement } from './entities/statistic_departement.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Statistic } from '../statistic/entities/statistic.entity';
@@ -241,5 +241,26 @@ export class StatisticDepartementService {
       await qb.execute();
       return;
     }));
+  }
+
+  async sortStatDepartement() {
+    this.logger.log(`SORTING DEPARTEMENT STATISTICS RESTRICTIONS`);
+    const qb =
+      this.statisticDepartementRepository.createQueryBuilder('statistic_departement')
+        .update()
+        .set({
+          restrictions: () => `
+              (
+        SELECT jsonb_agg(r)
+    FROM (
+      SELECT r
+      FROM jsonb_array_elements(restrictions) AS r
+      ORDER BY (r->>'date')::date
+    ) as sorted
+              `,
+        })
+        .where('restrictions', Not(IsNull()));
+    await qb.execute();
+    return;
   }
 }

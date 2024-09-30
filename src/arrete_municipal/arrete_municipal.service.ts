@@ -202,10 +202,10 @@ export class ArreteMunicipalService {
       );
     }
 
+    await this.arreteMunicipalRepository.delete(id);
     if (arrete.fichier) {
       await this.fichierService.deleteById(arrete.fichier.id);
     }
-    await this.arreteMunicipalRepository.delete(id);
     return;
   }
 

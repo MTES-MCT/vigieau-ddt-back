@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, IsNull, Not, Repository } from 'typeorm';
 import { StatisticCommune } from './entities/statistic_commune.entity';
 import { ZoneAlerteComputed } from '../zone_alerte_computed/entities/zone_alerte_computed.entity';
 import { RegleauLogger } from '../logger/regleau.logger';
@@ -29,7 +29,7 @@ export class StatisticCommuneService {
     private readonly dataSource: DataSource
   ) {
     setTimeout(() => {
-      this.computeByMonth();
+      // this.computeByMonth();
     }, 5000);
   }
 
@@ -195,6 +195,45 @@ where id = ${statCommune.id} and to_char((r->>'date')::date, 'YYYY-MM') = '${dat
         return;
       }));
     }
+  }
+
+  async sortStatCommune() {
+    this.logger.log(`SORTING COMMUNE STATISTICS RESTRICTIONS`);
+    const qb =
+      this.statisticCommuneRepository.createQueryBuilder('statistic_commune')
+        .update()
+        .set({
+          restrictions: () => `
+              (
+        SELECT jsonb_agg(r)
+    FROM (
+      SELECT r
+      FROM jsonb_array_elements(restrictions) AS r
+      ORDER BY (r->>'date')::date
+    ) as sorted
+              `,
+        })
+        .where('restrictions', Not(IsNull()));
+    await qb.execute();
+
+
+    const qbBis =
+      this.statisticCommuneRepository.createQueryBuilder('statistic_commune')
+        .update()
+        .set({
+          restrictionsByMonth: () => `
+              (
+        SELECT jsonb_agg(r)
+    FROM (
+      SELECT r
+      FROM jsonb_array_elements(restrictionsByMonth) AS r
+      ORDER BY (r->>'date')::date
+    ) as sorted
+              `,
+        })
+        .where('restrictionsByMonth', Not(IsNull()));
+    await qbBis.execute();
+    return;
   }
 
   getPonderation(niveauGravite) {

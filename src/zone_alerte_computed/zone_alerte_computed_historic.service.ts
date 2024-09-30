@@ -215,6 +215,8 @@ export class ZoneAlerteComputedHistoricService {
 
       await this.computeGeoJson(m);
     }
+    await this.statisticCommuneService.sortStatCommune();
+    await this.statisticDepartementService.sortStatDepartement();
     await this.dataGouvService.updateMaps(dateDebut);
   }
 
