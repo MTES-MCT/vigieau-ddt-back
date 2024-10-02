@@ -98,4 +98,7 @@ export class ArreteRestriction extends BaseEntity {
 
   @UpdateDateColumn({ select: false, type: 'timestamp' })
   updated_at: number;
+
+  @Column({ select: false, type: 'timestamp', nullable: true })
+  updatedByHuman: Date;
 }

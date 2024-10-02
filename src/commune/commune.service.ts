@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
 import { Commune } from './entities/commune.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DepartementService } from '../departement/departement.service';
 import { firstValueFrom } from 'rxjs';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { ConfigService } from '@nestjs/config';
+import { User } from '../user/entities/user.entity';
+import { ArreteMunicipal } from '../arrete_municipal/entities/arrete_municipal.entity';
 
 @Injectable()
 export class CommuneService {
@@ -30,7 +32,7 @@ export class CommuneService {
     }
   }
 
-  async find(depCode?: string, withGeom?: boolean): Promise<Commune[]> {
+  async find(depCode?: string, withGeom?: boolean, user?: User): Promise<Commune[]> {
     const qb = this.communeRepository
       .createQueryBuilder('commune')
       .select('commune.id', 'id')
@@ -41,9 +43,21 @@ export class CommuneService {
       qb.addSelect('ST_AsGeoJSON(ST_TRANSFORM(commune.geom, 4326), 3)', 'geom');
     }
 
+    qb.leftJoin('commune.departement', 'departement');
+
+    if (depCode) {
+      qb.where('departement.code = :depCode', { depCode });
+    }
+
+    if (!depCode && user && user.role === 'departement') {
+      qb.where('departement.code IN (:...depsCode)', { depsCode: user.role_departements });
+    }
+
+    if (!depCode && user && user.role === 'commune') {
+      qb.where('commune.code IN (:...communesCode)', { communesCode: user.role_communes });
+    }
+
     return qb
-      .leftJoin('commune.departement', 'departement')
-      .where('departement.code = :depCode', { depCode })
       .getRawMany();
   }
 
@@ -63,6 +77,46 @@ export class CommuneService {
         code: 'ASC',
       },
     });
+  }
+
+  findWithStats(take: number, skip: number): Promise<Commune[]> {
+    return this.communeRepository.find({
+      select: {
+        id: true,
+        code: true,
+        nom: true,
+        departement: {
+          id: true,
+          code: true,
+        },
+        statisticCommune: {
+          id: true,
+        },
+      },
+      relations: ['departement', 'statisticCommune'],
+      order: {
+        code: 'ASC',
+      },
+      take: take,
+      skip: skip,
+    });
+  }
+
+  findBySiren(siren: string) {
+    return this.communeRepository.findOne({
+      select: {
+        id: true,
+        code: true,
+        nom: true,
+      },
+      where: {
+        siren,
+      },
+    });
+  }
+
+  count(): Promise<number> {
+    return this.communeRepository.count();
   }
 
   getUnionGeomOfCommunes(communes: Commune[]): Promise<any> {
@@ -157,6 +211,32 @@ export class CommuneService {
     return toReturn;
   }
 
+  async getUserCommunes(user: User, communes: Commune[]) {
+    const communesIds = communes.map(c => c.id);
+    const whereClause: FindOptionsWhere<Commune> | null =
+      !user || user.role === 'mte'
+        ? { id: In(communesIds) }
+        : user.role === 'departement' ? {
+          id: In(communesIds),
+          departement: {
+            code: In(user.role_departements),
+          },
+        } : {
+          id: In(communesIds),
+          code: In(user.role_communes),
+        };
+
+    return this.communeRepository.find({
+      select: {
+        id: true,
+        code: true,
+        nom: true,
+      },
+      relations: ['departement'],
+      where: whereClause,
+    });
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async updateCommuneRef() {
     this.logger.log('MISE A JOUR DES COMMUNES');
@@ -164,9 +244,9 @@ export class CommuneService {
     let communesAdded = 0;
     const departements = await this.departementService.findAllLight();
     for (const d of departements) {
-      const url = `${this.configService.get('API_GEO')}/departements/${d.code}/communes?fields=code,nom,contour,population`;
+      const url = `${this.configService.get('API_GEO')}/departements/${d.code}/communes?fields=code,nom,contour,population,siren`;
       const { data } = await firstValueFrom(this.httpService.get(url));
-      for (const c of data) {
+      await Promise.all(data.map(async c => {
         const communeExisting = await this.communeRepository.findOne({
           where: { code: c.code },
         });
@@ -174,6 +254,7 @@ export class CommuneService {
           communeExisting.nom = c.nom;
           communeExisting.departement = d;
           communeExisting.population = c.population;
+          communeExisting.siren = c.siren;
           communeExisting.geom = c.contour;
           await this.communeRepository.save(communeExisting);
           communesUpdated++;
@@ -182,12 +263,13 @@ export class CommuneService {
             code: c.code,
             nom: c.nom,
             population: c.population,
+            siren: c.siren,
             geom: c.contour,
             departement: d,
           });
           communesAdded++;
         }
-      }
+      }));
     }
     this.logger.log(`${communesUpdated} COMMUNES MIS A JOUR`);
     this.logger.log(`${communesAdded} COMMUNES AJOUTEES`);

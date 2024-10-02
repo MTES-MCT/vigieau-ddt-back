@@ -587,9 +587,9 @@ export class ZoneAlerteComputedService {
     if (computeHistoric) {
       this.computeHistoric();
     }
-    this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, date);
-    this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, date);
-    this.statisticService.computeDepartementsSituation(allZonesComputed);
+    await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, date);
+    await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, date);
+    await this.statisticService.computeDepartementsSituation(allZonesComputed);
   }
 
   async computeCommunesIntersected(departement: Departement) {

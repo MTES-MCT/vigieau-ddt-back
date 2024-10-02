@@ -55,7 +55,7 @@ export class UserService {
       .leftJoinAndSelect(
         Departement,
         'departement',
-        'departement.code IN(user.role_departements)',
+        `departement.code = ANY(user.role_departements)`,
       )
       .where('departement.code IN (:...depCodes)', { depCodes })
       .getMany();

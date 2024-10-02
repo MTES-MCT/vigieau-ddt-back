@@ -499,7 +499,7 @@ export class ArreteRestrictionService {
       .where('arrete_restriction.statut IN (:...statuts)', {
         statuts: ['a_venir', 'publie', 'abroge'],
       })
-      .andWhere('arrete_restriction.updated_at::DATE = :date', { date })
+      .andWhere('arrete_restriction."updatedByHuman"::DATE = :date', { date })
       .getRawOne();
   }
 
@@ -547,6 +547,7 @@ export class ArreteRestrictionService {
     const arreteRestriction: ArreteRestriction =
       await this.arreteRestrictionRepository.save({
         id,
+        updatedByHuman: new Date(),
         ...updateArreteRestrictionDto,
       });
     arreteRestriction.restrictions =

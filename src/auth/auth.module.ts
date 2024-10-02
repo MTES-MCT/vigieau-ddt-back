@@ -8,15 +8,17 @@ import { AuthController } from './auth.controller';
 import { UserService } from '../user/user.service';
 import { UserModule } from '../user/user.module';
 import { LocalStrategy } from './local.strategy';
+import { CommuneModule } from '../commune/commune.module';
+import { CommuneService } from '../commune/commune.service';
 
 const OidcStrategyFactory = {
   provide: 'OidcStrategy',
-  useFactory: async (userService: UserService) => {
+  useFactory: async (userService: UserService, communeService: CommuneService) => {
     const client = await buildOpenIdClient(); // secret sauce! build the dynamic client before injecting it into the strategy for use in the constructor super call.
-    const strategy = new OidcStrategy(userService, client);
+    const strategy = new OidcStrategy(userService, communeService, client);
     return strategy;
   },
-  inject: [UserService],
+  inject: [UserService, CommuneService],
 };
 
 @Module({
@@ -27,6 +29,7 @@ const OidcStrategyFactory = {
       property: null,
     }),
     UserModule,
+    CommuneModule,
   ],
   controllers: [AuthController],
   providers: [

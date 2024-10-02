@@ -32,7 +32,7 @@ import { StatisticCommuneModule } from '../statistic_commune/statistic_commune.m
   ],
   controllers: [],
   providers: [ZoneAlerteComputedService, ZoneAlerteComputedHistoricService],
-  exports: [ZoneAlerteComputedService],
+  exports: [ZoneAlerteComputedService, ZoneAlerteComputedHistoricService],
 })
 export class ZoneAlerteComputedModule {
 }

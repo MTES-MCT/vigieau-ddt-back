@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthenticatedGuard } from '../core/guards/authenticated.guard';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CommuneService } from './commune.service';
@@ -19,12 +19,14 @@ export class CommuneController {
     type: [CommuneDto],
   })
   async find(
+    @Req() req,
     @Query('depCode') depCode?: string,
     @Query('withGeom') withGeom?: string,
   ): Promise<CommuneDto[]> {
     const communes = await this.communeService.find(
       depCode,
       withGeom === 'true',
+      req.session.user,
     );
     return plainToInstance(CommuneDto, camelcaseKeys(communes, { deep: true }));
   }
