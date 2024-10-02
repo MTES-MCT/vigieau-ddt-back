@@ -51,7 +51,7 @@
     "express-formidable": "^1.2.0",
     "express-session": "^1.17.3",
     "handlebars": "^4.7.8",
-    "helmet": "^7.1.0",
+    "helmet": "^8.0.0",
     "json-2-csv": "^5.5.5",
     "jszip": "^3.10.1",
     "lodash.clonedeep": "^4.5.0",
