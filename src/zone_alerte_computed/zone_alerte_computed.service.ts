@@ -206,7 +206,7 @@ export class ZoneAlerteComputedService {
           case 'eso':
           case 'esu':
             let zonesAep = zonesAr.filter((z) => z.type === (ar.ressourceEapCommunique === 'eso' ? 'SOU' : 'SUP') && ar.restrictions.some(r => r.id === z.restriction.id));
-            zonesAep = JSON.parse(JSON.stringify(zonesAep));
+            zonesAep = structuredClone(zonesAep);
             zonesAep = zonesAep.map(z => {
               z.type = 'AEP';
               return z;
@@ -214,8 +214,8 @@ export class ZoneAlerteComputedService {
             zonesToSave = zonesToSave.concat(zonesAep);
             break;
           case 'max':
-            const zonesEsu: any = JSON.parse(JSON.stringify(zonesAr.filter(z => z?.type === 'SUP')));
-            const zonesEso: any = JSON.parse(JSON.stringify(zonesAr.filter(z => z?.type === 'SOU')));
+            const zonesEsu: any = structuredClone(zonesAr.filter(z => z?.type === 'SUP'));
+            const zonesEso: any = structuredClone(zonesAr.filter(z => z?.type === 'SOU'));
             // On boucle sur les zones ESU et on stock un tableau intersect avec les zones ESO
             if (zonesEsu.length > 0 && zonesEso.length > 0) {
               for (const zoneEsu of zonesEsu) {
@@ -622,7 +622,12 @@ export class ZoneAlerteComputedService {
     // Récupérer la date de début la plus ancienne des ARs modifiés la veille
     const dateHistoricToCompute = (await this.arreteResrictionService.findMinDateDebutByDate(yesterday)).dateDebut;
     if (dateHistoricToCompute && moment().diff(moment(dateHistoricToCompute, 'YYYY-MM-DD'), 'days') >= 1) {
-      this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(moment(dateHistoricToCompute));
+      if(moment(dateHistoricToCompute, 'YYYY-MM-DD').isBefore(moment('2024-04-28'))) {
+        await this.zoneAlerteComputedHistoricService.computeHistoricMaps(moment(dateHistoricToCompute, 'YYYY-MM-DD'));
+      }
+      const dateMin = moment(dateHistoricToCompute, 'YYYY-MM-DD').isBefore(moment('2024-04-28')) ?
+        '2024-04-28' : dateHistoricToCompute;
+      await this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(moment(dateMin));
     }
   }
 

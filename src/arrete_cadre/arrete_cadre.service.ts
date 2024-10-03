@@ -866,7 +866,7 @@ export class ArreteCadreService {
           // ac.usagesArreteCadre = await this.usageArreteCadreService.findByArreteCadre();
           break;
       }
-      await this.create(JSON.parse(JSON.stringify(ac)), null);
+      await this.create(structuredClone(ac), null);
     }
     return;
   }

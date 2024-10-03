@@ -144,7 +144,7 @@ export class StatisticDepartementService {
     this.loadStatDep();
   }
 
-  async computeDepartementStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date, historic?: boolean) {
+  async computeDepartementStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date, historic?: boolean, historicNotComputed?: boolean) {
     this.logger.log(`COMPUTING DEPARTEMENT STATISTICS RESTRICTIONS - ${date.toISOString().split('T')[0]}`);
     const statsDepartement: StatisticDepartement[] = await this.statisticDepartementRepository.find({
       select: {
@@ -206,11 +206,14 @@ export class StatisticDepartementService {
         for (let j = 0; j < niveauxGravite.length; j++) {
           const niveauGravite = niveauxGravite[j];
           const zonesDepTypeNiveauGravite = zonesDepType.filter(z => z.restriction?.niveauGravite === niveauGravite);
-          restriction[type][niveauGravite] = zonesDepTypeNiveauGravite.length > 0 ?
-            historic ? (await this.zoneAlerteComputedHistoricService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) :
-              (await this.zoneAlerteComputedService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) : 0;
-          // restriction[type][niveauGravite] = zonesDepTypeNiveauGravite.length > 0 ?
-          //   (await this.zoneAlerteService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) : 0;
+          if(!historicNotComputed) {
+            restriction[type][niveauGravite] = zonesDepTypeNiveauGravite.length > 0 ?
+              historic ? (await this.zoneAlerteComputedHistoricService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) :
+                (await this.zoneAlerteComputedService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) : 0;
+          } else {
+            restriction[type][niveauGravite] = zonesDepTypeNiveauGravite.length > 0 ?
+              (await this.zoneAlerteService.getZonesArea(zonesDepTypeNiveauGravite)).area?.toFixed(2) : 0;
+          }
         }
       }
 
