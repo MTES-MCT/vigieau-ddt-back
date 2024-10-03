@@ -275,7 +275,7 @@ export class ZoneAlerteComputedHistoricService {
           case 'eso':
           case 'esu':
             let zonesAep = zonesAr.filter((z) => z.type === (ar.ressourceEapCommunique === 'eso' ? 'SOU' : 'SUP') && ar.restrictions.some(r => r.id === z.restriction.id));
-            zonesAep = JSON.parse(JSON.stringify(zonesAep));
+            zonesAep = structuredClone(zonesAep);
             zonesAep = zonesAep.map(z => {
               z.type = 'AEP';
               return z;
@@ -283,8 +283,8 @@ export class ZoneAlerteComputedHistoricService {
             zonesToSave = zonesToSave.concat(zonesAep);
             break;
           case 'max':
-            const zonesEsu: any = JSON.parse(JSON.stringify(zonesAr.filter(z => z?.type === 'SUP')));
-            const zonesEso: any = JSON.parse(JSON.stringify(zonesAr.filter(z => z?.type === 'SOU')));
+            const zonesEsu: any = structuredClone(zonesAr.filter(z => z?.type === 'SUP'));
+            const zonesEso: any = structuredClone(zonesAr.filter(z => z?.type === 'SOU'));
             // On boucle sur les zones ESU et on stock un tableau intersect avec les zones ESO
             if (zonesEsu.length > 0 && zonesEso.length > 0) {
               for (const zoneEsu of zonesEsu) {
