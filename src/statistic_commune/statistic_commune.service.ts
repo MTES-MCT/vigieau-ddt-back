@@ -26,14 +26,14 @@ export class StatisticCommuneService {
     private readonly zoneAlerteComputedHistoricService: ZoneAlerteComputedHistoricService,
     private readonly zoneAlerteService: ZoneAlerteService,
     @InjectDataSource()
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
   ) {
     setTimeout(() => {
       // this.computeByMonth();
     }, 5000);
   }
 
-  async computeCommuneStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date, historic?: boolean) {
+  async computeCommuneStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date, historic?: boolean, historicNotComputed?: boolean) {
     const dateString = date.toISOString().split('T')[0];
     this.logger.log(`COMPUTING COMMUNE STATISTICS RESTRICTIONS - ${dateString}`);
 
@@ -61,11 +61,14 @@ export class StatisticCommuneService {
           AEP: null,
         };
         const zonesDep = zones.filter(z => z.departement.code === c.departement.code);
-        let zonesCommune = zonesDep.length > 0 ? historic ?
-          await this.zoneAlerteComputedHistoricService.getZonesIntersectedWithCommune(zonesDep, c.id) :
-          await this.zoneAlerteComputedService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
-        // @ts-ignore
-        // let zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
+        let zonesCommune;
+        if (!historicNotComputed) {
+          zonesCommune = zonesDep.length > 0 ? historic ?
+            await this.zoneAlerteComputedHistoricService.getZonesIntersectedWithCommune(zonesDep, c.id) :
+            await this.zoneAlerteComputedService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
+        } else {
+          zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteService.getZonesIntersectedWithCommune(<any> zonesDep, c.id) : [];
+        }
         zonesCommune = zonesDep.filter(z => zonesCommune.some(zc => zc.id === z.id));
         const zonesType = ['SUP', 'SOU', 'AEP'];
         const niveauxGravite = ['vigilance', 'alerte', 'alerte_renforcee', 'crise'];

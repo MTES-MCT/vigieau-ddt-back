@@ -622,7 +622,12 @@ export class ZoneAlerteComputedService {
     // Récupérer la date de début la plus ancienne des ARs modifiés la veille
     const dateHistoricToCompute = (await this.arreteResrictionService.findMinDateDebutByDate(yesterday)).dateDebut;
     if (dateHistoricToCompute && moment().diff(moment(dateHistoricToCompute, 'YYYY-MM-DD'), 'days') >= 1) {
-      this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(moment(dateHistoricToCompute));
+      if(moment(dateHistoricToCompute, 'YYYY-MM-DD').isBefore(moment('2024-04-28'))) {
+        await this.zoneAlerteComputedHistoricService.computeHistoricMaps(moment(dateHistoricToCompute, 'YYYY-MM-DD'));
+      }
+      const dateMin = moment(dateHistoricToCompute, 'YYYY-MM-DD').isBefore(moment('2024-04-28')) ?
+        '2024-04-28' : dateHistoricToCompute;
+      await this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(moment(dateMin));
     }
   }
 
