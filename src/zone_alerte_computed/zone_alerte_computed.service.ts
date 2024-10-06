@@ -584,12 +584,13 @@ export class ZoneAlerteComputedService {
     } catch (e) {
       this.logger.error('ERROR GENERATING PMTILES', e);
     }
+    await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, date);
+    await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, date);
+    await this.statisticCommuneService.computeCommuneStatisticsRestrictionsByMonth(date);
+    await this.statisticService.computeDepartementsSituation(allZonesComputed);
     if (computeHistoric) {
       this.computeHistoric();
     }
-    await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, date);
-    await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, date);
-    await this.statisticService.computeDepartementsSituation(allZonesComputed);
   }
 
   async computeCommunesIntersected(departement: Departement) {
@@ -629,6 +630,7 @@ export class ZoneAlerteComputedService {
         '2024-04-28' : dateHistoricToCompute;
       await this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(moment(dateMin));
     }
+    await this.statisticCommuneService.computeByMonth(moment(dateHistoricToCompute, 'YYYY-MM-DD'));
   }
 
   async getZonesAlerteComputedByDepartement(departement: Departement): Promise<ZoneAlerteComputed[]> {
