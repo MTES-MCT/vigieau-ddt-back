@@ -30,7 +30,7 @@ export class StatisticCommuneService {
     private readonly dataSource: DataSource,
   ) {
     // setTimeout(() => {
-    //   this.computeByMonth(moment('2015-06-01'));
+    //   this.computeByMonth();
     // }, 5000);
   }
 

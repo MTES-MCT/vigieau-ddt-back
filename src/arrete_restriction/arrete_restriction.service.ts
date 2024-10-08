@@ -1083,7 +1083,7 @@ export class ArreteRestrictionService {
       await this.mailService.sendEmails(
         usersToSendMail.map((u) => u.email),
         `L'arrêté ${ar.numero} est actif depuis ${nbMonths} mois`,
-        'relance_arrete',
+        'relance_arrete_mois',
         {
           arreteNumero: ar.numero,
           arreteDateDebut: ar.dateDebut,

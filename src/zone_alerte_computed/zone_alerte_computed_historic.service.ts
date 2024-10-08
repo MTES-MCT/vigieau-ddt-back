@@ -45,10 +45,10 @@ export class ZoneAlerteComputedHistoricService {
               @Inject(forwardRef(() => StatisticCommuneService))
               private readonly statisticCommuneService: StatisticCommuneService,
               private readonly dataGouvService: DatagouvService) {
-    setTimeout(() => {
-      // this.computeHistoricMapsComputed(moment('2024-10-06'));
-      this.computeHistoricMaps(moment('2017-05-01'));
-    }, 5000);
+    // setTimeout(() => {
+    //   this.computeHistoricMapsComputed(moment('2024-10-06'));
+    //   this.computeHistoricMaps(moment('2021-01-19'));
+    // }, 5000);
   }
 
   findOne(id: number): Promise<any> {
@@ -68,7 +68,7 @@ export class ZoneAlerteComputedHistoricService {
 
   async computeHistoricMaps(date?: Moment) {
     const dateDebut = date ? date : moment();
-    const dateFin = moment('2024-04-27');
+    const dateFin = moment('2024-04-28');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
       const ars = await this.arreteResrictionService.findByDate(m);
