@@ -41,6 +41,7 @@
     "@nestjs/terminus": "^10.1.1",
     "@nestjs/throttler": "^6.1.0",
     "@nestjs/typeorm": "^10.0.1",
+    "@turf/union": "^7.1.0",
     "adminjs": "^7.8.9",
     "axios": "^1.7.3",
     "camelcase-keys": "^7.0.2",

@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { DepartementService } from '../departement/departement.service';
@@ -20,6 +20,8 @@ import moment, { Moment } from 'moment';
 import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_historic.service';
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
+import turfUnion from '@turf/union';
+import { Min } from 'class-validator';
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -50,6 +52,8 @@ export class ZoneAlerteComputedService {
     @Inject(forwardRef(() => StatisticCommuneService))
     private readonly statisticCommuneService: StatisticCommuneService,
     private readonly zoneAlerteComputedHistoricService: ZoneAlerteComputedHistoricService,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {
   }
 
@@ -153,7 +157,7 @@ export class ZoneAlerteComputedService {
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${arretesRestrictions.length} arrêtés de restriction`);
     let zonesToSave = [];
     for (const ar of arretesRestrictions) {
-      for (const restriction of ar.restrictions) {
+      await Promise.all(ar.restrictions.map(async (restriction) => {
         if (restriction.zoneAlerte) {
           const za = await this.zoneAlerteService.findOne(restriction.zoneAlerte.id);
           za.restriction = { id: restriction.id, niveauGravite: restriction.niveauGravite };
@@ -173,7 +177,7 @@ export class ZoneAlerteComputedService {
           // SAUVEGARDE ZONE AEP
           zonesToSave.push(za);
         }
-      }
+      }));
     }
 
     zonesToSave = zonesToSave.map(z => {
@@ -182,8 +186,10 @@ export class ZoneAlerteComputedService {
       z.niveauGravite = z.restriction.niveauGravite;
       return z;
     }).filter(z => z.geom.coordinates.length > 0);
-    await this.zoneAlerteComputedRepository.delete({ departement: IsNull() });
-    await this.zoneAlerteComputedRepository.delete({ departement: departement });
+    await Promise.all([
+      this.zoneAlerteComputedRepository.delete({ departement: IsNull() }),
+      this.zoneAlerteComputedRepository.delete({ departement: departement }),
+    ]);
     const toReturn = await this.zoneAlerteComputedRepository.save(zonesToSave);
     if (toReturn.length > 0) {
       await this.cleanZones(departement);
@@ -382,7 +388,6 @@ export class ZoneAlerteComputedService {
           zoneToDuplicate = await this.findOneWithCommuneZone(zoneToDuplicate.id, commune.id);
           zoneToDuplicate.type = zoneType;
           zonesToSave.push(zoneToDuplicate);
-
         }
       }
     }
@@ -393,6 +398,7 @@ export class ZoneAlerteComputedService {
       return z;
     });
     await this.zoneAlerteComputedRepository.save(zonesToSave);
+    await this.fusionSameZones(departement);
     await this.cleanZones(departement);
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${exceptAep ? 'YES_EXCEPT_AEP' : 'YES_ALL'} END`);
   }
@@ -431,6 +437,37 @@ export class ZoneAlerteComputedService {
       .set({ geom: () => 'ST_CollectionExtract(geom, 3)' })
       .where('"departementId" = :id', { id: departement.id })
       .execute();
+  }
+
+  async fusionSameZones(departement: Departement) {
+    const groupedResults = await this.zoneAlerteComputedRepository
+      .createQueryBuilder('zone_alerte_computed')
+      .select('MIN(id)', 'id')
+      .addSelect(['nom', 'type', '"niveauGravite"'])
+      .addSelect('ST_Union(geom)', 'merged_geom')
+      .groupBy('nom')
+      .addGroupBy('type')
+      .addGroupBy('"niveauGravite"')
+      .where('"departementId" = :id', { id: departement.id })
+      .having('COUNT(*) > 1')
+      .getRawMany();
+
+    await Promise.all(groupedResults.map(async (row) => {
+      const { id, nom, type, niveauGravite, merged_geom } = row;
+      return this.dataSource.query(`
+UPDATE zone_alerte_computed 
+    SET geom = $1
+    WHERE id = $2
+  `, [merged_geom, id]);
+    }));
+
+    await Promise.all(groupedResults.map(async (row) => {
+      const { nom, type, niveauGravite, id } = row;
+      return this.dataSource.query(`
+DELETE FROM zone_alerte_computed 
+    WHERE nom = $2 AND type = $3 AND "niveauGravite" = $4 AND "departementId" = $5 AND id != $1
+  `, [id, nom, type, niveauGravite, departement.id]);
+    }));
   }
 
   async computeGeoJson(computeHistoric?: boolean) {
@@ -623,7 +660,7 @@ export class ZoneAlerteComputedService {
     // Récupérer la date de début la plus ancienne des ARs modifiés la veille
     const dateHistoricToCompute = (await this.arreteResrictionService.findMinDateDebutByDate(yesterday)).dateDebut;
     if (dateHistoricToCompute && moment().diff(moment(dateHistoricToCompute, 'YYYY-MM-DD'), 'days') >= 1) {
-      if(moment(dateHistoricToCompute, 'YYYY-MM-DD').isBefore(moment('2024-04-29'))) {
+      if (moment(dateHistoricToCompute, 'YYYY-MM-DD').isBefore(moment('2024-04-29'))) {
         await this.zoneAlerteComputedHistoricService.computeHistoricMaps(moment(dateHistoricToCompute, 'YYYY-MM-DD'));
       }
       const dateMin = moment(dateHistoricToCompute, 'YYYY-MM-DD').isBefore(moment('2024-04-29')) ?

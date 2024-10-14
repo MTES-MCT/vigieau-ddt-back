@@ -22,6 +22,7 @@ import { DatagouvService } from '../datagouv/datagouv.service';
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
+import turfUnion from '@turf/union';
 
 const exec = util.promisify(require('child_process').exec);
 
@@ -223,7 +224,7 @@ export class ZoneAlerteComputedHistoricService {
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${arretesRestrictions.length} arrêtés de restriction`);
     let zonesToSave = [];
     for (const ar of arretesRestrictions) {
-      for (const restriction of ar.restrictions) {
+      await Promise.all(ar.restrictions.map(async (restriction) => {
         if (restriction.zoneAlerte) {
           const za = await this.zoneAlerteService.findOne(restriction.zoneAlerte.id);
           za.restriction = { id: restriction.id, niveauGravite: restriction.niveauGravite };
@@ -243,7 +244,7 @@ export class ZoneAlerteComputedHistoricService {
           // SAUVEGARDE ZONE AEP
           zonesToSave.push(za);
         }
-      }
+      }));
     }
 
     zonesToSave = zonesToSave.map(z => {
@@ -252,8 +253,10 @@ export class ZoneAlerteComputedHistoricService {
       z.niveauGravite = z.restriction.niveauGravite;
       return z;
     }).filter(z => z.geom.coordinates.length > 0);
-    await this.zoneAlerteComputedHistoricRepository.delete({ departement: IsNull() });
-    await this.zoneAlerteComputedHistoricRepository.delete({ departement: departement });
+    await Promise.all([
+      this.zoneAlerteComputedHistoricRepository.delete({ departement: IsNull() }),
+      this.zoneAlerteComputedHistoricRepository.delete({ departement: departement }),
+    ]);
     const toReturn = await this.zoneAlerteComputedHistoricRepository.save(zonesToSave);
     if (toReturn.length > 0) {
       await this.cleanZones(departement);
@@ -452,7 +455,6 @@ export class ZoneAlerteComputedHistoricService {
           zoneToDuplicate = await this.findOneWithCommuneZone(zoneToDuplicate.id, commune.id);
           zoneToDuplicate.type = zoneType;
           zonesToSave.push(zoneToDuplicate);
-
         }
       }
     }
@@ -462,7 +464,16 @@ export class ZoneAlerteComputedHistoricService {
       z.geom = JSON.parse(z.geom);
       return z;
     });
-    await this.zoneAlerteComputedHistoricRepository.save(zonesToSave);
+    const uniqueZonesToSave = Object(zonesToSave.reduce((acc, zone) => {
+      const key = `${zone.code}-${zone.type}`;
+      if (!acc[key]) {
+        acc[key] = structuredClone(zone);
+      } else {
+        acc[key].geom = turfUnion(acc[key].geom, zone.geom);
+      }
+      return acc;
+    }, {})).values;
+    await this.zoneAlerteComputedHistoricRepository.save(uniqueZonesToSave);
     await this.cleanZones(departement);
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${exceptAep ? 'YES_EXCEPT_AEP' : 'YES_ALL'} END`);
   }
