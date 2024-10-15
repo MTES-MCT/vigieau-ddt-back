@@ -615,7 +615,6 @@ DELETE FROM zone_alerte_computed
       } catch (e) {
         this.logger.error('ERROR COPYING PMTILES', e);
       }
-      await this.zoneAlerteComputedRepository.update({}, { enabled: true });
 
       await this.datagouvService.uploadToDatagouv('pmtiles', s3Response.Location, 'Carte des zones et arrêtés en vigueur - PMTILES', true);
     } catch (e) {
@@ -625,6 +624,7 @@ DELETE FROM zone_alerte_computed
     await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, date);
     await this.statisticCommuneService.computeCommuneStatisticsRestrictionsByMonth(date);
     await this.statisticService.computeDepartementsSituation(allZonesComputed);
+    await this.zoneAlerteComputedRepository.update({}, { enabled: true });
     if (computeHistoric) {
       this.computeHistoric();
     }
