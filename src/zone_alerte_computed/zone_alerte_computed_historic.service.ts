@@ -11,10 +11,10 @@ import { S3Service } from '../shared/services/s3.service';
 import { ZoneAlerte } from '../zone_alerte/entities/zone_alerte.entity';
 import { StatisticService } from '../statistic/statistic.service';
 import { DepartementService } from '../departement/departement.service';
-import { IsNull, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { CommuneService } from '../commune/commune.service';
 import { Departement } from '../departement/entities/departement.entity';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { ZoneAlerteComputedHistoric } from './entities/zone_alerte_computed_historic.entity';
 import { Utils } from '../core/utils';
 import { RestrictionService } from '../restriction/restriction.service';
@@ -22,7 +22,6 @@ import { DatagouvService } from '../datagouv/datagouv.service';
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
-import turfUnion from '@turf/union';
 
 const exec = util.promisify(require('child_process').exec);
 
@@ -45,7 +44,9 @@ export class ZoneAlerteComputedHistoricService {
               private readonly statisticDepartementService: StatisticDepartementService,
               @Inject(forwardRef(() => StatisticCommuneService))
               private readonly statisticCommuneService: StatisticCommuneService,
-              private readonly dataGouvService: DatagouvService) {
+              private readonly dataGouvService: DatagouvService,
+              @InjectDataSource()
+              private readonly dataSource: DataSource,) {
     // setTimeout(() => {
     //   this.computeHistoricMapsComputed(moment('2024-10-06'));
     //   this.computeHistoricMaps(moment('2021-01-19'));
@@ -75,94 +76,94 @@ export class ZoneAlerteComputedHistoricService {
       const ars = await this.arreteResrictionService.findByDate(m);
       let zas: ZoneAlerte[] = <ZoneAlerte[]>await this.zoneAlerteService.findByArreteRestriction(ars.map(ar => ar.id));
 
-      // const zasFormated = await Promise.all(zas.map(async z => {
-      //   z.geom = JSON.parse((await this.zoneAlerteService.findOne(z.id)).geom);
-      //   return {
-      //     type: 'Feature',
-      //     geometry: z.geom,
-      //     properties: {
-      //       id: z.id,
-      //       idSandre: z.idSandre,
-      //       nom: z.nom,
-      //       code: z.code,
-      //       type: z.type,
-      //       niveauGravite: z.restrictions[0].niveauGravite,
-      //       departement: z.departement,
-      //       arreteRestriction: {
-      //         id: z.restrictions[0].arreteRestriction.id,
-      //         numero: z.restrictions[0].arreteRestriction.numero,
-      //         dateDebut: z.restrictions[0].arreteRestriction.dateDebut,
-      //         dateFin: z.restrictions[0].arreteRestriction.dateFin,
-      //         dateSignature: z.restrictions[0].arreteRestriction.dateSignature,
-      //         fichier: z.restrictions[0].arreteRestriction.fichier?.url,
-      //       },
-      //       restrictions: z.restrictions[0].usages.map(u => {
-      //         let d;
-      //         switch (z.restrictions[0].niveauGravite) {
-      //           case 'vigilance':
-      //             d = u.descriptionVigilance;
-      //             break;
-      //           case 'alerte':
-      //             d = u.descriptionAlerte;
-      //             break;
-      //           case 'alerte_renforcee':
-      //             d = u.descriptionAlerteRenforcee;
-      //             break;
-      //           case 'crise':
-      //             d = u.descriptionCrise;
-      //             break;
-      //         }
-      //         return {
-      //           nom: u.nom,
-      //           thematique: u.thematique.nom,
-      //           concerneParticulier: u.concerneParticulier,
-      //           concerneEntreprise: u.concerneEntreprise,
-      //           concerneCollectivite: u.concerneCollectivite,
-      //           concerneExploitation: u.concerneExploitation,
-      //           concerneEso: u.concerneEso,
-      //           concerneEsu: u.concerneEsu,
-      //           concerneAep: u.concerneAep,
-      //           description: d,
-      //         };
-      //       }),
-      //     },
-      //   };
-      // }));
-      //
-      // const geojson = {
-      //   'type': 'FeatureCollection',
-      //   'features': zasFormated,
-      // };
-      //
-      // const path = this.configService.get('PATH_TO_WRITE_FILE');
-      //
-      // const fileNameToSave = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}`;
-      // await writeFile(`${path}/${fileNameToSave}.geojson`, JSON.stringify(geojson));
-      // try {
-      //   await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/${fileNameToSave}.pmtiles ${path}/${fileNameToSave}.geojson`);
-      //   const dataPmtiles = fs.readFileSync(`${path}/${fileNameToSave}.pmtiles`);
-      //   const fileToTransferPmtiles = {
-      //     originalname: `${fileNameToSave}.pmtiles`,
-      //     buffer: dataPmtiles,
-      //   };
-      //   const dataGeojson = fs.readFileSync(`${path}/${fileNameToSave}.geojson`);
-      //   const fileToTransferGeojson = {
-      //     originalname: `${fileNameToSave}.geojson`,
-      //     buffer: dataGeojson,
-      //   };
-      //   // @ts-ignore
-      //   await this.s3Service.uploadFile(fileToTransferPmtiles, 'pmtiles/');
-      //   // @ts-ignore
-      //   await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
-      // } catch (e) {
-      //   this.logger.error('ERROR GENERATING PMTILES', e);
-      // }
+      const zasFormated = await Promise.all(zas.map(async z => {
+        z.geom = JSON.parse((await this.zoneAlerteService.findOne(z.id)).geom);
+        return {
+          type: 'Feature',
+          geometry: z.geom,
+          properties: {
+            id: z.id,
+            idSandre: z.idSandre,
+            nom: z.nom,
+            code: z.code,
+            type: z.type,
+            niveauGravite: z.restrictions[0].niveauGravite,
+            departement: z.departement,
+            arreteRestriction: {
+              id: z.restrictions[0].arreteRestriction.id,
+              numero: z.restrictions[0].arreteRestriction.numero,
+              dateDebut: z.restrictions[0].arreteRestriction.dateDebut,
+              dateFin: z.restrictions[0].arreteRestriction.dateFin,
+              dateSignature: z.restrictions[0].arreteRestriction.dateSignature,
+              fichier: z.restrictions[0].arreteRestriction.fichier?.url,
+            },
+            restrictions: z.restrictions[0].usages.map(u => {
+              let d;
+              switch (z.restrictions[0].niveauGravite) {
+                case 'vigilance':
+                  d = u.descriptionVigilance;
+                  break;
+                case 'alerte':
+                  d = u.descriptionAlerte;
+                  break;
+                case 'alerte_renforcee':
+                  d = u.descriptionAlerteRenforcee;
+                  break;
+                case 'crise':
+                  d = u.descriptionCrise;
+                  break;
+              }
+              return {
+                nom: u.nom,
+                thematique: u.thematique.nom,
+                concerneParticulier: u.concerneParticulier,
+                concerneEntreprise: u.concerneEntreprise,
+                concerneCollectivite: u.concerneCollectivite,
+                concerneExploitation: u.concerneExploitation,
+                concerneEso: u.concerneEso,
+                concerneEsu: u.concerneEsu,
+                concerneAep: u.concerneAep,
+                description: d,
+              };
+            }),
+          },
+        };
+      }));
+
+      const geojson = {
+        'type': 'FeatureCollection',
+        'features': zasFormated,
+      };
+
+      const path = this.configService.get('PATH_TO_WRITE_FILE');
+
+      const fileNameToSave = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}`;
+      await writeFile(`${path}/${fileNameToSave}.geojson`, JSON.stringify(geojson));
+      try {
+        await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/${fileNameToSave}.pmtiles ${path}/${fileNameToSave}.geojson`);
+        const dataPmtiles = fs.readFileSync(`${path}/${fileNameToSave}.pmtiles`);
+        const fileToTransferPmtiles = {
+          originalname: `${fileNameToSave}.pmtiles`,
+          buffer: dataPmtiles,
+        };
+        const dataGeojson = fs.readFileSync(`${path}/${fileNameToSave}.geojson`);
+        const fileToTransferGeojson = {
+          originalname: `${fileNameToSave}.geojson`,
+          buffer: dataGeojson,
+        };
+        // @ts-ignore
+        await this.s3Service.uploadFile(fileToTransferPmtiles, 'pmtiles/');
+        // @ts-ignore
+        await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
+      } catch (e) {
+        this.logger.error('ERROR GENERATING PMTILES', e);
+      }
       // @ts-ignore
-      // await this.statisticDepartementService.computeDepartementStatisticsRestrictions(zas.map(z => {
-      //   // @ts-ignore
-      //   z.restriction = z.restrictions[0];
-      //   return z;
-      // }), new Date(m.format('YYYY-MM-DD')), true, true);
+      await this.statisticDepartementService.computeDepartementStatisticsRestrictions(zas.map(z => {
+        // @ts-ignore
+        z.restriction = z.restrictions[0];
+        return z;
+      }), new Date(m.format('YYYY-MM-DD')), true, true);
       // @ts-ignore
       await this.statisticCommuneService.computeCommuneStatisticsRestrictions(zas.map(z => {
         // @ts-ignore
@@ -464,16 +465,8 @@ export class ZoneAlerteComputedHistoricService {
       z.geom = JSON.parse(z.geom);
       return z;
     });
-    const uniqueZonesToSave = Object(zonesToSave.reduce((acc, zone) => {
-      const key = `${zone.code}-${zone.type}`;
-      if (!acc[key]) {
-        acc[key] = structuredClone(zone);
-      } else {
-        acc[key].geom = turfUnion(acc[key].geom, zone.geom);
-      }
-      return acc;
-    }, {})).values;
-    await this.zoneAlerteComputedHistoricRepository.save(uniqueZonesToSave);
+    await this.zoneAlerteComputedHistoricRepository.save(zonesToSave);
+    await this.fusionSameZones(departement);
     await this.cleanZones(departement);
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${exceptAep ? 'YES_EXCEPT_AEP' : 'YES_ALL'} END`);
   }
@@ -623,6 +616,37 @@ export class ZoneAlerteComputedHistoricService {
     return zoneFull;
   }
 
+  async fusionSameZones(departement: Departement) {
+    const groupedResults = await this.zoneAlerteComputedHistoricRepository
+      .createQueryBuilder('zone_alerte_computed_historic')
+      .select('MIN(id)', 'id')
+      .addSelect(['nom', 'type', '"niveauGravite"'])
+      .addSelect('ST_Union(geom)', 'merged_geom')
+      .groupBy('nom')
+      .addGroupBy('type')
+      .addGroupBy('"niveauGravite"')
+      .where('"departementId" = :id', { id: departement.id })
+      .having('COUNT(*) > 1')
+      .getRawMany();
+
+    await Promise.all(groupedResults.map(async (row) => {
+      const { id, nom, type, niveauGravite, merged_geom } = row;
+      return this.dataSource.query(`
+UPDATE zone_alerte_computed_historic
+    SET geom = $1
+    WHERE id = $2
+  `, [merged_geom, id]);
+    }));
+
+    await Promise.all(groupedResults.map(async (row) => {
+      const { nom, type, niveauGravite, id } = row;
+      return this.dataSource.query(`
+DELETE FROM zone_alerte_computed_historic 
+    WHERE nom = $2 AND type = $3 AND "niveauGravite" = $4 AND "departementId" = $5 AND id != $1
+  `, [id, nom, type, niveauGravite, departement.id]);
+    }));
+  }
+
   async computeGeoJson(date: Moment) {
     let allZonesComputed: any = await this.zoneAlerteComputedHistoricRepository.find({
       select: {
@@ -758,13 +782,13 @@ export class ZoneAlerteComputedHistoricService {
       };
       // @ts-ignore
       const s3Response = await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
-      await this.zoneAlerteComputedHistoricRepository.update({}, { enabled: true });
     } catch (e) {
       this.logger.error('ERROR UPLOADING / GENERATING PMTILES', e);
     }
     await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
     await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
     await this.statisticService.computeDepartementsSituation(allZonesComputed, date.format('YYYY-MM-DD'));
+    await this.zoneAlerteComputedHistoricRepository.update({}, { enabled: true });
   }
 
   async getZonesArea(zones: ZoneAlerteComputed[]) {

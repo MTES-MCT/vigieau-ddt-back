@@ -20,8 +20,6 @@ import moment, { Moment } from 'moment';
 import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_historic.service';
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
-import turfUnion from '@turf/union';
-import { Min } from 'class-validator';
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
