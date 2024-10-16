@@ -25,35 +25,6 @@ export class CreateUpdateArreteCadreDto {
   @ApiProperty({ example: 'AC_0', description: "Numéro de l'arrêté cadre" })
   numero: string;
 
-  @IsString()
-  @IsOptional()
-  @IsIn(['all', 'aep', 'none'])
-  @ApiProperty({
-    example: 'eap',
-    description:
-      'Si une commune est touchée par plusieurs zones de même type, faut-il uniformiser au niveau de gravité maximal ?',
-  })
-  communeNiveauGraviteMax: 'all' | 'aep' | 'none';
-
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    example: false,
-    description:
-      "Des niveaux de gravité spécifiques vont-ils être définis pour l'AEP ?",
-  })
-  niveauGraviteSpecifiqueEap: boolean;
-
-  @IsString()
-  @IsOptional()
-  @IsIn(['esu', 'eso', 'max'])
-  @ApiProperty({
-    example: 'max',
-    description:
-      "Si niveau niveauGraviteSpecifiqueEap = false, quelle ressource sera utilisée pour communiquer sur l'AEP ?",
-  })
-  ressourceEapCommunique: 'esu' | 'eso' | 'max';
-
   @IsArray()
   @ValidateNested({ each: true })
   @IsOptional()

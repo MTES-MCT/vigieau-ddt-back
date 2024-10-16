@@ -11,10 +11,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { StatutArreteRestriction } from '../type/statut_arrete_restriction.type';
+import { RessourceEapCommunique, StatutArreteRestriction } from '../type/statut_arrete_restriction.type';
 import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { Departement } from '../../departement/entities/departement.entity';
-import { RessourceEapCommunique } from '../../arrete_cadre/type/arrete_cadre.type';
 import { Restriction } from '../../restriction/entities/restriction.entity';
 import { Fichier } from '../../fichier/entities/fichier.entity';
 import { UsageFeedback } from '../../usage_feedback/entities/usage_feedback.entity';

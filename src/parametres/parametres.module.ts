@@ -11,4 +11,5 @@ import { DepartementModule } from '../departement/departement.module';
   exports: [],
   controllers: [ParametresController],
 })
-export class ParametresModule {}
+export class ParametresModule {
+}

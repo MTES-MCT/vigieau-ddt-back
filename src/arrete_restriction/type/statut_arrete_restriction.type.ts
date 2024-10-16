@@ -3,3 +3,4 @@ export type StatutArreteRestriction =
   | 'a_venir'
   | 'publie'
   | 'abroge';
+export type RessourceEapCommunique = 'esu' | 'eso' | 'max';

@@ -119,9 +119,10 @@ export class ZoneAlerteComputedService {
       departements = departements.filter(d => depsId.some(dep => dep === d.id));
     }
     for (const departement of departements) {
+      const param = departement.parametres.find(p =>  !p.disabled)?.superpositionCommune;
       const zonesSaved = await this.computeRegleAr(departement);
       if (zonesSaved.length > 0) {
-        switch (departement.parametres?.superpositionCommune) {
+        switch (param) {
           case 'no':
           case 'no_all':
             break;
@@ -140,7 +141,7 @@ export class ZoneAlerteComputedService {
             await this.computeYesDistinct(departement, false);
             break;
           default:
-            this.logger.error(`COMPUTING ${departement.code} - ${departement.nom} - ${departement.parametres?.superpositionCommune} not implemented`, '');
+            this.logger.error(`COMPUTING ${departement.code} - ${departement.nom} - ${param} not implemented`, '');
         }
       }
       await this.computeCommunesIntersected(departement);
@@ -192,7 +193,8 @@ export class ZoneAlerteComputedService {
     if (toReturn.length > 0) {
       await this.cleanZones(departement);
     }
-    if (!departement.parametres?.superpositionCommune || departement.parametres?.superpositionCommune !== 'yes_all') {
+    const param = departement.parametres.find(p =>  !p.disabled)?.superpositionCommune;
+    if (!param || param !== 'yes_all') {
       await this.computeRegleAepNotSpecific(departement);
     }
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${zonesToSave.length} zones ajoutées`);

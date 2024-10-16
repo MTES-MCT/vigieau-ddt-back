@@ -39,32 +39,6 @@ export class ArreteCadreDto {
   })
   dateFin: string;
 
-  @IsString()
-  @IsIn(['all', 'aep', 'none'])
-  @ApiProperty({
-    example: 'eap',
-    description:
-      'Si une commune est touchée par plusieurs zones de même type, faut-il uniformiser au niveau de gravité maximal ?',
-  })
-  communeNiveauGraviteMax: 'all' | 'aep' | 'none';
-
-  @IsBoolean()
-  @ApiProperty({
-    example: false,
-    description:
-      "Des niveaux de gravité spécifiques vont-ils être définis pour l'AEP ?",
-  })
-  niveauGraviteSpecifiqueEap: boolean;
-
-  @IsString()
-  @IsIn(['esu', 'eso', 'max'])
-  @ApiProperty({
-    example: 'max',
-    description:
-      "Si niveau niveauGraviteSpecifiqueEap = false, quelle ressource sera utilisée pour communiquer sur l'AEP ?",
-  })
-  ressourceEapCommunique: 'esu' | 'eso' | 'max';
-
   @IsObject()
   @ApiProperty({ type: FichierDto })
   fichier: FichierDto;

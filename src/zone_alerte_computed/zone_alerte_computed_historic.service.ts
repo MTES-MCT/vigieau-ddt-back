@@ -46,7 +46,7 @@ export class ZoneAlerteComputedHistoricService {
               private readonly statisticCommuneService: StatisticCommuneService,
               private readonly dataGouvService: DatagouvService,
               @InjectDataSource()
-              private readonly dataSource: DataSource,) {
+              private readonly dataSource: DataSource) {
     // setTimeout(() => {
     //   this.computeHistoricMapsComputed(moment('2024-10-06'));
     //   this.computeHistoricMaps(moment('2021-01-19'));
@@ -184,9 +184,13 @@ export class ZoneAlerteComputedHistoricService {
       let departements = await this.departementService.findAllLight();
 
       for (const departement of departements) {
+        const param = departement.parametres.find(p =>
+          m.isSameOrAfter(moment(p.dateDebut))
+          && (!p.dateFin || m.isSameOrBefore(moment(p.dateFin))),
+        )?.superpositionCommune;
         const zonesSaved = await this.computeRegleAr(departement, m);
         if (zonesSaved.length > 0) {
-          switch (departement.parametres?.superpositionCommune) {
+          switch (param) {
             case 'no':
             case 'no_all':
               break;
@@ -205,7 +209,7 @@ export class ZoneAlerteComputedHistoricService {
               await this.computeYesDistinct(departement, false);
               break;
             default:
-              this.logger.error(`COMPUTING ${departement.code} - ${departement.nom} - ${departement.parametres?.superpositionCommune} not implemented`, '');
+              this.logger.error(`COMPUTING ${departement.code} - ${departement.nom} - ${param} not implemented`, '');
           }
         }
         await this.computeCommunesIntersected(departement);
@@ -262,7 +266,11 @@ export class ZoneAlerteComputedHistoricService {
     if (toReturn.length > 0) {
       await this.cleanZones(departement);
     }
-    if (!departement.parametres?.superpositionCommune || departement.parametres?.superpositionCommune !== 'yes_all') {
+    const param = departement.parametres.find(p =>
+      date.isSameOrAfter(moment(p.dateDebut))
+      && (!p.dateFin || date.isSameOrBefore(moment(p.dateFin))),
+    )?.superpositionCommune;
+    if (!param || param !== 'yes_all') {
       await this.computeRegleAepNotSpecific(departement, date);
     }
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${zonesToSave.length} zones ajoutées`);

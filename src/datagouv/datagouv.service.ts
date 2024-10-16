@@ -13,6 +13,9 @@ import moment from 'moment';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
 import { S3Service } from '../shared/services/s3.service';
 import JSZip from 'jszip';
+import { ArreteCadreService } from '../arrete_cadre/arrete_cadre.service';
+import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
+import { DepartementService } from '../departement/departement.service';
 
 @Injectable()
 export class DatagouvService {
@@ -38,16 +41,20 @@ export class DatagouvService {
     'geojson': 'bfba7898-aed3-40ec-aa74-abb73b92a363',
     'restrictions': 'e403a885-5eaf-411d-a03e-751a9c22930d',
     'pmtiles_archive': 'b0b246c3-f724-4eb2-a83a-c516e0044aa2',
-    'geojson_archive': '3972a125-2372-41f1-b3f5-25794f860414'
+    'geojson_archive': '3972a125-2372-41f1-b3f5-25794f860414',
+    'arretes_cadre': '',
   };
 
   constructor(private readonly httpService: HttpService,
               @Inject(forwardRef(() => ArreteRestrictionService))
               private readonly arreteRestrictionService: ArreteRestrictionService,
+              @Inject(forwardRef(() => ArreteCadreService))
+              private readonly arreteCadreService: ArreteCadreService,
               private readonly configService: ConfigService,
               @Inject(forwardRef(() => ZoneAlerteComputedService))
               private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
-              private readonly s3Service: S3Service) {
+              private readonly s3Service: S3Service,
+              private readonly departementService: DepartementService) {
     this.path = this.configService.get('PATH_TO_WRITE_FILE');
     this.datagouvApiKey = this.configService.get('API_DATAGOUV_KEY');
     this.datagouvApiUrl = `${this.configService.get('API_DATAGOUV')}/datasets/${this.configService.get('API_DATAGOUV_DATASET')}`;
@@ -60,17 +67,19 @@ export class DatagouvService {
     }
 
     this.logger.log('MISE A JOUR DATAGOUV - DEBUT');
-    await this.updateArretes();
-    await this.updateHistoriqueArretes();
+    const arretes = await this.arreteRestrictionService.findDatagouv();
+    await this.updateArretes(arretes);
+    await this.updateArretesCadre();
+    await this.updateHistoriqueArretes(arretes);
     await this.updateRestrictions();
     await this.updateMaps();
     this.logger.log('MISE A JOUR DATAGOUV - FIN');
   }
 
-  async updateArretes() {
+  async updateArretes(arretes: ArreteRestriction[]) {
     this.logger.log('MISE A JOUR DATAGOUV - ARRETES - DEBUT');
 
-    const arretes = await this.arreteRestrictionService.findDatagouv();
+    const departements = await this.departementService.findAllLight();
     const formatArretes = arretes.map(arrete => {
       return {
         id: arrete.id,
@@ -81,15 +90,33 @@ export class DatagouvService {
         statut: arrete.statut,
         departement: arrete.departement.code,
         chemin_fichier: arrete.fichier ? arrete.fichier?.url : '',
+        niveau_gravite_specifique_aep: arrete.niveauGraviteSpecifiqueEap,
+        ressource_aep_communique: arrete.ressourceEapCommunique,
         arrete_cadre: arrete.arretesCadre.map(arreteCadre => {
           return {
             id: arreteCadre.id,
             numero: arreteCadre.numero,
-            date_debut: arrete.dateDebut,
-            date_signature: arrete.dateSignature,
+            date_debut: arreteCadre.dateDebut,
+            date_fin: arreteCadre.dateFin,
             chemin_fichier: arreteCadre.fichier ? arreteCadre.fichier?.url : '',
           };
         }),
+        zones_alerte: arrete.restrictions.map(restriction => {
+          return {
+            id: restriction.zoneAlerte?.id,
+            type: restriction.communes.length > 0 ? 'AEP' : restriction.zoneAlerte.type,
+            code: restriction.zoneAlerte?.code,
+            nom: restriction.communes.length > 0 ? restriction.nomGroupementAep : restriction.zoneAlerte.nom,
+            niveau_gravite: restriction.niveauGravite,
+            id_sandre: restriction.zoneAlerte?.idSandre,
+            communes: restriction.communes.map(c => c.code),
+          };
+        }),
+        regle_gestion: departements.find(d => d.code === arrete.departement.code)
+          .parametres.find(p =>
+            moment(arrete.dateDebut).isSameOrAfter(moment(p.dateDebut))
+            && (!p.dateFin || moment(arrete.dateDebut).isSameOrBefore(moment(p.dateFin))),
+          )?.superpositionCommune,
       };
     });
     const csv = await json2csv(formatArretes, {
@@ -102,12 +129,13 @@ export class DatagouvService {
     this.logger.log('MISE A JOUR DATAGOUV - ARRETES - FIN');
   }
 
-  async updateHistoriqueArretes() {
+  async updateHistoriqueArretes(arretes: ArreteRestriction[]) {
     this.logger.log('MISE A JOUR DATAGOUV - HISTORIQUE ARRETES - DEBUT');
     const yearBegin = 2012;
     const currentYear = new Date().getFullYear();
 
-    const arretes = await this.arreteRestrictionService.findDatagouv();
+    const departements = await this.departementService.findAllLight();
+
     for (let year = yearBegin; year < currentYear; year++) {
       const formatArretes = arretes
         .filter(arrete => {
@@ -126,15 +154,33 @@ export class DatagouvService {
             statut: arrete.statut,
             departement: arrete.departement.code,
             chemin_fichier: arrete.fichier ? arrete.fichier?.url : '',
+            niveau_gravite_specifique_aep: arrete.niveauGraviteSpecifiqueEap,
+            ressource_aep_communique: arrete.ressourceEapCommunique,
             arrete_cadre: arrete.arretesCadre.map(arreteCadre => {
               return {
                 id: arreteCadre.id,
                 numero: arreteCadre.numero,
-                date_debut: arrete.dateDebut,
-                date_signature: arrete.dateSignature,
+                date_debut: arreteCadre.dateDebut,
+                date_fin: arreteCadre.dateFin,
                 chemin_fichier: arreteCadre.fichier ? arreteCadre.fichier?.url : '',
               };
             }),
+            zones_alerte: arrete.restrictions.map(restriction => {
+              return {
+                id: restriction.zoneAlerte?.id,
+                type: restriction.communes.length > 0 ? 'AEP' : restriction.zoneAlerte.type,
+                code: restriction.zoneAlerte?.code,
+                nom: restriction.communes.length > 0 ? restriction.nomGroupementAep : restriction.zoneAlerte.nom,
+                niveau_gravite: restriction.niveauGravite,
+                id_sandre: restriction.zoneAlerte?.idSandre,
+                communes: restriction.communes.map(c => c.code),
+              };
+            }),
+            regle_gestion: departements.find(d => d.code === arrete.departement.code)
+              .parametres.find(p =>
+                moment(arrete.dateDebut).isSameOrAfter(moment(p.dateDebut))
+                && (!p.dateFin || moment(arrete.dateDebut).isSameOrBefore(moment(p.dateFin))),
+              )?.superpositionCommune,
           };
         });
       const csv = await json2csv(formatArretes, {
@@ -146,6 +192,41 @@ export class DatagouvService {
     }
 
     this.logger.log('MISE A JOUR DATAGOUV - HISTORIQUE ARRETES - FIN');
+  }
+
+  async updateArretesCadre() {
+    this.logger.log('MISE A JOUR DATAGOUV - ARRETES CADRE - DEBUT');
+
+    const arretes = await this.arreteCadreService.findDatagouv();
+    const formatArretes = arretes.map(arrete => {
+      return {
+        id: arrete.id,
+        numero: arrete.numero,
+        date_debut: arrete.dateDebut,
+        date_fin: arrete.dateFin,
+        statut: arrete.statut,
+        departement_pilote: arrete.departementPilote?.code,
+        departements: arrete.departements.map(d => d.code),
+        chemin_fichier: arrete.fichier ? arrete.fichier?.url : '',
+        zones_alerte: arrete.zonesAlerte.map(zone => {
+          return {
+            id: zone.id,
+            type: zone.type,
+            code: zone.code,
+            nom: zone.nom,
+            id_sandre: zone.idSandre,
+          };
+        }),
+      };
+    });
+    const csv = await json2csv(formatArretes, {
+      expandArrayObjects: true,
+    });
+
+    await writeFile(`${this.path}/arretes_cadre.csv`, csv);
+    await this.uploadToDatagouv('arretes_cadre', 'arretes_cadre.csv', 'Arrêtés Cadre');
+
+    this.logger.log('MISE A JOUR DATAGOUV - ARRETES CADRE - FIN');
   }
 
   async updateRestrictions() {
@@ -227,7 +308,7 @@ export class DatagouvService {
     const dateDebut = date ? date : moment();
 
     for (let y = dateDebut.year(); y <= moment().year(); y++) {
-      await this.generateMapsArchive(dateDebut, y, true);
+      // await this.generateMapsArchive(dateDebut, y, true);
       await this.generateMapsArchive(dateDebut, y, false);
     }
   }
@@ -257,18 +338,16 @@ export class DatagouvService {
          m.add(1, 'days')) {
       const fileName = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles}`;
       try {
-        if(fs.existsSync(`${path}/${fileName}`)) {
-          const fileData = fs.readFileSync(`${path}/${fileName}`);
-          zip.remove(fileName);
-          zip.file(fileName, fileData);
-        }
-      } catch(e) {
+        const fileData = fs.readFileSync(`${path}/${fileName}`);
+        zip.remove(fileName);
+        zip.file(fileName, fileData);
+      } catch (e) {
         this.logger.error(`ARCHIVE FICHIER ${fileName} non accessible`, e);
       }
     }
 
     const newZipData = await zip.generateAsync({ type: 'nodebuffer' });
-    const fileToTransfer= {
+    const fileToTransfer = {
       originalname: `zones_${geojsonOrPmtiles}_${year}.zip`,
       buffer: newZipData,
     };

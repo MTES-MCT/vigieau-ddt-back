@@ -130,7 +130,7 @@ export class ArreteRestrictionService {
     });
   }
 
-  async findDatagouv() {
+  async findDatagouv(): Promise<ArreteRestriction[]> {
     return this.arreteRestrictionRepository.find({
       select: {
         id: true,
@@ -139,6 +139,8 @@ export class ArreteRestrictionService {
         dateFin: true,
         dateSignature: true,
         statut: true,
+        niveauGraviteSpecifiqueEap: true,
+        ressourceEapCommunique: true,
         fichier: {
           url: true,
         },
@@ -154,12 +156,29 @@ export class ArreteRestrictionService {
             url: true,
           },
         },
+        restrictions: {
+          nomGroupementAep: true,
+          niveauGravite: true,
+          zoneAlerte: {
+            id: true,
+            idSandre: true,
+            nom: true,
+            code: true,
+            type: true,
+          },
+          communes: {
+            code: true,
+          }
+        }
       },
       relations: [
         'fichier',
         'departement',
         'arretesCadre',
         'arretesCadre.fichier',
+        'restrictions',
+        'restrictions.zoneAlerte',
+        'restrictions.communes',
       ],
       where: {
         statut: In(['a_venir', 'publie', 'abroge']),
