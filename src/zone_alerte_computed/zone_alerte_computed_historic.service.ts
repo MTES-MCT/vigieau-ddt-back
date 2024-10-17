@@ -11,10 +11,10 @@ import { S3Service } from '../shared/services/s3.service';
 import { ZoneAlerte } from '../zone_alerte/entities/zone_alerte.entity';
 import { StatisticService } from '../statistic/statistic.service';
 import { DepartementService } from '../departement/departement.service';
-import { IsNull, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { CommuneService } from '../commune/commune.service';
 import { Departement } from '../departement/entities/departement.entity';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { ZoneAlerteComputedHistoric } from './entities/zone_alerte_computed_historic.entity';
 import { Utils } from '../core/utils';
 import { RestrictionService } from '../restriction/restriction.service';
@@ -44,11 +44,13 @@ export class ZoneAlerteComputedHistoricService {
               private readonly statisticDepartementService: StatisticDepartementService,
               @Inject(forwardRef(() => StatisticCommuneService))
               private readonly statisticCommuneService: StatisticCommuneService,
-              private readonly dataGouvService: DatagouvService) {
-    setTimeout(() => {
-      // this.computeHistoricMapsComputed(moment('2024-04-28'));
-      // this.computeHistoricMaps(moment('2013-01-01'));
-    }, 5000);
+              private readonly dataGouvService: DatagouvService,
+              @InjectDataSource()
+              private readonly dataSource: DataSource) {
+    // setTimeout(() => {
+    //   this.computeHistoricMapsComputed(moment('2024-10-06'));
+    //   this.computeHistoricMaps(moment('2021-01-19'));
+    // }, 5000);
   }
 
   findOne(id: number): Promise<any> {
@@ -68,11 +70,11 @@ export class ZoneAlerteComputedHistoricService {
 
   async computeHistoricMaps(date?: Moment) {
     const dateDebut = date ? date : moment();
-    const dateFin = moment('2024-04-27');
+    const dateFin = moment('2024-04-28');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
       const ars = await this.arreteResrictionService.findByDate(m);
-      let zas: ZoneAlerte[] = await this.zoneAlerteService.findByArreteRestriction(ars.map(ar => ar.id));
+      let zas: ZoneAlerte[] = <ZoneAlerte[]>await this.zoneAlerteService.findByArreteRestriction(ars.map(ar => ar.id));
 
       const zasFormated = await Promise.all(zas.map(async z => {
         z.geom = JSON.parse((await this.zoneAlerteService.findOne(z.id)).geom);
@@ -155,7 +157,8 @@ export class ZoneAlerteComputedHistoricService {
         await this.s3Service.uploadFile(fileToTransferGeojson, 'geojson/');
       } catch (e) {
         this.logger.error('ERROR GENERATING PMTILES', e);
-      }// @ts-ignore
+      }
+      // @ts-ignore
       await this.statisticDepartementService.computeDepartementStatisticsRestrictions(zas.map(z => {
         // @ts-ignore
         z.restriction = z.restrictions[0];
@@ -167,7 +170,7 @@ export class ZoneAlerteComputedHistoricService {
         z.restriction = z.restrictions[0];
         return z;
       }), new Date(m.format('YYYY-MM-DD')), true, true);
-      await this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
+      // await this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
     }
   }
 
@@ -181,9 +184,13 @@ export class ZoneAlerteComputedHistoricService {
       let departements = await this.departementService.findAllLight();
 
       for (const departement of departements) {
+        const param = departement.parametres.find(p =>
+          m.isSameOrAfter(moment(p.dateDebut))
+          && (!p.dateFin || m.isSameOrBefore(moment(p.dateFin))),
+        )?.superpositionCommune;
         const zonesSaved = await this.computeRegleAr(departement, m);
         if (zonesSaved.length > 0) {
-          switch (departement.parametres?.superpositionCommune) {
+          switch (param) {
             case 'no':
             case 'no_all':
               break;
@@ -202,7 +209,7 @@ export class ZoneAlerteComputedHistoricService {
               await this.computeYesDistinct(departement, false);
               break;
             default:
-              this.logger.error(`COMPUTING ${departement.code} - ${departement.nom} - ${departement.parametres?.superpositionCommune} not implemented`, '');
+              this.logger.error(`COMPUTING ${departement.code} - ${departement.nom} - ${param} not implemented`, '');
           }
         }
         await this.computeCommunesIntersected(departement);
@@ -222,7 +229,7 @@ export class ZoneAlerteComputedHistoricService {
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${arretesRestrictions.length} arrêtés de restriction`);
     let zonesToSave = [];
     for (const ar of arretesRestrictions) {
-      for (const restriction of ar.restrictions) {
+      await Promise.all(ar.restrictions.map(async (restriction) => {
         if (restriction.zoneAlerte) {
           const za = await this.zoneAlerteService.findOne(restriction.zoneAlerte.id);
           za.restriction = { id: restriction.id, niveauGravite: restriction.niveauGravite };
@@ -242,7 +249,7 @@ export class ZoneAlerteComputedHistoricService {
           // SAUVEGARDE ZONE AEP
           zonesToSave.push(za);
         }
-      }
+      }));
     }
 
     zonesToSave = zonesToSave.map(z => {
@@ -251,13 +258,19 @@ export class ZoneAlerteComputedHistoricService {
       z.niveauGravite = z.restriction.niveauGravite;
       return z;
     }).filter(z => z.geom.coordinates.length > 0);
-    await this.zoneAlerteComputedHistoricRepository.delete({ departement: IsNull() });
-    await this.zoneAlerteComputedHistoricRepository.delete({ departement: departement });
+    await Promise.all([
+      this.zoneAlerteComputedHistoricRepository.delete({ departement: IsNull() }),
+      this.zoneAlerteComputedHistoricRepository.delete({ departement: departement }),
+    ]);
     const toReturn = await this.zoneAlerteComputedHistoricRepository.save(zonesToSave);
     if (toReturn.length > 0) {
       await this.cleanZones(departement);
     }
-    if (!departement.parametres?.superpositionCommune || departement.parametres?.superpositionCommune !== 'yes_all') {
+    const param = departement.parametres.find(p =>
+      date.isSameOrAfter(moment(p.dateDebut))
+      && (!p.dateFin || date.isSameOrBefore(moment(p.dateFin))),
+    )?.superpositionCommune;
+    if (!param || param !== 'yes_all') {
       await this.computeRegleAepNotSpecific(departement, date);
     }
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${zonesToSave.length} zones ajoutées`);
@@ -451,7 +464,6 @@ export class ZoneAlerteComputedHistoricService {
           zoneToDuplicate = await this.findOneWithCommuneZone(zoneToDuplicate.id, commune.id);
           zoneToDuplicate.type = zoneType;
           zonesToSave.push(zoneToDuplicate);
-
         }
       }
     }
@@ -462,6 +474,7 @@ export class ZoneAlerteComputedHistoricService {
       return z;
     });
     await this.zoneAlerteComputedHistoricRepository.save(zonesToSave);
+    await this.fusionSameZones(departement);
     await this.cleanZones(departement);
     this.logger.log(`COMPUTING ${departement.code} - ${departement.nom} - ${exceptAep ? 'YES_EXCEPT_AEP' : 'YES_ALL'} END`);
   }
@@ -611,6 +624,37 @@ export class ZoneAlerteComputedHistoricService {
     return zoneFull;
   }
 
+  async fusionSameZones(departement: Departement) {
+    const groupedResults = await this.zoneAlerteComputedHistoricRepository
+      .createQueryBuilder('zone_alerte_computed_historic')
+      .select('MIN(id)', 'id')
+      .addSelect(['nom', 'type', '"niveauGravite"'])
+      .addSelect('ST_Union(geom)', 'merged_geom')
+      .groupBy('nom')
+      .addGroupBy('type')
+      .addGroupBy('"niveauGravite"')
+      .where('"departementId" = :id', { id: departement.id })
+      .having('COUNT(*) > 1')
+      .getRawMany();
+
+    await Promise.all(groupedResults.map(async (row) => {
+      const { id, nom, type, niveauGravite, merged_geom } = row;
+      return this.dataSource.query(`
+UPDATE zone_alerte_computed_historic
+    SET geom = $1
+    WHERE id = $2
+  `, [merged_geom, id]);
+    }));
+
+    await Promise.all(groupedResults.map(async (row) => {
+      const { nom, type, niveauGravite, id } = row;
+      return this.dataSource.query(`
+DELETE FROM zone_alerte_computed_historic 
+    WHERE nom = $2 AND type = $3 AND "niveauGravite" = $4 AND "departementId" = $5 AND id != $1
+  `, [id, nom, type, niveauGravite, departement.id]);
+    }));
+  }
+
   async computeGeoJson(date: Moment) {
     let allZonesComputed: any = await this.zoneAlerteComputedHistoricRepository.find({
       select: {
@@ -746,13 +790,13 @@ export class ZoneAlerteComputedHistoricService {
       };
       // @ts-ignore
       const s3Response = await this.s3Service.uploadFile(fileToTransfer, 'pmtiles/');
-      await this.zoneAlerteComputedHistoricRepository.update({}, { enabled: true });
     } catch (e) {
       this.logger.error('ERROR UPLOADING / GENERATING PMTILES', e);
     }
     await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
     await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
     await this.statisticService.computeDepartementsSituation(allZonesComputed, date.format('YYYY-MM-DD'));
+    await this.zoneAlerteComputedHistoricRepository.update({}, { enabled: true });
   }
 
   async getZonesArea(zones: ZoneAlerteComputed[]) {

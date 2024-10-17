@@ -3,20 +3,18 @@ import {
   Column,
   Entity,
   JoinColumn,
-  OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
 } from 'typeorm';
 import { Departement } from '../../departement/entities/departement.entity';
 import { SuperpositionCommune } from '../type/parameters.type';
 
 @Entity()
-@Unique(['departement'])
 export class Parametres extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Departement, (departement) => departement.parametres)
+  @ManyToOne(() => Departement, (departement) => departement.parametres)
   @JoinColumn()
   departement: Departement;
 
@@ -33,4 +31,13 @@ export class Parametres extends BaseEntity {
     nullable: false,
   })
   superpositionCommune: SuperpositionCommune;
+
+  @Column({ type: 'date', nullable: false, default: '2024-04-29' })
+  dateDebut: string;
+
+  @Column({ type: 'date', nullable: true })
+  dateFin: string;
+
+  @Column({ nullable: false, default: false })
+  disabled: boolean;
 }

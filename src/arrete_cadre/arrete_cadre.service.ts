@@ -86,9 +86,6 @@ export class ArreteCadreService {
         dateDebut: true,
         dateFin: true,
         statut: true,
-        communeNiveauGraviteMax: true,
-        niveauGraviteSpecifiqueEap: true,
-        ressourceEapCommunique: true,
         zonesAlerte: {
           id: true,
           code: true,
@@ -167,9 +164,6 @@ export class ArreteCadreService {
           dateDebut: true,
           dateFin: true,
           statut: true,
-          communeNiveauGraviteMax: true,
-          niveauGraviteSpecifiqueEap: true,
-          ressourceEapCommunique: true,
           fichier: {
             id: true,
             nom: true,
@@ -233,6 +227,46 @@ export class ArreteCadreService {
       arreteCadre.departements = departements;
     }
     return arreteCadre;
+  }
+
+  async findDatagouv(): Promise<ArreteCadre[]> {
+    return this.arreteCadreRepository.find({
+      select: {
+        id: true,
+        numero: true,
+        dateDebut: true,
+        dateFin: true,
+        statut: true,
+        fichier: {
+          url: true,
+        },
+        departementPilote: {
+          code: true,
+        },
+        departements: {
+          code: true,
+        },
+        zonesAlerte: {
+          id: true,
+          idSandre: true,
+          nom: true,
+          code: true,
+          type: true,
+        },
+      },
+      relations: [
+        'fichier',
+        'departementPilote',
+        'departements',
+        'zonesAlerte',
+      ],
+      where: {
+        statut: In(['a_venir', 'publie', 'abroge']),
+      },
+      order: {
+        dateDebut: 'ASC',
+      },
+    });
   }
 
   findByArreteRestrictionId(id: number): Promise<ArreteCadre[]> {

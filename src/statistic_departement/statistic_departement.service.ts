@@ -264,9 +264,9 @@ export class StatisticDepartementService {
       FROM jsonb_array_elements(restrictions) AS r
       ORDER BY (r->>'date')::date
     ) as sorted
-              `,
+              )`,
         })
-        .where('restrictions', Not(IsNull()));
+        .where(`"restrictions" is not null`);
     await qb.execute();
     return;
   }

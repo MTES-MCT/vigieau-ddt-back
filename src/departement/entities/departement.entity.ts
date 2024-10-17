@@ -68,8 +68,8 @@ export class Departement extends BaseEntity {
   )
   arretesRestriction: ArreteRestriction[];
 
-  @OneToOne(() => Parametres, (parametres) => parametres.departement)
-  parametres: Parametres;
+  @OneToMany(() => Parametres, (parametres) => parametres.departement)
+  parametres: Parametres[];
 
   @OneToMany(() => StatisticDepartement, (statisticDepartement) => statisticDepartement.departement)
   statisticDepartement: StatisticDepartement[];

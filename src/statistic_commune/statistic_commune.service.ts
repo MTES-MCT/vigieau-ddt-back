@@ -11,6 +11,7 @@ import { Commune } from '../commune/entities/commune.entity';
 import { Utils } from '../core/utils';
 import moment from 'moment/moment';
 import { ZoneAlerteComputedHistoricService } from '../zone_alerte_computed/zone_alerte_computed_historic.service';
+import { Moment } from 'moment';
 
 @Injectable()
 export class StatisticCommuneService {
@@ -28,9 +29,9 @@ export class StatisticCommuneService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {
-    setTimeout(() => {
-      // this.computeByMonth();
-    }, 5000);
+    // setTimeout(() => {
+    //   this.computeByMonth();
+    // }, 5000);
   }
 
   async computeCommuneStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date, historic?: boolean, historicNotComputed?: boolean) {
@@ -67,7 +68,7 @@ export class StatisticCommuneService {
             await this.zoneAlerteComputedHistoricService.getZonesIntersectedWithCommune(zonesDep, c.id) :
             await this.zoneAlerteComputedService.getZonesIntersectedWithCommune(zonesDep, c.id) : [];
         } else {
-          zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteService.getZonesIntersectedWithCommune(<any> zonesDep, c.id) : [];
+          zonesCommune = zonesDep.length > 0 ? await this.zoneAlerteService.getZonesIntersectedWithCommune(<any>zonesDep, c.id) : [];
         }
         zonesCommune = zonesDep.filter(z => zonesCommune.some(zc => zc.id === z.id));
         const zonesType = ['SUP', 'SOU', 'AEP'];
@@ -117,11 +118,11 @@ export class StatisticCommuneService {
     }
   }
 
-  async computeByMonth() {
+  async computeByMonth(date?: Moment) {
     this.logger.log('COMPUTE BY MONTH');
 
-    const dateDebut = moment('01/09/2023', 'DD/MM/YYYY');
-    const dateFin = moment('30/09/2024', 'DD/MM/YYYY');
+    const dateDebut = date ? date : moment('01/01/2013', 'DD/MM/YYYY');
+    const dateFin = moment();
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'month')) {
       this.logger.log(`COMPUTE STAT BY MONTH ${m.format('YYYY-MM')}`);
@@ -214,9 +215,9 @@ where id = ${statCommune.id} and to_char((r->>'date')::date, 'YYYY-MM') = '${dat
       FROM jsonb_array_elements(restrictions) AS r
       ORDER BY (r->>'date')::date
     ) as sorted
-              `,
+             )`,
         })
-        .where('restrictions', Not(IsNull()));
+        .where(`"restrictions" is not null`);
     await qb.execute();
 
 
@@ -232,9 +233,9 @@ where id = ${statCommune.id} and to_char((r->>'date')::date, 'YYYY-MM') = '${dat
       FROM jsonb_array_elements(restrictionsByMonth) AS r
       ORDER BY (r->>'date')::date
     ) as sorted
-              `,
+              )`,
         })
-        .where('restrictionsByMonth', Not(IsNull()));
+        .where(`"restrictionsByMonth" is not null`);
     await qbBis.execute();
     return;
   }
