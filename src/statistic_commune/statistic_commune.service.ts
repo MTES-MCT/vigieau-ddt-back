@@ -231,7 +231,7 @@ where id = ${statCommune.id} and to_char((r->>'date')::date, 'YYYY-MM') = '${dat
     FROM (
       SELECT r
       FROM jsonb_array_elements(restrictionsByMonth) AS r
-      ORDER BY (r->>'date')::date
+      ORDER BY TO_DATE((r->>'date'), 'YYYY-MM')
     ) as sorted
               )`,
         })

@@ -48,8 +48,8 @@ export class ZoneAlerteComputedHistoricService {
               @InjectDataSource()
               private readonly dataSource: DataSource) {
     setTimeout(() => {
-      this.computeHistoricMapsComputed(moment('2024-04-28'));
-      // this.computeHistoricMaps(moment('2013-01-01'));
+      // this.computeHistoricMapsComputed(moment('2024-04-29'));
+      this.computeHistoricMaps(moment('2024-01-01'));
     }, 5000);
   }
 
