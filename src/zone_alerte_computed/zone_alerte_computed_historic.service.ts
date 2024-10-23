@@ -47,10 +47,10 @@ export class ZoneAlerteComputedHistoricService {
               private readonly dataGouvService: DatagouvService,
               @InjectDataSource()
               private readonly dataSource: DataSource) {
-    // setTimeout(() => {
-    //   this.computeHistoricMapsComputed(moment('2024-10-06'));
-    //   this.computeHistoricMaps(moment('2021-01-19'));
-    // }, 5000);
+    setTimeout(() => {
+      this.computeHistoricMapsComputed(moment('2024-04-28'));
+      // this.computeHistoricMaps(moment('2013-01-01'));
+    }, 5000);
   }
 
   findOne(id: number): Promise<any> {
@@ -519,7 +519,8 @@ export class ZoneAlerteComputedHistoricService {
     const zones = await this.zoneAlerteComputedHistoricRepository.createQueryBuilder('zone_alerte_computed_historic')
       .select(['zone_alerte_computed_historic.id', 'zone_alerte_computed_historic.idSandre', 'zone_alerte_computed_historic.nom', 'zone_alerte_computed_historic.code', 'zone_alerte_computed_historic.type'])
       .leftJoin('zone_alerte_computed_historic.departement', 'departement')
-      .leftJoinAndSelect('commune', 'commune', 'commune.departement = departement.id AND ST_INTERSECTS(zone_alerte_computed_historic.geom, commune.geom) AND ST_Area(ST_Intersection(zone_alerte_computed_historic.geom, commune.geom)) > 0.000000001')
+      // Au moins 1% de la surface en commun
+      .leftJoinAndSelect('commune', 'commune', 'commune.departement = departement.id AND ST_INTERSECTS(zone_alerte_computed_historic.geom, commune.geom) AND ST_Area(ST_Intersection(zone_alerte_computed_historic.geom, commune.geom)) / ST_AREA(commune.geom) > 0.01')
       .where('departement.id = :id', { id: departement.id })
       .getRawMany();
     const toSave = [];
@@ -604,6 +605,8 @@ export class ZoneAlerteComputedHistoricService {
       .addSelect('zone_alerte_computed_historic.type', 'type')
       .where('zone_alerte_computed_historic.id IN(:...zonesId)', { zonesId: zones.map(z => z.id) })
       .andWhere('ST_INTERSECTS(zone_alerte_computed_historic.geom, (SELECT c.geom FROM commune as c WHERE c.id = :communeId))', { communeId })
+      // Au moins 1% de la surface en commun
+      .andWhere('ST_Area(ST_Intersection(zone_alerte_computed_historic.geom, (SELECT c.geom FROM commune as c WHERE c.id = :communeId))) / ST_Area((SELECT c.geom FROM commune as c WHERE c.id = :communeId)) > 0.01', { communeId })
       .getRawMany();
   }
 

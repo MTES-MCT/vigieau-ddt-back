@@ -634,7 +634,8 @@ DELETE FROM zone_alerte_computed
     const zones = await this.zoneAlerteComputedRepository.createQueryBuilder('zone_alerte_computed')
       .select(['zone_alerte_computed.id', 'zone_alerte_computed.idSandre', 'zone_alerte_computed.nom', 'zone_alerte_computed.code', 'zone_alerte_computed.type'])
       .leftJoin('zone_alerte_computed.departement', 'departement')
-      .leftJoinAndSelect('commune', 'commune', 'commune.departement = departement.id AND ST_INTERSECTS(zone_alerte_computed.geom, commune.geom) AND ST_Area(ST_Intersection(zone_alerte_computed.geom, commune.geom)) > 0.000000001')
+      // Au moins 1% de la surface en commun
+      .leftJoinAndSelect('commune', 'commune', 'commune.departement = departement.id AND ST_INTERSECTS(zone_alerte_computed.geom, commune.geom) AND ST_Area(ST_Intersection(zone_alerte_computed.geom, commune.geom)) / ST_AREA(commune.geom) > 0.001')
       .where('departement.id = :id', { id: departement.id })
       .getRawMany();
     const toSave = [];
@@ -735,6 +736,8 @@ DELETE FROM zone_alerte_computed
       .addSelect('zone_alerte_computed.type', 'type')
       .where('zone_alerte_computed.id IN(:...zonesId)', { zonesId: zones.map(z => z.id) })
       .andWhere('ST_INTERSECTS(zone_alerte_computed.geom, (SELECT c.geom FROM commune as c WHERE c.id = :communeId))', { communeId })
+      // Au moins 1% de la surface en commun
+      .andWhere('ST_Area(ST_Intersection(zone_alerte_computed.geom, (SELECT c.geom FROM commune as c WHERE c.id = :communeId))) / ST_Area((SELECT c.geom FROM commune as c WHERE c.id = :communeId)) > 0.01', { communeId })
       .getRawMany();
   }
 
