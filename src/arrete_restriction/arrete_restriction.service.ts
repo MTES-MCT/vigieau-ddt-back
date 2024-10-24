@@ -34,7 +34,7 @@ import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_c
 import { Departement } from '../departement/entities/departement.entity';
 import moment, { Moment } from 'moment';
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
-import deepClone from 'lodash.clonedeep';
+import { AbonnementMailService } from '../abonnement_mail/abonnement_mail.service';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -53,6 +53,7 @@ export class ArreteRestrictionService {
     @Inject(forwardRef(() => ZoneAlerteComputedService))
     private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
     private readonly statisticDepartementService: StatisticDepartementService,
+    private readonly abonnementMailService: AbonnementMailService,
   ) {
   }
 
@@ -1071,8 +1072,11 @@ export class ArreteRestrictionService {
       this.getArAtXDays(2),
     ]);
     for (const ar of ar15ARelancer.concat(ar2ARelancer)) {
-      const usersToSendMail = await this.userService.findByDepartementsId([
-        ar.departement.id,
+      const [usersToSendMail, subscritpions] = await Promise.all([
+        this.userService.findByDepartementsId([
+          ar.departement.id,
+        ]),
+        this.abonnementMailService.getCountByDepartement(ar.departement.code),
       ]);
       const nbJoursFin = ar15ARelancer.some((a) => a.id === ar.id) ? 15 : 2;
       await this.mailService.sendEmails(
@@ -1086,6 +1090,7 @@ export class ArreteRestrictionService {
           isAc: false,
           isAr: true,
           arreteLien: `https://${process.env.DOMAIN_NAME}/arrete-restriction/${ar.id}/edition`,
+          subscritpions: subscritpions,
         },
       );
     }
@@ -1183,7 +1188,7 @@ export class ArreteRestrictionService {
     };
     const oldArLight = this.filterObjectByModel(oldAr, model);
     const newArLight = this.filterObjectByModel(newAr, model);
-    const diff = this.compare(deepClone(oldArLight), deepClone(newArLight));
+    const diff = this.compare(structuredClone(oldArLight), structuredClone(newArLight));
     if (Object.keys(diff).length > 0) {
       await this.mailService.sendEmail(
         process.env.MAIL_MTE,

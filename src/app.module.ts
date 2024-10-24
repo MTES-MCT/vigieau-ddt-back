@@ -26,7 +26,6 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
 import { CommuneModule } from './commune/commune.module';
 import { RestrictionModule } from './restriction/restriction.module';
 import { BassinVersantModule } from './bassin_versant/bassin_versant.module';
-import { AbonnementMail } from './core/entities/abonnement_mail.entity';
 import { DatagouvModule } from './datagouv/datagouv.module';
 import { StatisticCommuneModule } from './statistic_commune/statistic_commune.module';
 import { StatisticDepartementModule } from './statistic_departement/statistic_departement.module';
@@ -36,6 +35,7 @@ import { ZoneAlerteComputedModule } from './zone_alerte_computed/zone_alerte_com
 import { UsageFeedbackModule } from './usage_feedback/usage_feedback.module';
 import { StatisticModule } from './statistic/statistic.module';
 import { ArreteMunicipalModule } from './arrete_municipal/arrete_municipal.module';
+import { AbonnementMailModule } from './abonnement_mail/abonnement_mail.module';
 
 // @ts-ignore
 @Module({
@@ -76,7 +76,7 @@ import { ArreteMunicipalModule } from './arrete_municipal/arrete_municipal.modul
         return dataSource;
       },
     }),
-    TypeOrmModule.forFeature([Session, Region, AbonnementMail]),
+    TypeOrmModule.forFeature([Session, Region]),
     // Rate limit, 300 requêtes maximum toutes les 15min par IP
     ThrottlerModule.forRoot([
       {
@@ -132,6 +132,7 @@ import { ArreteMunicipalModule } from './arrete_municipal/arrete_municipal.modul
     UsageFeedbackModule,
     StatisticModule,
     ArreteMunicipalModule,
+    AbonnementMailModule,
   ],
   controllers: [AppController],
   providers: [

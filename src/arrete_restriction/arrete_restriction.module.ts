@@ -11,6 +11,7 @@ import { UserModule } from '../user/user.module';
 import { SharedModule } from '../shared/shared.module';
 import { ZoneAlerteComputedModule } from '../zone_alerte_computed/zone_alerte_computed.module';
 import { StatisticDepartementModule } from '../statistic_departement/statistic_departement.module';
+import { AbonnementMailModule } from '../abonnement_mail/abonnement_mail.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { StatisticDepartementModule } from '../statistic_departement/statistic_d
     SharedModule,
     forwardRef(() => ZoneAlerteComputedModule),
     StatisticDepartementModule,
+    AbonnementMailModule,
   ],
   controllers: [ArreteRestrictionController],
   providers: [ArreteRestrictionService],
