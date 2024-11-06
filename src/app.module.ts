@@ -133,6 +133,7 @@ import { AbonnementMailModule } from './abonnement_mail/abonnement_mail.module';
     StatisticModule,
     ArreteMunicipalModule,
     AbonnementMailModule,
+    ConfigModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, LessThan, LessThanOrEqual, Repository } from 'typeorm';
+import { FindManyOptions, FindOneOptions, FindOptionsWhere, In, LessThan, LessThanOrEqual, Repository } from 'typeorm';
 import { ArreteMunicipal } from './entities/arrete_municipal.entity';
 import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 import { arreteMunicipalPaginateConfig } from './dto/arrete_municipal.dto';
@@ -15,6 +15,7 @@ import { RepealArreteMunicipalDto } from './dto/repeal_arrete_municipal.dto';
 import { CommuneService } from '../commune/commune.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { MailService } from '../shared/services/mail.service';
+import { Commune } from '../commune/entities/commune.entity';
 
 @Injectable()
 export class ArreteMunicipalService {
@@ -67,7 +68,7 @@ export class ArreteMunicipalService {
             code: In(currentUser.role_communes),
           },
         };
-    const arreteMunicipal = await this.arreteMunicipalRepository.findOne({
+    const arreteMunicipal = await this.arreteMunicipalRepository.findOne(<FindOneOptions>{
       select: {
         id: true,
         dateDebut: true,
@@ -110,11 +111,52 @@ export class ArreteMunicipalService {
     return arreteMunicipal;
   }
 
+  async findByCommunes(communesCodes: string[]) {
+    return this.arreteMunicipalRepository.find(<FindManyOptions>{
+      select: {
+        id: true,
+        dateDebut: true,
+        dateFin: true,
+        statut: true,
+        userFirstName: true,
+        userLastName: true,
+        userEmail: true,
+        userPhone: true,
+        fichier: {
+          id: true,
+          nom: true,
+          url: true,
+          size: true,
+        },
+        communes: {
+          id: true,
+          code: true,
+          nom: true,
+        },
+      },
+      relations: [
+        'fichier',
+        'communes',
+        'communes.departement',
+      ],
+      where: {
+        communes: {
+          code: In(communesCodes),
+        },
+      },
+      order: {
+        communes: {
+          code: 'ASC',
+        },
+      },
+    });
+  }
+
   async create(
     createArreteMunicipalDto: CreateUpdateArreteMunicipalDto,
     arreteMunicipalPdf: Express.Multer.File,
     user?: User,
-  ): Promise<any> {
+  ): Promise<ArreteMunicipal> {
     if (
       !(await this.canCreateArreteMunicipal(createArreteMunicipalDto, user))
     ) {
@@ -169,29 +211,77 @@ export class ArreteMunicipalService {
     return am;
   }
 
-  async repeal(
+  async update(
     id: number,
-    repealArreteMunicipalDto: RepealArreteMunicipalDto,
-    currentUser: User,
-  ): Promise<ArreteCadre> {
-    const am = await this.findOne(id, currentUser);
-    if (
-      !(await this.canRepealArreteMunicipal(am, repealArreteMunicipalDto))
-    ) {
+    editArreteMunicipalDto: CreateUpdateArreteMunicipalDto,
+    arreteMunicipalPdf: Express.Multer.File,
+    user?: User,
+  ): Promise<ArreteMunicipal> {
+    const am = await this.findOne(id, user);
+    if (!am || !(await this.canEditArreteMunicipal(am, editArreteMunicipalDto))) {
       throw new HttpException(
-        `Abrogation impossible.`,
+        `Modification impossible.`,
         HttpStatus.UNAUTHORIZED,
       );
     }
-    let toSave = {
-      id,
-      ...repealArreteMunicipalDto,
-    };
-    if (moment(repealArreteMunicipalDto.dateFin).isBefore(moment(), 'day')) {
-      toSave = { ...toSave, ...{ statut: <StatutArreteMunicipal>'abroge' } };
+
+    if (!arreteMunicipalPdf && !am.fichier.id) {
+      throw new HttpException(
+        `Le PDF de l'arrêté municipal est obligatoire.`,
+        HttpStatus.BAD_REQUEST,
+      );
     }
-    return <any>this.arreteMunicipalRepository.save(toSave);
+
+    let newAm: any = await this.arreteMunicipalRepository.save(<any>{
+      id: id,
+      ...editArreteMunicipalDto,
+    });
+    let newFile = null;
+    // Upload du PDF de l'arrêté municipal
+    if (arreteMunicipalPdf) {
+      if (am.fichier.id) {
+        await this.arreteMunicipalRepository.update({ id: id }, { fichier: null });
+        await this.fichierService.deleteById(am.fichier.id);
+      }
+      newFile = await this.fichierService.create(
+        arreteMunicipalPdf,
+        `arrete-municipal/${am.id}/`,
+      );
+      newAm.fichier = { id: newFile.id };
+    }
+    newAm =
+      new Date(editArreteMunicipalDto.dateDebut) <= new Date()
+        ? editArreteMunicipalDto.dateFin &&
+        new Date(editArreteMunicipalDto.dateFin) <= new Date()
+          ? { ...newAm, ...{ statut: <StatutArreteMunicipal>'abroge' } }
+          : { ...newAm, ...{ statut: <StatutArreteMunicipal>'publie' } }
+        : { ...newAm, ...{ statut: <StatutArreteMunicipal>'a_venir' } };
+    return <Promise<ArreteMunicipal>>this.arreteMunicipalRepository.save(newAm);
   }
+
+  // async repeal(
+  //   id: number,
+  //   repealArreteMunicipalDto: RepealArreteMunicipalDto,
+  //   currentUser: User,
+  // ): Promise<ArreteCadre> {
+  //   const am = await this.findOne(id, currentUser);
+  //   if (
+  //     !(await this.canEditArreteMunicipal(am, repealArreteMunicipalDto))
+  //   ) {
+  //     throw new HttpException(
+  //       `Abrogation impossible.`,
+  //       HttpStatus.UNAUTHORIZED,
+  //     );
+  //   }
+  //   let toSave = {
+  //     id,
+  //     ...repealArreteMunicipalDto,
+  //   };
+  //   if (moment(repealArreteMunicipalDto.dateFin).isBefore(moment(), 'day')) {
+  //     toSave = { ...toSave, ...{ statut: <StatutArreteMunicipal>'abroge' } };
+  //   }
+  //   return <any>this.arreteMunicipalRepository.save(toSave);
+  // }
 
   async remove(id: number, user: User) {
     const arrete = await this.findOne(id, user);
@@ -224,16 +314,42 @@ export class ArreteMunicipalService {
       );
     }
 
+    const otherAmOnSameCommune = await this.findByCommunes((<any>createArreteMunicipalDto.communes).map(c => c.code));
+    if (otherAmOnSameCommune.length > 0 && otherAmOnSameCommune.some(am => this.checkDatesBetweenAm(am, createArreteMunicipalDto))) {
+      throw new HttpException(
+        `Impossible de créer l'arrêté municipal, celui-ci est à cheval sur un autre arrêté municipal concernant la même commune.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     return (await this.communeService.getUserCommunes(user, <any>createArreteMunicipalDto.communes)).length === createArreteMunicipalDto.communes.length;
   }
 
-  async canRepealArreteMunicipal(
+  // Return true si les deux AMs se chevauchent
+  checkDatesBetweenAm(am1, am2) {
+    const d1 = moment(am1.dateDebut);
+    const f1 = am1.dateFin ? moment(am1.dateFin) : null;
+    const d2 = moment(am2.dateDebut);
+    const f2 = am2.dateFin ? moment(am2.dateFin) : null;
+
+    if (!f1 && !f2) {
+      return true;
+    }
+    if (!f1) {
+      return d1.isSameOrBefore(f2) && f2.isSameOrAfter(d2);
+    }
+    if (!f2) {
+      return d2.isSameOrBefore(f1) && f1.isSameOrAfter(d1);
+    }
+    return d1.isSameOrBefore(f2) && f1.isSameOrAfter(d2);
+  }
+
+  async canEditArreteMunicipal(
     arrete: ArreteMunicipal,
-    repealArreteMunicipalDto: RepealArreteMunicipalDto,
+    editArreteMunicipalDto: CreateUpdateArreteMunicipalDto,
   ): Promise<boolean> {
     if (
-      repealArreteMunicipalDto.dateFin &&
-      moment(repealArreteMunicipalDto.dateFin)
+      editArreteMunicipalDto.dateFin &&
+      moment(editArreteMunicipalDto.dateFin)
         .isBefore(moment(arrete.dateDebut), 'day')
     ) {
       throw new HttpException(
@@ -241,6 +357,15 @@ export class ArreteMunicipalService {
         HttpStatus.BAD_REQUEST,
       );
     }
+
+    const otherAmOnSameCommune = await this.findByCommunes((<any>editArreteMunicipalDto.communes).map(c => c.code));
+    if (otherAmOnSameCommune.length > 0 && otherAmOnSameCommune.some(am => am.id !== arrete.id && this.checkDatesBetweenAm(am, editArreteMunicipalDto))) {
+      throw new HttpException(
+        `Impossible de modifier l'arrêté municipal, celui-ci est à cheval sur un autre arrêté municipal concernant la même commune.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     return (
       arrete &&
       ['a_valider', 'a_venir', 'publie'].includes(arrete.statut)

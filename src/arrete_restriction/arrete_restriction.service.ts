@@ -8,6 +8,8 @@ import {
 import { User } from '../user/entities/user.entity';
 import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 import {
+  FindManyOptions,
+  FindOneOptions,
   FindOptionsWhere,
   In, IsNull,
   LessThan,
@@ -35,6 +37,7 @@ import { Departement } from '../departement/entities/departement.entity';
 import moment, { Moment } from 'moment';
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 import { AbonnementMailService } from '../abonnement_mail/abonnement_mail.service';
+import { ConfigService } from '../config/config.service';
 
 @Injectable()
 export class ArreteRestrictionService {
@@ -54,6 +57,7 @@ export class ArreteRestrictionService {
     private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
     private readonly statisticDepartementService: StatisticDepartementService,
     private readonly abonnementMailService: AbonnementMailService,
+    private readonly configService: ConfigService,
   ) {
   }
 
@@ -87,7 +91,7 @@ export class ArreteRestrictionService {
     currentUser?: User,
     depCode?: string,
   ): Promise<ArreteRestriction[]> {
-    const whereClause: FindOptionsWhere<ArreteRestriction> | null = {
+    const whereClause: FindOptionsWhere<ArreteRestriction> = {
       statut: In(['a_venir', 'publie']),
       departement: {
         code:
@@ -96,7 +100,7 @@ export class ArreteRestrictionService {
             : In(currentUser.role_departements),
       },
     };
-    return this.arreteRestrictionRepository.find({
+    return this.arreteRestrictionRepository.find(<FindManyOptions>{
       select: {
         id: true,
         numero: true,
@@ -132,7 +136,7 @@ export class ArreteRestrictionService {
   }
 
   async findDatagouv(): Promise<ArreteRestriction[]> {
-    return this.arreteRestrictionRepository.find({
+    return this.arreteRestrictionRepository.find(<FindManyOptions>{
       select: {
         id: true,
         numero: true,
@@ -169,8 +173,8 @@ export class ArreteRestrictionService {
           },
           communes: {
             code: true,
-          }
-        }
+          },
+        },
       },
       relations: [
         'fichier',
@@ -200,8 +204,8 @@ export class ArreteRestrictionService {
             code: In(currentUser.role_departements),
           },
         };
-    const [ar, acs] = await Promise.all([
-      this.arreteRestrictionRepository.findOne({
+    const [ar, acs] = await Promise.all(<any>[
+      this.arreteRestrictionRepository.findOne(<FindOneOptions>{
         select: {
           id: true,
           numero: true,
@@ -304,7 +308,7 @@ export class ArreteRestrictionService {
     acId: number,
     depCode: string,
   ): Promise<ArreteRestriction[]> {
-    return this.arreteRestrictionRepository.find({
+    return this.arreteRestrictionRepository.find(<FindManyOptions>{
       select: {
         id: true,
         numero: true,
@@ -351,7 +355,7 @@ export class ArreteRestrictionService {
   async findByDepartement(
     depCode: string,
   ): Promise<ArreteRestriction[]> {
-    return this.arreteRestrictionRepository.find({
+    return this.arreteRestrictionRepository.find(<FindManyOptions>{
       select: {
         id: true,
         numero: true,
@@ -405,7 +409,7 @@ export class ArreteRestrictionService {
     depCode: string,
     date: Moment,
   ): Promise<ArreteRestriction[]> {
-    return this.arreteRestrictionRepository.find({
+    return this.arreteRestrictionRepository.find(<FindManyOptions>{
       select: {
         id: true,
         numero: true,
@@ -468,7 +472,7 @@ export class ArreteRestrictionService {
   }
 
   async findByDate(date: Moment) {
-    return this.arreteRestrictionRepository.find({
+    return this.arreteRestrictionRepository.find(<FindManyOptions>{
       select: {
         id: true,
         numero: true,
@@ -513,16 +517,6 @@ export class ArreteRestrictionService {
     });
   }
 
-  async findMinDateDebutByDate(date: Moment): Promise<any> {
-    return this.arreteRestrictionRepository.createQueryBuilder('arrete_restriction')
-      .select('MIN(arrete_restriction.dateDebut)', 'dateDebut')
-      .where('arrete_restriction.statut IN (:...statuts)', {
-        statuts: ['a_venir', 'publie', 'abroge'],
-      })
-      .andWhere('arrete_restriction."updatedByHuman"::DATE = :date', { date })
-      .getRawOne();
-  }
-
   async create(
     createArreteRestrictionDto: CreateUpdateArreteRestrictionDto,
     currentUser?: User,
@@ -547,7 +541,6 @@ export class ArreteRestrictionService {
       );
     }
     if (oldAr.statut !== 'a_valider') {
-      //@ts-expect-error type
       const arBis: ArreteRestriction = {
         ...oldAr,
         ...{
@@ -650,7 +643,7 @@ export class ArreteRestrictionService {
           ? { ...toSave, ...{ statut: <StatutArreteCadre>'abroge' } }
           : { ...toSave, ...{ statut: <StatutArreteCadre>'publie' } }
         : { ...toSave, ...{ statut: <StatutArreteCadre>'a_venir' } };
-    const toReturn = await this.arreteRestrictionRepository.save(toSave);
+    const toReturn: any = await this.arreteRestrictionRepository.save(toSave);
     if (!arreteRestrictionPdf) {
       toReturn.fichier = ar.fichier;
     }
@@ -674,6 +667,12 @@ export class ArreteRestrictionService {
           },
         );
       }
+    }
+    if (ar.dateDebut !== publishArreteRestrictionDto.dateDebut
+      || ar.dateFin !== publishArreteRestrictionDto.dateFin) {
+      const minDate = moment(ar.dateDebut).isBefore(moment(publishArreteRestrictionDto.dateDebut)) ?
+        ar.dateDebut : publishArreteRestrictionDto.dateDebut;
+      await this.configService.setConfig(minDate, minDate);
     }
     this.updateArreteRestrictionStatut([ar.departement]);
     this.checkModifications(ar, toReturn, currentUser, true);
@@ -707,7 +706,6 @@ export class ArreteRestrictionService {
     }
     const toReturn = await this.arreteRestrictionRepository.save(toSave);
     await this.updateArreteRestrictionStatut([ar.departement]);
-    // TODO si tout les AR associés à un AC sont abrogés, il faut abroger l'AC
     return toReturn;
   }
 
@@ -820,7 +818,7 @@ export class ArreteRestrictionService {
       idsExcluded.push(ar.arreteRestrictionAbroge.id);
     }
     const arsWithSameZonesOrCommunes =
-      await this.arreteRestrictionRepository.find({
+      await this.arreteRestrictionRepository.find(<FindManyOptions>{
         select: {
           id: true,
           numero: true,
@@ -984,10 +982,9 @@ export class ArreteRestrictionService {
    * On reprend tout pour éviter que certains AR soient passés entre les mailles du filet (notamment l'historique ou autre)
    */
   async updateArreteRestrictionStatut(departements?: Departement[], computeHistoric?: boolean) {
-    const arAVenir = await this.arreteRestrictionRepository.find({
+    const arAVenir = await this.arreteRestrictionRepository.find(<FindManyOptions>{
       where: {
         statut: 'a_venir',
-        // @ts-expect-error string date
         dateDebut: LessThanOrEqual(new Date()),
         arretesCadre: {
           statut: 'publie',
@@ -1000,7 +997,15 @@ export class ArreteRestrictionService {
     );
     this.logger.log(`${arAVenir.length} Arrêtés Restriction publiés`);
 
-    const arPerime: ArreteRestriction[] = await this.arreteRestrictionRepository.find({
+    const minDateDebut = arAVenir.length > 0 ? arAVenir.map(ar => ar.dateDebut).reduce((min, date) => {
+      return moment(date).isBefore(moment(min)) ? date : min;
+    }) : moment().format();
+    // Si un AR commence avant aujourd'hui
+    if (moment(minDateDebut).isBefore(moment(), 'day')) {
+      await this.configService.setConfig(minDateDebut, minDateDebut);
+    }
+
+    const arPerime: ArreteRestriction[] = await this.arreteRestrictionRepository.find(<FindManyOptions>{
       select: {
         id: true,
         dateDebut: true,
@@ -1015,7 +1020,6 @@ export class ArreteRestrictionService {
       where: [
         {
           statut: In(['a_venir', 'publie']),
-          // @ts-expect-error string date
           dateFin: LessThan(moment().startOf('day')),
         },
         {
@@ -1028,24 +1032,26 @@ export class ArreteRestrictionService {
     });
     const promises = [];
     arPerime.forEach(ar => {
-      const arDateFin = new Date(ar.dateFin);
-      const arDateDebut = new Date(ar.dateDebut);
-      const acDateFin = new Date(Math.min.apply(null, ar.arretesCadre
+      const arDateFin = moment(ar.dateFin);
+      const arDateDebut = moment(ar.dateDebut);
+      const acDateFin = moment(Math.min.apply(null, ar.arretesCadre
         .filter(ac => ac.statut === 'abroge')
         .map(ac => new Date(ac.dateFin))));
-      if ((!ar.dateFin && acDateFin) || (ar.dateFin && acDateFin && arDateFin.getTime() > acDateFin.getTime())) {
+      if ((!ar.dateFin && acDateFin) || (ar.dateFin && acDateFin && arDateFin.isAfter(acDateFin))) {
         promises.push(this.arreteRestrictionRepository.update(
           { id: ar.id },
           // @ts-ignore
-          { dateFin: acDateFin },
+          { dateFin: acDateFin.format('YYYY-MM-DD') },
         ));
-        if (acDateFin.getTime() < arDateDebut.getTime()) {
+        if (acDateFin.isBefore(arDateDebut)) {
           promises.push(this.arreteRestrictionRepository.update(
             { id: ar.id },
             // @ts-ignore
-            { dateDebut: acDateFin },
+            { dateDebut: acDateFin.format('YYYY-MM-DD') },
           ));
+          ar.dateDebut = acDateFin.format('YYYY-MM-DD');
         }
+        ar.dateFin = acDateFin.format('YYYY-MM-DD');
       }
     });
     promises.push(this.arreteRestrictionRepository.update(
@@ -1054,6 +1060,17 @@ export class ArreteRestrictionService {
     ));
     await Promise.all(promises);
     this.logger.log(`${arPerime.length} Arrêtés Restriction abrogés`);
+
+    // ARs qui se sont terminés avant hier
+    const arsFiltered = arPerime.filter(ar => moment(ar.dateFin).isBefore(moment().subtract(1, 'day').startOf('day')));
+    // Si un AR commence avant aujourd'hui
+    if (arsFiltered.length > 0) {
+      const minDate = arsFiltered.map(ar => ar.dateDebut).reduce((min, date) => {
+        return moment(date).isBefore(moment(min)) ? date : min;
+      });
+      await this.configService.setConfig(minDate, minDate);
+    }
+
     try {
       await this.statisticDepartementService.computeDepartementStatistics();
     } catch (e) {
@@ -1184,6 +1201,9 @@ export class ArreteRestrictionService {
         communes: [{
           id: true,
         }],
+        usages: [{
+          nom: true,
+        }],
       }],
     };
     const oldArLight = this.filterObjectByModel(oldAr, model);
@@ -1205,6 +1225,13 @@ export class ArreteRestrictionService {
           arreteLien: `https://${process.env.DOMAIN_NAME}/arrete-restriction/${oldAr.id}/edition`,
         },
       );
+      if (!publish) {
+        if (diff.restrictions && diff.restrictions.some(r => r.id)) {
+          await this.configService.setConfig(oldAr.dateDebut, oldAr.dateDebut);
+        } else {
+          await this.configService.setConfig(oldAr.dateDebut, null);
+        }
+      }
     }
   }
 

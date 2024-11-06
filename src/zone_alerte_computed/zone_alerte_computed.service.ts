@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull, Repository } from 'typeorm';
+import { DataSource, FindManyOptions, IsNull, Repository } from 'typeorm';
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { DepartementService } from '../departement/departement.service';
@@ -12,7 +12,7 @@ import { Utils } from '../core/utils';
 import { writeFile } from 'node:fs/promises';
 import { S3Service } from '../shared/services/s3.service';
 import * as fs from 'fs';
-import { ConfigService } from '@nestjs/config';
+import { ConfigService as NestConfigService } from '@nestjs/config';
 import { RestrictionService } from '../restriction/restriction.service';
 import { DatagouvService } from '../datagouv/datagouv.service';
 import { StatisticService } from '../statistic/statistic.service';
@@ -20,6 +20,7 @@ import moment, { Moment } from 'moment';
 import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_historic.service';
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
+import { ConfigService } from '../config/config.service';
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -40,7 +41,7 @@ export class ZoneAlerteComputedService {
     @Inject(forwardRef(() => ArreteRestrictionService))
     private readonly arreteResrictionService: ArreteRestrictionService,
     private readonly s3Service: S3Service,
-    private readonly configService: ConfigService,
+    private readonly nestConfigService: NestConfigService,
     private readonly restrictionService: RestrictionService,
     @Inject(forwardRef(() => DatagouvService))
     private readonly datagouvService: DatagouvService,
@@ -52,6 +53,7 @@ export class ZoneAlerteComputedService {
     private readonly zoneAlerteComputedHistoricService: ZoneAlerteComputedHistoricService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    private readonly configService: ConfigService,
   ) {
   }
 
@@ -119,7 +121,7 @@ export class ZoneAlerteComputedService {
       departements = departements.filter(d => depsId.some(dep => dep === d.id));
     }
     for (const departement of departements) {
-      const param = departement.parametres.find(p =>  !p.disabled)?.superpositionCommune;
+      const param = departement.parametres.find(p => !p.disabled)?.superpositionCommune;
       const zonesSaved = await this.computeRegleAr(departement);
       if (zonesSaved.length > 0) {
         switch (param) {
@@ -193,7 +195,7 @@ export class ZoneAlerteComputedService {
     if (toReturn.length > 0) {
       await this.cleanZones(departement);
     }
-    const param = departement.parametres.find(p =>  !p.disabled)?.superpositionCommune;
+    const param = departement.parametres.find(p => !p.disabled)?.superpositionCommune;
     if (!param || param !== 'yes_all') {
       await this.computeRegleAepNotSpecific(departement);
     }
@@ -471,7 +473,7 @@ DELETE FROM zone_alerte_computed
   }
 
   async computeGeoJson(computeHistoric?: boolean) {
-    let allZonesComputed: any = await this.zoneAlerteComputedRepository.find({
+    let allZonesComputed: any = await this.zoneAlerteComputedRepository.find(<FindManyOptions>{
       select: {
         id: true,
         idSandre: true,
@@ -582,7 +584,7 @@ DELETE FROM zone_alerte_computed
       'features': allZones,
     };
 
-    const path = this.configService.get('PATH_TO_WRITE_FILE');
+    const path = this.nestConfigService.get('PATH_TO_WRITE_FILE');
 
     const date = new Date();
     await writeFile(`${path}/zones_arretes_en_vigueur.geojson`, JSON.stringify(geojson));
@@ -657,18 +659,22 @@ DELETE FROM zone_alerte_computed
   }
 
   async computeHistoric() {
-    const yesterday = moment().subtract(1, 'days');
-    // Récupérer la date de début la plus ancienne des ARs modifiés la veille
-    const dateHistoricToCompute = (await this.arreteResrictionService.findMinDateDebutByDate(yesterday)).dateDebut;
-    if (dateHistoricToCompute && moment().diff(moment(dateHistoricToCompute, 'YYYY-MM-DD'), 'days') >= 1) {
-      if (moment(dateHistoricToCompute, 'YYYY-MM-DD').isBefore(moment('2024-04-29'))) {
-        await this.zoneAlerteComputedHistoricService.computeHistoricMaps(moment(dateHistoricToCompute, 'YYYY-MM-DD'));
+    const config = await this.configService.getConfig();
+    if (config.computeMapDate && moment().diff(moment(config.computeMapDate, 'YYYY-MM-DD'), 'days') >= 1) {
+      if (moment(config.computeMapDate, 'YYYY-MM-DD').isBefore(moment('2024-04-29'))) {
+        await this.zoneAlerteComputedHistoricService.computeHistoricMaps(
+          moment(config.computeMapDate, 'YYYY-MM-DD'),
+          config.computeStatsDate ? moment(config.computeStatsDate, 'YYYY-MM-DD') : null,
+        );
       }
-      const dateMin = moment(dateHistoricToCompute, 'YYYY-MM-DD').isBefore(moment('2024-04-29')) ?
-        '2024-04-29' : dateHistoricToCompute;
-      await this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(moment(dateMin));
+      const dateMin = moment(config.computeMapDate, 'YYYY-MM-DD').isBefore(moment('2024-04-29')) ?
+        '2024-04-29' : config.computeMapDate;
+      await this.zoneAlerteComputedHistoricService.computeHistoricMapsComputed(
+        moment(dateMin),
+        config.computeStatsDate ? moment(config.computeStatsDate, 'YYYY-MM-DD') : null,
+      );
     }
-    await this.statisticCommuneService.computeByMonth(moment(dateHistoricToCompute, 'YYYY-MM-DD'));
+    await this.statisticCommuneService.computeByMonth(moment(config.computeMapDate, 'YYYY-MM-DD'));
   }
 
   async getZonesAlerteComputedByDepartement(departement: Departement): Promise<ZoneAlerteComputed[]> {
@@ -742,7 +748,7 @@ DELETE FROM zone_alerte_computed
   }
 
   async findDatagouv(): Promise<ZoneAlerteComputed[]> {
-    return this.zoneAlerteComputedRepository.find({
+    return this.zoneAlerteComputedRepository.find(<FindManyOptions>{
       select: {
         id: true,
         idSandre: true,

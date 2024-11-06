@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import {
   DeleteResult,
+  FindManyOptions, FindOneOptions,
   FindOptionsWhere,
   In,
   LessThan,
@@ -79,7 +80,7 @@ export class ArreteCadreService {
             : In(currentUser.role_departements),
       },
     };
-    const acToReturn = await this.arreteCadreRepository.find({
+    const acToReturn = await this.arreteCadreRepository.find(<FindManyOptions> {
       select: {
         id: true,
         numero: true,
@@ -156,8 +157,8 @@ export class ArreteCadreService {
             code: In(currentUser.role_departements),
           },
         };
-    const [arreteCadre, usagesArreteCadre, departements] = await Promise.all([
-      this.arreteCadreRepository.findOne({
+    const [arreteCadre, usagesArreteCadre, departements]: any = await Promise.all(<any> [
+      this.arreteCadreRepository.findOne(<FindOneOptions> {
         select: {
           id: true,
           numero: true,
@@ -230,7 +231,7 @@ export class ArreteCadreService {
   }
 
   async findDatagouv(): Promise<ArreteCadre[]> {
-    return this.arreteCadreRepository.find({
+    return this.arreteCadreRepository.find(<FindManyOptions> {
       select: {
         id: true,
         numero: true,
@@ -270,7 +271,7 @@ export class ArreteCadreService {
   }
 
   findByArreteRestrictionId(id: number): Promise<ArreteCadre[]> {
-    return this.arreteCadreRepository.find({
+    return this.arreteCadreRepository.find(<FindManyOptions> {
       select: {
         id: true,
         numero: true,
@@ -325,7 +326,7 @@ export class ArreteCadreService {
   }
 
   findByDepartement(depCode: string): Promise<ArreteCadre[]> {
-    return this.arreteCadreRepository.find({
+    return this.arreteCadreRepository.find(<FindManyOptions> {
       select: {
         id: true,
         numero: true,
@@ -557,7 +558,7 @@ export class ArreteCadreService {
       },
     );
     const oldUsagesUpdates = oldAc.usages.filter(u => usagesUpdated.some(uu => uu.id === u.id));
-    await Promise.all([
+    await Promise.all(<any> [
       this.restrictionService.deleteZonesByArreteCadreId(
         zonesDeleted.map((z) => z.id),
         oldAc.id,
@@ -779,10 +780,9 @@ export class ArreteCadreService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_2AM)
   async updateArreteCadreStatut() {
-    const acAVenir = await this.arreteCadreRepository.find({
+    const acAVenir = await this.arreteCadreRepository.find(<FindManyOptions>{
       where: {
         statut: 'a_venir',
-        // @ts-expect-error string date
         dateDebut: LessThanOrEqual(new Date()),
       },
     });
@@ -792,10 +792,9 @@ export class ArreteCadreService {
     );
     this.logger.log(`${acAVenir.length} Arrêtés Cadre publiés`);
 
-    const acPerime = await this.arreteCadreRepository.find({
+    const acPerime = await this.arreteCadreRepository.find(<FindManyOptions>{
       where: {
         statut: In(['a_venir', 'publie']),
-        // @ts-expect-error string date
         dateFin: LessThan(new Date()),
       },
     });

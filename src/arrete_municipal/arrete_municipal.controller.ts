@@ -2,7 +2,7 @@ import {
   Body,
   Controller, Delete,
   Get,
-  Param,
+  Param, Patch,
   Post,
   Req,
   UploadedFile,
@@ -42,19 +42,19 @@ export class ArreteMunicipalController {
     );
   }
 
-  // @Get(':id')
-  // @ApiOperation({ summary: 'Retourne un arrêté municipal' })
-  // @ApiResponse({
-  //   status: 201,
-  //   type: ArreteMunicipalDto,
-  // })
-  // async findOne(@Param('id') id: string): Promise<ArreteMunicipalDto> {
-  //   const arreteMunicipal = await this.arreteMunicipalService.findOne(+id);
-  //   return plainToInstance(
-  //     ArreteMunicipalDto,
-  //     camelcaseKeys(arreteMunicipal, { deep: true }),
-  //   );
-  // }
+  @Get(':id')
+  @ApiOperation({ summary: 'Retourne un arrêté municipal' })
+  @ApiResponse({
+    status: 201,
+    type: ArreteMunicipalDto,
+  })
+  async findOne(@Param('id') id: string): Promise<ArreteMunicipalDto> {
+    const arreteMunicipal = await this.arreteMunicipalService.findOne(+id);
+    return plainToInstance(
+      ArreteMunicipalDto,
+      camelcaseKeys(arreteMunicipal, { deep: true }),
+    );
+  }
 
   @Post()
   @UseInterceptors(
@@ -88,16 +88,32 @@ export class ArreteMunicipalController {
     );
   }
 
-  @Post(':id/abroger')
-  @ApiOperation({ summary: "Abrogement d'un arrêté municipal" })
-  async repeal(
-    @Req() req,
+  @Patch(':id')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      fileFilter: Utils.pdfFileFilter,
+      limits: {
+        fileSize: 1e7,
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: "Edition d'un arrêté municipal" })
+  @ApiResponse({
+    status: 201,
+    type: ArreteMunicipalDto,
+  })
+  async update(
     @Param('id') id: string,
-    @Body() repealArreteMunicipalDto: RepealArreteMunicipalDto,
+    @Req() req,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() editArreteMunicipalDto: CreateUpdateArreteMunicipalDto,
   ): Promise<ArreteMunicipalDto> {
-    const arreteMunicipal = await this.arreteMunicipalService.repeal(
+    editArreteMunicipalDto.communes = JSON.parse(editArreteMunicipalDto.communes);
+    const arreteMunicipal = await this.arreteMunicipalService.update(
       +id,
-      repealArreteMunicipalDto,
+      editArreteMunicipalDto,
+      file,
       req.session.user,
     );
     return plainToInstance(
@@ -105,6 +121,25 @@ export class ArreteMunicipalController {
       camelcaseKeys(arreteMunicipal, { deep: true }),
     );
   }
+
+
+  // @Post(':id/abroger')
+  // @ApiOperation({ summary: "Abrogement d'un arrêté municipal" })
+  // async repeal(
+  //   @Req() req,
+  //   @Param('id') id: string,
+  //   @Body() repealArreteMunicipalDto: RepealArreteMunicipalDto,
+  // ): Promise<ArreteMunicipalDto> {
+  //   const arreteMunicipal = await this.arreteMunicipalService.repeal(
+  //     +id,
+  //     repealArreteMunicipalDto,
+  //     req.session.user,
+  //   );
+  //   return plainToInstance(
+  //     ArreteMunicipalDto,
+  //     camelcaseKeys(arreteMunicipal, { deep: true }),
+  //   );
+  // }
 
   @Delete(':id')
   @ApiOperation({ summary: "Suppression d'un arrêté municipal" })

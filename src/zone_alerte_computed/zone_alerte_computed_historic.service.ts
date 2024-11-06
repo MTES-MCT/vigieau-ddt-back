@@ -11,7 +11,7 @@ import { S3Service } from '../shared/services/s3.service';
 import { ZoneAlerte } from '../zone_alerte/entities/zone_alerte.entity';
 import { StatisticService } from '../statistic/statistic.service';
 import { DepartementService } from '../departement/departement.service';
-import { DataSource, IsNull, Repository } from 'typeorm';
+import { DataSource, FindManyOptions, IsNull, Repository } from 'typeorm';
 import { CommuneService } from '../commune/commune.service';
 import { Departement } from '../departement/entities/departement.entity';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -49,7 +49,7 @@ export class ZoneAlerteComputedHistoricService {
               private readonly dataSource: DataSource) {
     setTimeout(() => {
       // this.computeHistoricMapsComputed(moment('2024-04-29'));
-      // this.computeHistoricMaps(moment('2024-01-01'));
+      // this.computeHistoricMaps(moment('2023-01-01'));
     }, 5000);
   }
 
@@ -68,9 +68,10 @@ export class ZoneAlerteComputedHistoricService {
       .getRawOne();
   }
 
-  async computeHistoricMaps(date?: Moment) {
+  async computeHistoricMaps(date?: Moment, dateStats?: Moment) {
     const dateDebut = date ? date : moment();
-    const dateFin = moment('2024-04-28');
+    // const dateFin = moment('2024-04-28');
+    const dateFin = moment('2023-12-31');
 
     for (let m = moment(dateDebut); m.diff(dateFin, 'days') <= 0; m.add(1, 'days')) {
       const ars = await this.arreteResrictionService.findByDate(m);
@@ -158,23 +159,25 @@ export class ZoneAlerteComputedHistoricService {
       } catch (e) {
         this.logger.error('ERROR GENERATING PMTILES', e);
       }
-      // @ts-ignore
-      await this.statisticDepartementService.computeDepartementStatisticsRestrictions(zas.map(z => {
+      if(dateStats && dateStats.isSameOrAfter(m, 'day')) {
         // @ts-ignore
-        z.restriction = z.restrictions[0];
-        return z;
-      }), new Date(m.format('YYYY-MM-DD')), true, true);
-      // @ts-ignore
-      await this.statisticCommuneService.computeCommuneStatisticsRestrictions(zas.map(z => {
+        await this.statisticDepartementService.computeDepartementStatisticsRestrictions(zas.map(z => {
+          // @ts-ignore
+          z.restriction = z.restrictions[0];
+          return z;
+        }), new Date(m.format('YYYY-MM-DD')), true, true);
         // @ts-ignore
-        z.restriction = z.restrictions[0];
-        return z;
-      }), new Date(m.format('YYYY-MM-DD')), true, true);
-      // await this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
+        await this.statisticCommuneService.computeCommuneStatisticsRestrictions(zas.map(z => {
+          // @ts-ignore
+          z.restriction = z.restrictions[0];
+          return z;
+        }), new Date(m.format('YYYY-MM-DD')), true, true);
+        await this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
+      }
     }
   }
 
-  async computeHistoricMapsComputed(date?: Moment) {
+  async computeHistoricMapsComputed(date?: Moment, dateStats?: Moment) {
     const dateDebut = date ? date : moment();
     const dateFin = moment().subtract(1, 'days');
     // const dateFin = moment('23/06/2024', 'DD/MM/YYYY');
@@ -217,7 +220,13 @@ export class ZoneAlerteComputedHistoricService {
       // On récupère toutes les restrictions en cours
       this.logger.log(`COMPUTING ZONES D'ALERTES ${m.format('DD/MM/YYYY')} - END`);
 
-      await this.computeGeoJson(m);
+      const allZonesComputed = await this.computeGeoJson(m);
+      if(dateStats && dateStats.isSameOrAfter(m, 'day')) {
+        await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
+        await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
+        await this.statisticService.computeDepartementsSituation(allZonesComputed, date.format('YYYY-MM-DD'));
+      }
+      await this.zoneAlerteComputedHistoricRepository.update({}, { enabled: true });
     }
     await this.statisticCommuneService.sortStatCommune();
     await this.statisticDepartementService.sortStatDepartement();
@@ -659,7 +668,7 @@ DELETE FROM zone_alerte_computed_historic
   }
 
   async computeGeoJson(date: Moment) {
-    let allZonesComputed: any = await this.zoneAlerteComputedHistoricRepository.find({
+    let allZonesComputed: any = await this.zoneAlerteComputedHistoricRepository.find(<FindManyOptions> {
       select: {
         id: true,
         idSandre: true,
@@ -796,10 +805,7 @@ DELETE FROM zone_alerte_computed_historic
     } catch (e) {
       this.logger.error('ERROR UPLOADING / GENERATING PMTILES', e);
     }
-    await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
-    await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
-    await this.statisticService.computeDepartementsSituation(allZonesComputed, date.format('YYYY-MM-DD'));
-    await this.zoneAlerteComputedHistoricRepository.update({}, { enabled: true });
+    return allZonesComputed;
   }
 
   async getZonesArea(zones: ZoneAlerteComputed[]) {
