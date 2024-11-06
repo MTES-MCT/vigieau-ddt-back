@@ -14,6 +14,7 @@ import { StatisticModule } from '../statistic/statistic.module';
 import { ZoneAlerteComputedHistoric } from './entities/zone_alerte_computed_historic.entity';
 import { StatisticDepartementModule } from '../statistic_departement/statistic_departement.module';
 import { StatisticCommuneModule } from '../statistic_commune/statistic_commune.module';
+import { ConfigModule } from '../config/config.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { StatisticCommuneModule } from '../statistic_commune/statistic_commune.m
     StatisticModule,
     forwardRef(() => StatisticDepartementModule),
     forwardRef(() => StatisticCommuneModule),
+    ConfigModule,
   ],
   controllers: [],
   providers: [ZoneAlerteComputedService, ZoneAlerteComputedHistoricService],

@@ -1,17 +1,17 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Like, MoreThanOrEqual, Not, Repository } from 'typeorm';
+import { Like, MoreThanOrEqual, Repository } from 'typeorm';
 import { StatisticDepartement } from './entities/statistic_departement.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Statistic } from '../statistic/entities/statistic.entity';
 import { DepartementService } from '../departement/departement.service';
-import { AbonnementMail } from '../core/entities/abonnement_mail.entity';
 import { User } from '../user/entities/user.entity';
 import { ZoneAlerteComputed } from '../zone_alerte_computed/entities/zone_alerte_computed.entity';
 import { ZoneAlerteComputedService } from '../zone_alerte_computed/zone_alerte_computed.service';
 import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { ZoneAlerteComputedHistoricService } from '../zone_alerte_computed/zone_alerte_computed_historic.service';
+import { AbonnementMailService } from '../abonnement_mail/abonnement_mail.service';
 
 @Injectable()
 export class StatisticDepartementService {
@@ -24,8 +24,7 @@ export class StatisticDepartementService {
     private readonly statisticDepartementRepository: Repository<StatisticDepartement>,
     @InjectRepository(Statistic)
     private readonly statisticRepository: Repository<Statistic>,
-    @InjectRepository(AbonnementMail)
-    private readonly abonnementMailRepository: Repository<AbonnementMail>,
+    private readonly abonnementMailService: AbonnementMailService,
     private readonly departementService: DepartementService,
     @Inject(forwardRef(() => ZoneAlerteComputedService))
     private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
@@ -127,11 +126,7 @@ export class StatisticDepartementService {
         }
       }
 
-      statisticDepartement.subscriptions = await this.abonnementMailRepository.count({
-        where: {
-          commune: Like(`${d.code}${d.code.length === 2 ? '___' : '__'}`),
-        },
-      });
+      statisticDepartement.subscriptions = await this.abonnementMailService.getCountByDepartement(d.code);
 
       this.logger.log(`Saving statistic departement for ${d.code}`);
       const statDepartement = statsDepartement.find(s => s.departement.id === d.id);

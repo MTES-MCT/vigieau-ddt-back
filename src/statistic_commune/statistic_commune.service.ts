@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull, Not, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { StatisticCommune } from './entities/statistic_commune.entity';
 import { ZoneAlerteComputed } from '../zone_alerte_computed/entities/zone_alerte_computed.entity';
 import { RegleauLogger } from '../logger/regleau.logger';
@@ -231,7 +231,7 @@ where id = ${statCommune.id} and to_char((r->>'date')::date, 'YYYY-MM') = '${dat
     FROM (
       SELECT r
       FROM jsonb_array_elements(restrictionsByMonth) AS r
-      ORDER BY (r->>'date')::date
+      ORDER BY TO_DATE((r->>'date'), 'YYYY-MM')
     ) as sorted
               )`,
         })

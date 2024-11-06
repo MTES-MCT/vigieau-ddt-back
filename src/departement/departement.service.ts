@@ -7,22 +7,30 @@ import { Departement } from './entities/departement.entity';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 import { RegleauLogger } from '../logger/regleau.logger';
+import { AbonnementMailService } from '../abonnement_mail/abonnement_mail.service';
 
 @Injectable()
 export class DepartementService {
   private readonly logger = new RegleauLogger('DepartementService');
+  private departements;
 
   constructor(
     private readonly httpService: HttpService,
     @InjectRepository(Departement)
     private readonly departementRepository: Repository<Departement>,
     private readonly configService: ConfigService,
+    private readonly abonnementMailService: AbonnementMailService,
   ) {
     // this.updateDepartementsGeom();
+    this.getAll();
   }
 
   findAll(): Promise<Departement[]> {
-    return this.departementRepository
+    return this.departements;
+  }
+
+  async getAll() {
+    this.departements = await this.departementRepository
       .createQueryBuilder('departement')
       .select([
         'departement.id',
@@ -45,6 +53,11 @@ export class DepartementService {
       .orderBy('departement.code', 'ASC')
       .addOrderBy('zonesAlerte.code', 'ASC')
       .getMany();
+
+    await Promise.all(this.departements.map(async d => {
+      d.subscriptions = await this.abonnementMailService.getCountByDepartement(d.code);
+      return d;
+    }))
   }
 
   findAllLight(): Promise<Departement[]> {
