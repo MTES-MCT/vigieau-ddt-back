@@ -60,9 +60,13 @@ export class DatagouvService {
     this.datagouvApiUrl = `${this.configService.get('API_DATAGOUV')}/datasets/${this.configService.get('API_DATAGOUV_DATASET')}`;
   }
 
+  canUploadToDataGouv(): boolean {
+    return this.configService.get('API_DATAGOUV') && this.configService.get('API_DATAGOUV_DATASET') && this.datagouvApiKey;
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_6AM)
   async updateDatagouvData() {
-    if (!this.configService.get('API_DATAGOUV') || !this.configService.get('API_DATAGOUV_DATASET') || !this.datagouvApiKey) {
+    if (!this.canUploadToDataGouv()) {
       return;
     }
 
@@ -305,6 +309,10 @@ export class DatagouvService {
   }
 
   async updateMaps(date?: moment.Moment) {
+    if (!this.canUploadToDataGouv()) {
+      return;
+    }
+
     const dateDebut = date ? date : moment();
 
     for (let y = dateDebut.year(); y <= moment().year(); y++) {
@@ -396,7 +404,7 @@ export class DatagouvService {
       },
     }).pipe(
       catchError((error: AxiosError) => {
-        this.logger.error('ERREUR DANS LA MISE A JOUT DES METADONNEES DATAGOUV', JSON.stringify(error));
+        this.logger.error('ERREUR DANS LA MISE A JOUR DES METADONNEES DATAGOUV', JSON.stringify(error));
         throw 'An error happened!';
       }),
     ));
