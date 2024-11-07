@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { FindManyOptions, FindOptionsWhere, In, Repository } from 'typeorm';
 import { Commune } from './entities/commune.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DepartementService } from '../departement/departement.service';
@@ -9,7 +9,6 @@ import { firstValueFrom } from 'rxjs';
 import { RegleauLogger } from '../logger/regleau.logger';
 import { ConfigService } from '@nestjs/config';
 import { User } from '../user/entities/user.entity';
-import { ArreteMunicipal } from '../arrete_municipal/entities/arrete_municipal.entity';
 
 @Injectable()
 export class CommuneService {
@@ -62,7 +61,7 @@ export class CommuneService {
   }
 
   findAllLight(): Promise<Commune[]> {
-    return this.communeRepository.find({
+    return this.communeRepository.find(<FindManyOptions> {
       select: {
         id: true,
         code: true,
@@ -80,7 +79,7 @@ export class CommuneService {
   }
 
   findWithStats(take: number, skip: number): Promise<Commune[]> {
-    return this.communeRepository.find({
+    return this.communeRepository.find(<FindManyOptions> {
       select: {
         id: true,
         code: true,
