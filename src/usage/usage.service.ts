@@ -1,11 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Not, Repository } from 'typeorm';
+import { FindManyOptions, In, Not, Repository } from 'typeorm';
 import { Usage } from './entities/usage.entity';
 import { User } from '../user/entities/user.entity';
 import { CreateUpdateUsageDto } from './dto/create_usage.dto';
 import { Restriction } from '../restriction/entities/restriction.entity';
 import { ArreteCadre } from '../arrete_cadre/entities/arrete_cadre.entity';
+import { FindOptionsWhere } from 'typeorm/find-options/FindOptionsWhere';
 
 @Injectable()
 export class UsageService {
@@ -69,14 +70,14 @@ export class UsageService {
       .flat();
     // SUPPRESSION DES ANCIENS USAGES
     if(usagesId.length > 0) {
-      await this.usageRepository.delete({
+      await this.usageRepository.delete(<FindOptionsWhere<Usage>> {
         restriction: {
           id: restriction.id,
         },
         id: Not(In(usagesId)),
       });
     } else {
-      await this.usageRepository.delete({
+      await this.usageRepository.delete(<FindOptionsWhere<Usage>> {
         restriction: {
           id: restriction.id,
         },
@@ -96,7 +97,7 @@ export class UsageService {
       .map((u) => u.id)
       .flat();
     // SUPPRESSION DES ANCIENS USAGES
-    await this.usageRepository.delete({
+    await this.usageRepository.delete(<FindOptionsWhere<Usage>> {
       arreteCadre: {
         id: arreteCadre.id,
       },
@@ -112,7 +113,7 @@ export class UsageService {
   }
 
   findByArreteCadre(arreteCadreId: number) {
-    return this.usageRepository.find({
+    return this.usageRepository.find(<FindManyOptions> {
       select: {
         id: true,
         nom: true,
@@ -148,7 +149,7 @@ export class UsageService {
     const updates = [];
     for (const u of usagesAc) {
       const oldUsage = oldUsagesAc.find(ou => ou.id === u.id);
-      const tmp = await this.usageRepository.find({
+      const tmp = await this.usageRepository.find(<FindManyOptions> {
         where: {
           restriction: {
             arreteRestriction: {

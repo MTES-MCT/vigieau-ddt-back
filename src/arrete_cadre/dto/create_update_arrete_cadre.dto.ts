@@ -19,6 +19,19 @@ class UpdateLinkNestedObjectDto {
   id: number;
 }
 
+class UpdateZoneAlerteDto {
+  @IsNumber()
+  @ApiProperty({ example: 1, description: 'Identifiant BDD' })
+  id: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @IsOptional()
+  @Type(() => UpdateLinkNestedObjectDto)
+  @ApiProperty({ type: [UpdateLinkNestedObjectDto] })
+  communes: UpdateLinkNestedObjectDto[];
+}
+
 export class CreateUpdateArreteCadreDto {
   @IsString()
   @IsNotEmpty()
@@ -35,9 +48,9 @@ export class CreateUpdateArreteCadreDto {
   @IsArray()
   @ValidateNested({ each: true })
   @IsOptional()
-  @Type(() => UpdateLinkNestedObjectDto)
-  @ApiProperty({ type: [UpdateLinkNestedObjectDto] })
-  zonesAlerte: UpdateLinkNestedObjectDto[];
+  @Type(() => UpdateZoneAlerteDto)
+  @ApiProperty({ type: [UpdateZoneAlerteDto] })
+  zonesAlerte: UpdateZoneAlerteDto[];
 
   @IsArray()
   @ValidateNested({ each: true })

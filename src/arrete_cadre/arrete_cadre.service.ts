@@ -30,6 +30,9 @@ import { FichierService } from '../fichier/fichier.service';
 import { RestrictionService } from '../restriction/restriction.service';
 import { UsageService } from '../usage/usage.service';
 import moment from 'moment/moment';
+import {
+  ArreteCadreZoneAlerteCommunesService,
+} from '../arrete_cadre_zone_alerte_communes/arrete_cadre_zone_alerte_communes.service';
 
 @Injectable()
 export class ArreteCadreService {
@@ -46,6 +49,7 @@ export class ArreteCadreService {
     private readonly fichierService: FichierService,
     private readonly restrictionService: RestrictionService,
     private readonly usageService: UsageService,
+    private readonly arreteCadreZoneAlerteCommunesService: ArreteCadreZoneAlerteCommunesService,
   ) {
   }
 
@@ -80,7 +84,7 @@ export class ArreteCadreService {
             : In(currentUser.role_departements),
       },
     };
-    const acToReturn = await this.arreteCadreRepository.find(<FindManyOptions> {
+    const acToReturn = await this.arreteCadreRepository.find(<FindManyOptions>{
       select: {
         id: true,
         numero: true,
@@ -157,63 +161,30 @@ export class ArreteCadreService {
             code: In(currentUser.role_departements),
           },
         };
-    const [arreteCadre, usagesArreteCadre, departements]: any = await Promise.all(<any> [
-      this.arreteCadreRepository.findOne(<FindOneOptions> {
-        select: {
-          id: true,
-          numero: true,
-          dateDebut: true,
-          dateFin: true,
-          statut: true,
-          fichier: {
-            id: true,
-            nom: true,
-            url: true,
-            size: true,
-          },
-          departementPilote: {
-            id: true,
-            code: true,
-            nom: true,
-          },
-          zonesAlerte: {
-            id: true,
-            code: true,
-            nom: true,
-            type: true,
-            disabled: true,
-            departement: {
-              id: true,
-              code: true,
-            },
-          },
-          arretesRestriction: {
-            id: true,
-            numero: true,
-            statut: true,
-          },
-          arreteCadreAbroge: {
-            id: true,
-            numero: true,
-            dateDebut: true,
-            dateFin: true,
-          },
-        },
-        relations: [
-          'departementPilote',
-          'zonesAlerte',
-          'zonesAlerte.departement',
-          'arretesRestriction',
-          'fichier',
-          'arreteCadreAbroge',
-        ],
-        where: whereClause,
-        order: {
-          zonesAlerte: {
-            code: 'ASC',
-          },
-        },
-      }),
+
+    const qb = this.arreteCadreRepository.createQueryBuilder('arreteCadre')
+      .select([
+        'arreteCadre.id', 'arreteCadre.numero', 'arreteCadre.dateDebut', 'arreteCadre.dateFin', 'arreteCadre.statut',
+        'fichier.id', 'fichier.nom', 'fichier.url', 'fichier.size',
+        'departementPilote.id', 'departementPilote.code', 'departementPilote.nom',
+        'zonesAlerte.id', 'zonesAlerte.code', 'zonesAlerte.nom', 'zonesAlerte.type', 'zonesAlerte.disabled', 'zonesAlerte.ressourceInfluencee',
+        'departement.id', 'departement.code',
+        'arretesRestriction.id', 'arretesRestriction.numero', 'arretesRestriction.statut',
+        'arreteCadreAbroge.id', 'arreteCadreAbroge.numero', 'arreteCadreAbroge.dateDebut', 'arreteCadreAbroge.dateFin',
+        'aczac.id', 'communes.id', 'communes.code', 'communes.nom',
+      ])
+      .leftJoin('arreteCadre.departementPilote', 'departementPilote')
+      .leftJoin('arreteCadre.zonesAlerte', 'zonesAlerte')
+      .leftJoin('zonesAlerte.departement', 'departement')
+      .leftJoin('arreteCadre.arretesRestriction', 'arretesRestriction')
+      .leftJoin('arreteCadre.fichier', 'fichier')
+      .leftJoin('arreteCadre.arreteCadreAbroge', 'arreteCadreAbroge')
+      .leftJoin('zonesAlerte.arreteCadreZoneAlerteCommunes', 'aczac', 'aczac.arreteCadreId = arreteCadre.id')
+      .leftJoin('aczac.communes', 'communes')
+      .where(whereClause)
+      .orderBy('zonesAlerte.code', 'ASC');
+    const [arreteCadre, usagesArreteCadre, departements]: any = await Promise.all(<any>[
+      qb.getOne(),
       this.usageService.findByArreteCadre(id),
       this.departementService.findByArreteCadreId(id),
     ]);
@@ -224,6 +195,13 @@ export class ArreteCadreService {
       );
     }
     arreteCadre.usages = usagesArreteCadre;
+    arreteCadre.zonesAlerte.map(za => {
+      if (za.arreteCadreZoneAlerteCommunes[0] && za.arreteCadreZoneAlerteCommunes[0].communes?.length > 0) {
+        za.communes = structuredClone(za.arreteCadreZoneAlerteCommunes[0].communes);
+      }
+      delete za.arreteCadreZoneAlerteCommunes;
+      return za;
+    });
     if (departements) {
       arreteCadre.departements = departements;
     }
@@ -231,7 +209,7 @@ export class ArreteCadreService {
   }
 
   async findDatagouv(): Promise<ArreteCadre[]> {
-    return this.arreteCadreRepository.find(<FindManyOptions> {
+    return this.arreteCadreRepository.find(<FindManyOptions>{
       select: {
         id: true,
         numero: true,
@@ -271,7 +249,7 @@ export class ArreteCadreService {
   }
 
   findByArreteRestrictionId(id: number): Promise<ArreteCadre[]> {
-    return this.arreteCadreRepository.find(<FindManyOptions> {
+    return this.arreteCadreRepository.find(<FindManyOptions>{
       select: {
         id: true,
         numero: true,
@@ -326,7 +304,7 @@ export class ArreteCadreService {
   }
 
   findByDepartement(depCode: string): Promise<ArreteCadre[]> {
-    return this.arreteCadreRepository.find(<FindManyOptions> {
+    return this.arreteCadreRepository.find(<FindManyOptions>{
       select: {
         id: true,
         numero: true,
@@ -355,8 +333,9 @@ export class ArreteCadreService {
     await this.checkAci(createArreteCadreDto, false, currentUser);
     const arreteCadre =
       await this.arreteCadreRepository.save(createArreteCadreDto);
-    arreteCadre.usages =
-      await this.usageService.updateAllByArreteCadre(arreteCadre);
+    arreteCadre.usages = await this.usageService.updateAllByArreteCadre(arreteCadre);
+    await this.arreteCadreZoneAlerteCommunesService.updateAllByArreteCadre(arreteCadre.id, createArreteCadreDto);
+
     this.sendAciMails(null, arreteCadre, currentUser);
     return arreteCadre;
   }
@@ -378,8 +357,8 @@ export class ArreteCadreService {
       id,
       ...updateArreteCadreDto,
     });
-    arreteCadre.usages =
-      await this.usageService.updateAllByArreteCadre(arreteCadre);
+    arreteCadre.usages = await this.usageService.updateAllByArreteCadre(arreteCadre);
+    await this.arreteCadreZoneAlerteCommunesService.updateAllByArreteCadre(arreteCadre.id, updateArreteCadreDto);
 
     await this.repercussionOnAr(oldAc, arreteCadre);
     this.sendAciMails(oldAc, arreteCadre, currentUser);
@@ -558,7 +537,7 @@ export class ArreteCadreService {
       },
     );
     const oldUsagesUpdates = oldAc.usages.filter(u => usagesUpdated.some(uu => uu.id === u.id));
-    await Promise.all(<any> [
+    await Promise.all(<any>[
       this.restrictionService.deleteZonesByArreteCadreId(
         zonesDeleted.map((z) => z.id),
         oldAc.id,

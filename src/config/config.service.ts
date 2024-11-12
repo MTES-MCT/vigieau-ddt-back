@@ -27,7 +27,6 @@ export class ConfigService {
   }
 
   async setConfig(computeMapDate: string, computeStatsDate: string) {
-    console.log('SET CONFIG', computeMapDate, computeStatsDate);
     await this.configRepository.createQueryBuilder()
       .update()
       .set({ computeMapDate })

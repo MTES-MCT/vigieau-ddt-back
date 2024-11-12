@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Not, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, FindManyOptions, In, IsNull, Not, Repository } from 'typeorm';
 import { ZoneAlerte } from './entities/zone_alerte.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
@@ -11,7 +11,6 @@ import { DepartementService } from '../departement/departement.service';
 import { BassinVersantService } from '../bassin_versant/bassin_versant.service';
 import { MailService } from '../shared/services/mail.service';
 import { ArreteCadreService } from '../arrete_cadre/arrete_cadre.service';
-import { ZoneAlerteComputed } from '../zone_alerte_computed/entities/zone_alerte_computed.entity';
 
 @Injectable()
 export class ZoneAlerteService {
@@ -27,10 +26,12 @@ export class ZoneAlerteService {
     private readonly mailService: MailService,
     @Inject(forwardRef(() => ArreteCadreService))
     private readonly arreteCadreService: ArreteCadreService,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {
   }
 
-  findOne(id: number): Promise<any> {
+  findOne(id: number, acIds?: number[]): Promise<any> {
     return this.zoneAlerteRepository
       .createQueryBuilder('zone_alerte')
       .select('zone_alerte.id', 'id')
@@ -38,16 +39,20 @@ export class ZoneAlerteService {
       .addSelect('zone_alerte.code', 'code')
       .addSelect('zone_alerte.nom', 'nom')
       .addSelect('zone_alerte.type', 'type')
+      .addSelect('zone_alerte.ressourceInfluencee', 'ressourceInfluencee')
       .addSelect(
         'ST_AsGeoJSON(ST_TRANSFORM(zone_alerte.geom, 4326))',
         'geom',
       )
+      .addSelect(['aczac.id', 'communes.id'])
+      .leftJoin('zone_alerte.arreteCadreZoneAlerteCommunes', 'aczac', 'aczac.arreteCadreId IN(:...acIds)', {acIds: acIds})
+      .leftJoin('aczac.communes', 'communes')
       .where('zone_alerte.id = :id', { id })
       .getRawOne();
   }
 
   findByDepartement(departementCode: string): Promise<ZoneAlerte[]> {
-    return this.zoneAlerteRepository.find({
+    return this.zoneAlerteRepository.find(<FindManyOptions> {
       relations: ['departement'],
       where: {
         departement: {
@@ -78,13 +83,14 @@ export class ZoneAlerteService {
     if (!arIds || arIds.length < 1) {
       return [];
     }
-    return this.zoneAlerteRepository.find({
+    return this.zoneAlerteRepository.find(<FindManyOptions> {
       select: {
         id: true,
         idSandre: true,
         code: true,
         nom: true,
         type: true,
+        ressourceInfluencee: true,
         departement: {
           code: true,
           nom: true,
@@ -220,7 +226,7 @@ export class ZoneAlerteService {
         existingZone.geom = f.geometry;
         promises.push(this.zoneAlerteRepository.save(existingZone));
       }
-      const idsToDisable = await this.zoneAlerteRepository.find({
+      const idsToDisable = await this.zoneAlerteRepository.find(<FindManyOptions> {
         select: {
           id: true,
           idSandre: true,
@@ -292,5 +298,26 @@ export class ZoneAlerteService {
       // Au moins 1% de la surface en commun
       .andWhere('ST_Area(ST_Intersection(ST_TRANSFORM(zone_alerte.geom, 4326), (SELECT ST_TRANSFORM(c.geom, 4326) FROM commune as c WHERE c.id = :communeId))) / ST_Area((SELECT ST_TRANSFORM(c.geom, 4326) FROM commune as c WHERE c.id = :communeId)) > 0.01', { communeId })
       .getRawMany();
+  }
+
+  async getUnionGeomOfZoneAndCommunes(zoneId: number, communesId: number[]): Promise<any> {
+    const result = await this.dataSource.query(
+      `
+        SELECT ST_AsGeoJSON(ST_Union(zone.geom, communes.geom)) AS combined_geom
+        FROM (
+            SELECT ST_TRANSFORM(geom, 4326)
+            FROM zoneAlerte
+            WHERE id = $1
+        ) AS zone,
+        (
+            SELECT ST_Union(ST_TRANSFORM(geom, 4326)) AS geom
+            FROM commune
+            WHERE id = ANY($2)
+        ) AS communes;
+        `,
+      [zoneId, communesId]
+    );
+
+    return result[0]?.combined_geom;
   }
 }

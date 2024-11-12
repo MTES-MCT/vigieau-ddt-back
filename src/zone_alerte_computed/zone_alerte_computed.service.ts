@@ -92,6 +92,7 @@ export class ZoneAlerteComputedService {
       this.isComputing = true;
       await this.computeAll([...new Set(this.departementsToUpdate)], computeHistoric);
     } catch (e) {
+      this.logger.error('COMPUTE ALL', e);
     }
     this.isComputing = false;
   }
@@ -160,9 +161,13 @@ export class ZoneAlerteComputedService {
     for (const ar of arretesRestrictions) {
       await Promise.all(ar.restrictions.map(async (restriction) => {
         if (restriction.zoneAlerte) {
-          const za = await this.zoneAlerteService.findOne(restriction.zoneAlerte.id);
+          const za = await this.zoneAlerteService.findOne(restriction.zoneAlerte.id, [restriction.arreteCadre.id]);
           za.restriction = { id: restriction.id, niveauGravite: restriction.niveauGravite };
           za.departement = { id: departement.id };
+
+          if (za.arreteCadreZoneAlerteCommunes && za.arreteCadreZoneAlerteCommunes[0] && za.arreteCadreZoneAlerteCommunes[0].communes?.length > 0) {
+            za.geom = await this.zoneAlerteService.getUnionGeomOfZoneAndCommunes(za.id, za.arreteCadreZoneAlerteCommunes[0].communes.map(c => c.id));
+          }
           // SAUVEGARDE ZONE ESU ou ESO
           zonesToSave.push(za);
         } else if (restriction.communes?.length > 0) {
@@ -294,7 +299,15 @@ export class ZoneAlerteComputedService {
     const queries = [];
     for (const commune of communes) {
       for (const zoneType of zoneTypes) {
-        const zonesSameType = commune.zones.filter(z => z.type === zoneType);
+        let zonesSameType = commune.zones.filter(z => z.type === zoneType);
+        // Gestion des zones influencées
+        // Si il y a des ressources influencées ET des ressources naturelles, on exclut les ressources influencées des calculs
+        if (zonesSameType.length > 1
+          && zonesSameType.some(z => z.ressourceInfluencee && z.areaCommunePercentage >= 5)
+          && zonesSameType.some(z => !z.ressourceInfluencee && z.areaCommunePercentage >= 5)) {
+          zonesSameType = zonesSameType.filter(z => !z.ressourceInfluencee);
+        }
+
         // Quand une seule zone, on l'agrandie à la geometrie de la commune
         if (zonesSameType.length === 1 && zonesSameType[0].areaCommunePercentage >= 5) {
           queries.push(this.getQueryToExtendZone(zonesSameType[0].id, commune.id));
@@ -346,7 +359,12 @@ export class ZoneAlerteComputedService {
       }).niveauGravite;
       for (const zoneType of zoneTypes) {
         // Normalement il y a au maximum une zone par type mais si ils ont fait plusieurs AR avec des règles de gestions différentes il se peut que plusieurs zones AEP se superposent
-        const zonesSameType = zones.filter(z => z.type === zoneType);
+        let zonesSameType = zones.filter(z => z.type === zoneType);
+
+        // Gestion des ressources influencées
+        if(zonesSameType.some(z => z.ressourceInfluencee) && zonesSameType.some(z => !z.ressourceInfluencee)) {
+          zonesSameType = zonesSameType.filter(z => !z.ressourceInfluencee);
+        }
 
         if (zonesSameType.length === 1 && zonesSameType[0].niveauGravite !== maxNiveauGravite) {
 
@@ -378,7 +396,7 @@ export class ZoneAlerteComputedService {
           } else {
             queries.push(this.getQueryToExtendZone(zoneToKeep.id, commune.id));
           }
-          zonesSameType.filter(z => z.id !== zoneToKeep.id).forEach(z => {
+          zonesSameType.filter(z => z.id !== zoneToKeep.id && !z.ressourceInfluencee).forEach(z => {
             queries.push(this.getQueryToReduceZone(z.id, commune.id));
           });
 
