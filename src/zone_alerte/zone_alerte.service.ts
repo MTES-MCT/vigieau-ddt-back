@@ -31,8 +31,8 @@ export class ZoneAlerteService {
   ) {
   }
 
-  findOne(id: number, acIds?: number[]): Promise<any> {
-    return this.zoneAlerteRepository
+  async findOne(id: number, acIds?: number[]): Promise<any> {
+    const za = await this.zoneAlerteRepository
       .createQueryBuilder('zone_alerte')
       .select('zone_alerte.id', 'id')
       .select('zone_alerte.idSandre', 'idSandre')
@@ -44,11 +44,19 @@ export class ZoneAlerteService {
         'ST_AsGeoJSON(ST_TRANSFORM(zone_alerte.geom, 4326))',
         'geom',
       )
+      .where('zone_alerte.id = :id', { id })
+      .getRawOne();
+
+    za.arreteCadreZoneAlerteCommunes = (await this.zoneAlerteRepository
+      .createQueryBuilder('zone_alerte')
+      .select(['zone_alerte.id'])
       .addSelect(['aczac.id', 'communes.id'])
       .leftJoin('zone_alerte.arreteCadreZoneAlerteCommunes', 'aczac', 'aczac.arreteCadreId IN(:...acIds)', {acIds: acIds})
       .leftJoin('aczac.communes', 'communes')
       .where('zone_alerte.id = :id', { id })
-      .getRawOne();
+      .getOne()).arreteCadreZoneAlerteCommunes;
+
+    return za;
   }
 
   findByDepartement(departementCode: string): Promise<ZoneAlerte[]> {
@@ -305,8 +313,8 @@ export class ZoneAlerteService {
       `
         SELECT ST_AsGeoJSON(ST_Union(zone.geom, communes.geom)) AS combined_geom
         FROM (
-            SELECT ST_TRANSFORM(geom, 4326)
-            FROM zoneAlerte
+            SELECT ST_TRANSFORM(geom, 4326) AS geom
+            FROM zone_alerte
             WHERE id = $1
         ) AS zone,
         (

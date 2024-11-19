@@ -166,7 +166,7 @@ export class ZoneAlerteComputedService {
           za.departement = { id: departement.id };
 
           if (za.arreteCadreZoneAlerteCommunes && za.arreteCadreZoneAlerteCommunes[0] && za.arreteCadreZoneAlerteCommunes[0].communes?.length > 0) {
-            za.geom = await this.zoneAlerteService.getUnionGeomOfZoneAndCommunes(za.id, za.arreteCadreZoneAlerteCommunes[0].communes.map(c => c.id));
+            za.geom = await this.zoneAlerteService.getUnionGeomOfZoneAndCommunes(restriction.zoneAlerte.id, za.arreteCadreZoneAlerteCommunes[0].communes.map(c => c.id));
           }
           // SAUVEGARDE ZONE ESU ou ESO
           zonesToSave.push(za);
