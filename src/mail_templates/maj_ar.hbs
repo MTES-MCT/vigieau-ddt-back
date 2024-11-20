@@ -298,11 +298,20 @@
                 l’arrêté {{ arreteNumero }}.</p>
               <p>
                 Voici les modifications effectuées&nbsp;:<br />
-                {{ diffAr }}<br /><br />
-                Ancien AR:<br />
-                {{ oldAr }}<br /><br />
-                Nouvel AR:<br />
-                {{ newAr }}<br />
+              <ul>
+                {{> recursiveTree diffAr }}
+              </ul>
+              <br /><br />
+              Ancien AR:<br />
+              <ul>
+                {{> recursiveTree oldAr }}
+              </ul>
+              <br /><br />
+              Nouvel AR:<br />
+              <ul>
+                {{> recursiveTree newAr }}
+              </ul>
+              <br />
               </p>
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
                 <tbody>

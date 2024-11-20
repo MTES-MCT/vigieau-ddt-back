@@ -1219,9 +1219,9 @@ export class ArreteRestrictionService {
           userEmail: currentUser.email,
           userDepartement: currentUser.role_departements?.join(', '),
           arreteNumero: oldAr.numero,
-          oldAr: JSON.stringify(oldArLight),
-          newAr: JSON.stringify(newArLight),
-          diffAr: JSON.stringify(diff),
+          oldAr: oldArLight,
+          newAr: newArLight,
+          diffAr: diff,
           arreteLien: `https://${process.env.DOMAIN_NAME}/arrete-restriction/${oldAr.id}/edition`,
         },
       );
