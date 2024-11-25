@@ -7,6 +7,11 @@ import { Departement } from './departement/entities/departement.entity';
 import { BassinVersant } from './bassin_versant/entities/bassin_versant.entity';
 import { Region } from './core/entities/region.entity';
 
+/**
+ * Désactivé pour l'instant car au final pas utilisé
+ * Pour le réactiver il suffit de réimporter AdminModule dans AppModule
+ */
+
 const DEFAULT_ADMIN = {
   email: process.env.ADMINJS_USER,
   password: process.env.ADMINJS_PASSWORD,

@@ -15,7 +15,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { DepartementModule } from './departement/departement.module';
 import { UsageModule } from './usage/usage.module';
 import { ThematiqueModule } from './thematique/thematique.module';
-import { AdminModule } from './admin.module';
 import { ArreteRestrictionModule } from './arrete_restriction/arrete_restriction.module';
 import { AppController } from './app.controller';
 import { LoggerModule } from './logger/logger.module';
@@ -116,7 +115,6 @@ import { isArray, isObject } from './mail_templates/helpers/handlebars_helpers';
         },
       },
     }),
-    AdminModule,
     HealthModule,
     ArreteCadreModule,
     AuthModule,

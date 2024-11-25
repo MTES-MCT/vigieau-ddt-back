@@ -548,6 +548,8 @@ export class ZoneAlerteComputedHistoricService {
       // Au moins 1% de la surface en commun
       .leftJoinAndSelect('commune', 'commune', 'commune.departement = departement.id AND ST_INTERSECTS(zone_alerte_computed_historic.geom, commune.geom) AND ST_Area(ST_Intersection(zone_alerte_computed_historic.geom, commune.geom)) / ST_AREA(commune.geom) > 0.01')
       .where('departement.id = :id', { id: departement.id })
+      .andWhere('ST_IsValid(ST_TRANSFORM(zone_alerte_computed_historic.geom, 4326))')
+      .andWhere('ST_IsValid(ST_TRANSFORM(commune.geom, 4326))')
       .getRawMany();
     const toSave = [];
     zones.forEach(z => {
