@@ -40,6 +40,7 @@ export class DepartementService {
         'zonesAlerte.nom',
         'zonesAlerte.code',
         'zonesAlerte.type',
+        'zonesAlerte.ressourceInfluencee',
         'arretesCadre.id',
       ])
       .leftJoin('departement.zonesAlerte', 'zonesAlerte')

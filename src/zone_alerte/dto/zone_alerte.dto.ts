@@ -1,12 +1,15 @@
 import {
+  IsArray,
   IsBoolean,
   IsJSON,
   IsNumber,
-  IsObject,
-  IsString,
+  IsObject, IsOptional,
+  IsString, ValidateNested,
 } from 'class-validator';
 import { DepartementDto } from '../../departement/dto/departement.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { CommuneDto } from '../../commune/dto/commune.dto';
 
 export class ZoneAlerteDto {
   @IsNumber()
@@ -24,6 +27,13 @@ export class ZoneAlerteDto {
     enum: ['SUP', 'SOU'],
   })
   type: string;
+
+  @IsBoolean()
+  @ApiProperty({
+    example: false,
+    description: "Est-ce que la zone d'alerte est une ressource stockéee / regulée ?",
+  })
+  ressourceInfluencee: boolean;
 
   @IsString()
   @ApiProperty({
@@ -48,6 +58,13 @@ export class ZoneAlerteDto {
 
   @IsObject()
   departement: DepartementDto;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @IsOptional()
+  @Type(() => CommuneDto)
+  @ApiProperty({ type: [CommuneDto] })
+  communes: CommuneDto[];
 }
 
 export class ZoneAlertGeomDto extends ZoneAlerteDto {

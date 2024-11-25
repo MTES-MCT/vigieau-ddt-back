@@ -135,6 +135,7 @@ export class CommuneService {
       .addSelect('zac.id', 'zac_id')
       .addSelect('zac.nom', 'zac_nom')
       .addSelect('zac.type', 'zac_type')
+      .addSelect('zac.ressourceInfluencee', 'zac_ressource_influencee')
       .addSelect('zac.niveauGravite', 'zac_niveau_gravite')
       .addSelect('ST_Area(commune.geom)', 'area')
       .addSelect('ST_Area(zac.geom)', 'zac_area')
@@ -159,6 +160,7 @@ export class CommuneService {
         id: c.zac_id,
         nom: c.zac_nom,
         type: c.zac_type,
+        ressourceInfluencee: c.zac_ressource_influencee,
         niveauGravite: c.zac_niveau_gravite,
         area: c.zac_area,
         areaCommune: c.zac_commune_area,
@@ -177,6 +179,7 @@ export class CommuneService {
       .addSelect('zac.id', 'zac_id')
       .addSelect('zac.nom', 'zac_nom')
       .addSelect('zac.type', 'zac_type')
+      .addSelect('zac.ressourceInfluencee', 'zac_ressource_influencee')
       .addSelect('zac.niveauGravite', 'zac_niveau_gravite')
       .addSelect('ST_Area(commune.geom)', 'area')
       .addSelect('ST_Area(zac.geom)', 'zac_area')

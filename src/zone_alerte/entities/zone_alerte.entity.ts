@@ -13,6 +13,7 @@ import { ArreteCadre } from '../../arrete_cadre/entities/arrete_cadre.entity';
 import { BassinVersant } from '../../bassin_versant/entities/bassin_versant.entity';
 import { Departement } from '../../departement/entities/departement.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
+import { ArreteCadreZoneAlerteCommunes } from '../../arrete_cadre_zone_alerte_communes/entities/arrete_cadre_zone_alerte_communes.entity';
 
 @Entity()
 export class ZoneAlerte extends BaseEntity {
@@ -30,6 +31,9 @@ export class ZoneAlerte extends BaseEntity {
 
   @Column({ nullable: false, length: 50 })
   type: 'SOU' | 'SUP';
+
+  @Column({ default: false, nullable: false })
+  ressourceInfluencee: boolean;
 
   @Column({ nullable: true })
   numeroVersion: number;
@@ -58,6 +62,9 @@ export class ZoneAlerte extends BaseEntity {
 
   @OneToMany(() => Restriction, (restriction) => restriction.zoneAlerte)
   restrictions: Restriction[];
+
+  @OneToMany(() => ArreteCadreZoneAlerteCommunes, (arreteCadreZoneAlerteCommunes) => arreteCadreZoneAlerteCommunes.zoneAlerte)
+  arreteCadreZoneAlerteCommunes: ArreteCadreZoneAlerteCommunes[];
 
   @CreateDateColumn()
   createdAt: Date;

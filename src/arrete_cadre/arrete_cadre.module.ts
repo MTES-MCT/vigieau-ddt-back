@@ -11,6 +11,9 @@ import { UserModule } from '../user/user.module';
 import { FichierModule } from '../fichier/fichier.module';
 import { RestrictionModule } from '../restriction/restriction.module';
 import { UsageModule } from '../usage/usage.module';
+import {
+  ArreteCadreZoneAlerteCommunesModule
+} from '../arrete_cadre_zone_alerte_communes/arrete_cadre_zone_alerte_communes.module';
 
 @Module({
   imports: [
@@ -23,6 +26,7 @@ import { UsageModule } from '../usage/usage.module';
     FichierModule,
     RestrictionModule,
     UsageModule,
+    ArreteCadreZoneAlerteCommunesModule,
   ],
   controllers: [ArreteCadreController],
   providers: [ArreteCadreService],

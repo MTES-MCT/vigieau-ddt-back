@@ -42,7 +42,7 @@ export class DatagouvService {
     'restrictions': 'e403a885-5eaf-411d-a03e-751a9c22930d',
     'pmtiles_archive': 'b0b246c3-f724-4eb2-a83a-c516e0044aa2',
     'geojson_archive': '3972a125-2372-41f1-b3f5-25794f860414',
-    'arretes_cadre': '',
+    'arretes_cadre': '0732e970-c12c-4e6a-adca-5ac9dbc3fdfa',
   };
 
   constructor(private readonly httpService: HttpService,
@@ -209,7 +209,7 @@ export class DatagouvService {
         date_debut: arrete.dateDebut,
         date_fin: arrete.dateFin,
         statut: arrete.statut,
-        departement_pilote: arrete.departementPilote?.code,
+        departement_pilote: arrete.departementPilote ? arrete.departementPilote.code : '',
         departements: arrete.departements.map(d => d.code),
         chemin_fichier: arrete.fichier ? arrete.fichier?.url : '',
         zones_alerte: arrete.zonesAlerte.map(zone => {
@@ -316,7 +316,7 @@ export class DatagouvService {
     const dateDebut = date ? date : moment();
 
     for (let y = dateDebut.year(); y <= moment().year(); y++) {
-      // await this.generateMapsArchive(dateDebut, y, true);
+      await this.generateMapsArchive(dateDebut, y, true);
       await this.generateMapsArchive(dateDebut, y, false);
     }
   }
@@ -331,13 +331,13 @@ export class DatagouvService {
     try {
       const { data } = await firstValueFrom(
         this.httpService.get(
-          `${this.configService.get('S3_VHOST')}${this.configService.get('S3_PREFIX')}${geojsonOrPmtiles}/zones_${geojsonOrPmtiles}_${year}.zip`,
+          `${this.configService.get('S3_VHOST')}${this.configService.get('S3_PREFIX') ? this.configService.get('S3_PREFIX') : ''}${geojsonOrPmtiles}/zones_${geojsonOrPmtiles}_${year}.zip`,
           { responseType: 'arraybuffer' },
         ),
       );
       dataZip = data;
     } catch (e) {
-      this.logger.error(`ARCHIVE ${this.configService.get('S3_VHOST')}${this.configService.get('S3_PREFIX')}${geojsonOrPmtiles}/zones_${geojsonOrPmtiles}_${year}.zip non accessible`, e);
+      this.logger.error(`ARCHIVE ${this.configService.get('S3_VHOST')}${this.configService.get('S3_PREFIX') ? this.configService.get('S3_PREFIX') : ''}${geojsonOrPmtiles}/zones_${geojsonOrPmtiles}_${year}.zip non accessible`, e);
     }
     const zip = dataZip ? await JSZip.loadAsync(dataZip) : new JSZip();
 

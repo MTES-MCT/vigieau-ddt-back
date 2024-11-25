@@ -15,7 +15,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { DepartementModule } from './departement/departement.module';
 import { UsageModule } from './usage/usage.module';
 import { ThematiqueModule } from './thematique/thematique.module';
-import { AdminModule } from './admin.module';
 import { ArreteRestrictionModule } from './arrete_restriction/arrete_restriction.module';
 import { AppController } from './app.controller';
 import { LoggerModule } from './logger/logger.module';
@@ -36,6 +35,7 @@ import { UsageFeedbackModule } from './usage_feedback/usage_feedback.module';
 import { StatisticModule } from './statistic/statistic.module';
 import { ArreteMunicipalModule } from './arrete_municipal/arrete_municipal.module';
 import { AbonnementMailModule } from './abonnement_mail/abonnement_mail.module';
+import { isArray, isObject } from './mail_templates/helpers/handlebars_helpers';
 
 // @ts-ignore
 @Module({
@@ -101,13 +101,20 @@ import { AbonnementMailModule } from './abonnement_mail/abonnement_mail.module';
       preview: process.env.NODE_ENV === 'local',
       template: {
         dir: __dirname + '/mail_templates',
-        adapter: new HandlebarsAdapter(),
+        adapter: new HandlebarsAdapter({'isObject': isObject, 'isArray': isArray}),
         options: {
           strict: true,
         },
       },
+      options: {
+        partials: {
+          dir: __dirname + '/mail_templates/partials',
+          options: {
+            strict: true,
+          },
+        },
+      },
     }),
-    AdminModule,
     HealthModule,
     ArreteCadreModule,
     AuthModule,

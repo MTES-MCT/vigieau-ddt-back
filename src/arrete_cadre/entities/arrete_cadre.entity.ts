@@ -21,6 +21,7 @@ import { ArreteRestriction } from '../../arrete_restriction/entities/arrete_rest
 import { Fichier } from '../../fichier/entities/fichier.entity';
 import { Restriction } from '../../restriction/entities/restriction.entity';
 import { Usage } from '../../usage/entities/usage.entity';
+import { ArreteCadreZoneAlerteCommunes } from '../../arrete_cadre_zone_alerte_communes/entities/arrete_cadre_zone_alerte_communes.entity';
 
 @Entity()
 export class ArreteCadre extends BaseEntity {
@@ -87,6 +88,9 @@ export class ArreteCadre extends BaseEntity {
 
   @OneToMany(() => Restriction, (restriction) => restriction.arreteCadre)
   restrictions: Restriction[];
+
+  @OneToMany(() => ArreteCadreZoneAlerteCommunes, (arreteCadreZoneAlerteCommunes) => arreteCadreZoneAlerteCommunes.arreteCadre)
+  arreteCadreZoneAlerteCommunes: ArreteCadreZoneAlerteCommunes[];
 
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;

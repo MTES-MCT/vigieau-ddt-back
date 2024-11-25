@@ -15,6 +15,7 @@ import { ZoneAlerteComputed } from '../../zone_alerte_computed/entities/zone_ale
 import { ZoneAlerteComputedHistoric } from '../../zone_alerte_computed/entities/zone_alerte_computed_historic.entity';
 import { StatisticCommune } from '../../statistic_commune/entities/statistic_commune.entity';
 import { ArreteMunicipal } from '../../arrete_municipal/entities/arrete_municipal.entity';
+import { ArreteCadreZoneAlerteCommunes } from '../../arrete_cadre_zone_alerte_communes/entities/arrete_cadre_zone_alerte_communes.entity';
 
 @Entity()
 export class Commune extends BaseEntity {
@@ -65,6 +66,11 @@ export class Commune extends BaseEntity {
     persistence: false,
   })
   arretesMunicipaux: ArreteMunicipal[];
+
+  @ManyToMany(() => ArreteCadreZoneAlerteCommunes, (arreteCadreZoneAlerteCommunes) => arreteCadreZoneAlerteCommunes.communes, {
+    persistence: false,
+  })
+  arreteCadreZoneAlerteCommunes: ArreteCadreZoneAlerteCommunes[];
 
   @Column({ nullable: false, default: false })
   disabled: boolean;

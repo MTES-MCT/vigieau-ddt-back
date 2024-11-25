@@ -240,9 +240,13 @@ export class ZoneAlerteComputedHistoricService {
     for (const ar of arretesRestrictions) {
       await Promise.all(ar.restrictions.map(async (restriction) => {
         if (restriction.zoneAlerte) {
-          const za = await this.zoneAlerteService.findOne(restriction.zoneAlerte.id);
+          const za = await this.zoneAlerteService.findOne(restriction.zoneAlerte.id, [restriction.arreteCadre.id]);
           za.restriction = { id: restriction.id, niveauGravite: restriction.niveauGravite };
           za.departement = { id: departement.id };
+
+          if(za.arreteCadreZoneAlerteCommunes && za.arreteCadreZoneAlerteCommunes[0] && za.arreteCadreZoneAlerteCommunes[0].communes?.length > 0) {
+            za.geom = await this.zoneAlerteService.getUnionGeomOfZoneAndCommunes(za.id, za.arreteCadreZoneAlerteCommunes[0].communes.map(c => c.id));
+          }
           // SAUVEGARDE ZONE ESU ou ESO
           zonesToSave.push(za);
         } else if (restriction.communes?.length > 0) {
@@ -377,7 +381,15 @@ export class ZoneAlerteComputedHistoricService {
     const queries = [];
     for (const commune of communes) {
       for (const zoneType of zoneTypes) {
-        const zonesSameType = commune.zones.filter(z => z.type === zoneType);
+        let zonesSameType = commune.zones.filter(z => z.type === zoneType);
+        // Gestion des zones influencées
+        // Si il y a des ressources influencées ET des ressources naturelles, on exclut les ressources influencées des calculs
+        if (zonesSameType.length > 1
+          && zonesSameType.some(z => z.ressourceInfluencee && z.areaCommunePercentage >= 5)
+          && zonesSameType.some(z => !z.ressourceInfluencee && z.areaCommunePercentage >= 5)) {
+          zonesSameType = zonesSameType.filter(z => !z.ressourceInfluencee);
+        }
+
         // Quand une seule zone, on l'agrandie à la geometrie de la commune
         if (zonesSameType.length === 1 && zonesSameType[0].areaCommunePercentage >= 5) {
           queries.push(this.getQueryToExtendZone(zonesSameType[0].id, commune.id));
@@ -429,7 +441,12 @@ export class ZoneAlerteComputedHistoricService {
       }).niveauGravite;
       for (const zoneType of zoneTypes) {
         // Normalement il y a au maximum une zone par type mais si ils ont fait plusieurs AR avec des règles de gestions différentes il se peut que plusieurs zones AEP se superposent
-        const zonesSameType = zones.filter(z => z.type === zoneType);
+        let zonesSameType = zones.filter(z => z.type === zoneType);
+
+        // Gestion des ressources influencées
+        if(zonesSameType.some(z => z.ressourceInfluencee) && zonesSameType.some(z => !z.ressourceInfluencee)) {
+          zonesSameType = zonesSameType.filter(z => !z.ressourceInfluencee);
+        }
 
         if (zonesSameType.length === 1 && zonesSameType[0].niveauGravite !== maxNiveauGravite) {
 
@@ -461,7 +478,7 @@ export class ZoneAlerteComputedHistoricService {
           } else {
             queries.push(this.getQueryToExtendZone(zoneToKeep.id, commune.id));
           }
-          zonesSameType.filter(z => z.id !== zoneToKeep.id).forEach(z => {
+          zonesSameType.filter(z => z.id !== zoneToKeep.id && !z.ressourceInfluencee).forEach(z => {
             queries.push(this.getQueryToReduceZone(z.id, commune.id));
           });
 
@@ -531,6 +548,8 @@ export class ZoneAlerteComputedHistoricService {
       // Au moins 1% de la surface en commun
       .leftJoinAndSelect('commune', 'commune', 'commune.departement = departement.id AND ST_INTERSECTS(zone_alerte_computed_historic.geom, commune.geom) AND ST_Area(ST_Intersection(zone_alerte_computed_historic.geom, commune.geom)) / ST_AREA(commune.geom) > 0.01')
       .where('departement.id = :id', { id: departement.id })
+      .andWhere('ST_IsValid(ST_TRANSFORM(zone_alerte_computed_historic.geom, 4326))')
+      .andWhere('ST_IsValid(ST_TRANSFORM(commune.geom, 4326))')
       .getRawMany();
     const toSave = [];
     zones.forEach(z => {
@@ -613,6 +632,7 @@ export class ZoneAlerteComputedHistoricService {
       .addSelect('zone_alerte_computed_historic.nom', 'nom')
       .addSelect('zone_alerte_computed_historic.type', 'type')
       .where('zone_alerte_computed_historic.id IN(:...zonesId)', { zonesId: zones.map(z => z.id) })
+      .andWhere('ST_IsValid(zone_alerte_computed_historic.geom)')
       .andWhere('ST_INTERSECTS(zone_alerte_computed_historic.geom, (SELECT c.geom FROM commune as c WHERE c.id = :communeId))', { communeId })
       // Au moins 1% de la surface en commun
       .andWhere('ST_Area(ST_Intersection(zone_alerte_computed_historic.geom, (SELECT c.geom FROM commune as c WHERE c.id = :communeId))) / ST_Area((SELECT c.geom FROM commune as c WHERE c.id = :communeId)) > 0.01', { communeId })
