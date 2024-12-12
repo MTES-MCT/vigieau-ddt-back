@@ -11,7 +11,8 @@ export class ArreteCadreZoneAlerteCommunes extends BaseEntity {
   @ManyToOne(() => ZoneAlerte, (zoneAlerte) => zoneAlerte.arreteCadreZoneAlerteCommunes, { nullable: false })
   zoneAlerte: ZoneAlerte;
 
-  @ManyToOne(() => ArreteCadre, (arreteCadre) => arreteCadre.arreteCadreZoneAlerteCommunes, { nullable: false })
+  @ManyToOne(() => ArreteCadre, (arreteCadre) => arreteCadre.arreteCadreZoneAlerteCommunes,
+    { nullable: false, onDelete: 'CASCADE' })
   arreteCadre: ArreteCadre;
 
   @ManyToMany(() => Commune, (commune) => commune.arreteCadreZoneAlerteCommunes)

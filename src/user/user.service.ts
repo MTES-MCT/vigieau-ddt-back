@@ -45,7 +45,7 @@ export class UserService {
   updateName(email: string, firstName: string, lastName: string) {
     return this.userRepository.update(
       { email },
-      { first_name: firstName, last_name: lastName, last_login: (new Date()).getTime() },
+      { first_name: firstName, last_name: lastName, last_login: (new Date()).toISOString() },
     );
   }
 

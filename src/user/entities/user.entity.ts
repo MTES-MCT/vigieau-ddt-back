@@ -41,6 +41,6 @@ export class User extends BaseEntity {
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
 
-  @Column({ select: false, type: 'timestamp' })
-  last_login: number;
+  @Column({ select: false, type: 'timestamp', nullable: true })
+  last_login: string;
 }

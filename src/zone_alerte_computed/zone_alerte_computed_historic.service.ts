@@ -265,7 +265,7 @@ export class ZoneAlerteComputedHistoricService {
       }));
     }
 
-    zonesToSave = zonesToSave.map(z => {
+    zonesToSave = zonesToSave.filter(z => z.geom).map(z => {
       z.id = null;
       z.geom = JSON.parse(z.geom);
       z.niveauGravite = z.restriction.niveauGravite;
@@ -548,7 +548,7 @@ export class ZoneAlerteComputedHistoricService {
       // Au moins 1% de la surface en commun
       .leftJoinAndSelect('commune', 'commune', 'commune.departement = departement.id AND ST_INTERSECTS(zone_alerte_computed_historic.geom, commune.geom) AND ST_Area(ST_Intersection(zone_alerte_computed_historic.geom, commune.geom)) / ST_AREA(commune.geom) > 0.01')
       .where('departement.id = :id', { id: departement.id })
-      .andWhere(`ST_GeometryType(zone_alerte_computed_historic.geom) = 'ST_Polygon'`)
+      .andWhere(`ST_GeometryType(zone_alerte_computed_historic.geom) IN ('ST_Polygon', 'ST_MultiPolygon')`)
       .andWhere('ST_IsValid(ST_TRANSFORM(zone_alerte_computed_historic.geom, 4326))')
       .andWhere('ST_IsValid(ST_TRANSFORM(commune.geom, 4326))')
       .getRawMany();
@@ -633,7 +633,7 @@ export class ZoneAlerteComputedHistoricService {
       .addSelect('zone_alerte_computed_historic.nom', 'nom')
       .addSelect('zone_alerte_computed_historic.type', 'type')
       .where('zone_alerte_computed_historic.id IN(:...zonesId)', { zonesId: zones.map(z => z.id) })
-      .andWhere(`ST_GeometryType(zone_alerte_computed_historic.geom) = 'ST_Polygon'`)
+      .andWhere(`ST_GeometryType(zone_alerte_computed_historic.geom) IN ('ST_Polygon', 'ST_MultiPolygon')`)
       .andWhere('ST_INTERSECTS(zone_alerte_computed_historic.geom, (SELECT c.geom FROM commune as c WHERE c.id = :communeId))', { communeId })
       // Au moins 1% de la surface en commun
       .andWhere('ST_Area(ST_Intersection(zone_alerte_computed_historic.geom, (SELECT c.geom FROM commune as c WHERE c.id = :communeId))) / ST_Area((SELECT c.geom FROM commune as c WHERE c.id = :communeId)) > 0.01', { communeId })
