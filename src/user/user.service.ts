@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { DeleteResult, In, Like, Repository } from 'typeorm';
 import { Departement } from '../departement/entities/departement.entity';
+import moment from 'moment';
 
 @Injectable()
 export class UserService {
@@ -22,7 +23,7 @@ export class UserService {
     return this.userRepository.find({ where, order: { email: 'ASC' }});
   }
 
-  findOne(email: string | undefined): Promise<User> {
+  findOne(email: string): Promise<User> {
     if (!email) {
       return null;
     }
@@ -30,10 +31,21 @@ export class UserService {
     return this.userRepository.findOne({ where: { email: emailToSearch } });
   }
 
+  checkRules(email: string): Promise<any> {
+    if (!email) {
+      return null;
+    }
+    const emailToSearch = email.toLowerCase().trim();
+    return this.userRepository.update(
+      { email: emailToSearch },
+      { check_rules: moment().format('YYYY-MM-DD') },
+    );
+  }
+
   updateName(email: string, firstName: string, lastName: string) {
     return this.userRepository.update(
       { email },
-      { first_name: firstName, last_name: lastName },
+      { first_name: firstName, last_name: lastName, last_login: (new Date()).getTime() },
     );
   }
 

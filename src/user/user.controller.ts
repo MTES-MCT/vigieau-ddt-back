@@ -112,6 +112,16 @@ export class UserController {
     );
   }
 
+  @Post('/check_rules')
+  @ApiOperation({ summary: "Indique que l'utilisateur a vérifié ses règles de gestion" })
+  @ApiResponse({
+    status: 201,
+  })
+  async checkRules(@Req() req): Promise<any> {
+    await this.userService.checkRules(req.session?.user ? req.session.user.email : req.user?.userinfo?.email,);
+    return;
+  }
+
   @Delete(':email')
   @ApiOperation({ summary: "Suppression d'un utilisateur" })
   remove(@Req() req, @Param('email') email: string) {
