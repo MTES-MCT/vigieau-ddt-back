@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Not, Repository } from 'typeorm';
+import { FindOneOptions, In, Not, Repository } from 'typeorm';
 import { Restriction } from './entities/restriction.entity';
 import { UsageService } from '../usage/usage.service';
 import { CreateUpdateArreteRestrictionDto } from '../arrete_restriction/dto/create_update_arrete_restriction.dto';
@@ -72,7 +72,7 @@ export class RestrictionService {
   }
 
   async findOneByZoneAlerteComputed(zoneAlerteComputedId: number): Promise<Restriction> {
-    return this.restrictionRepository.findOne({
+    return this.restrictionRepository.findOne(<FindOneOptions> {
       relations: ['arreteRestriction', 'zonesAlerteComputed'],
       where: {
         zonesAlerteComputed: {
@@ -83,7 +83,7 @@ export class RestrictionService {
   }
 
   async findOneByZoneAlerteComputedHistoric(zoneAlerteComputedId: number): Promise<Restriction> {
-    return this.restrictionRepository.findOne({
+    return this.restrictionRepository.findOne(<FindOneOptions> {
       relations: ['arreteRestriction', 'zonesAlerteComputedHistoric'],
       where: {
         zonesAlerteComputedHistoric: {

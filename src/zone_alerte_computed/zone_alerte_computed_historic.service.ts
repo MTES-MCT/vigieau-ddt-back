@@ -297,68 +297,71 @@ export class ZoneAlerteComputedHistoricService {
     for (const ar of arretesRestrictions) {
       let zonesAr = zonesDepartement.filter(z => z.restriction?.arreteRestriction.id === ar.id);
       if (ar.niveauGraviteSpecifiqueEap === false && ar.ressourceEapCommunique && zonesAr.length > 0) {
-        switch (ar.ressourceEapCommunique) {
-          case 'eso':
-          case 'esu':
-            let zonesAep = zonesAr.filter((z) => z.type === (ar.ressourceEapCommunique === 'eso' ? 'SOU' : 'SUP') && ar.restrictions.some(r => r.id === z.restriction.id));
-            zonesAep = structuredClone(zonesAep);
-            zonesAep = zonesAep.map(z => {
-              z.type = 'AEP';
-              return z;
-            });
-            zonesToSave = zonesToSave.concat(zonesAep);
-            break;
-          case 'max':
-            const zonesEsu: any = structuredClone(zonesAr.filter(z => z?.type === 'SUP'));
-            const zonesEso: any = structuredClone(zonesAr.filter(z => z?.type === 'SOU'));
-            // On boucle sur les zones ESU et on stock un tableau intersect avec les zones ESO
-            if (zonesEsu.length > 0 && zonesEso.length > 0) {
-              for (const zoneEsu of zonesEsu) {
-                zoneEsu.intersect = (await this.getIntersect(zoneEsu.id, zonesEso.map(z => z.id)));
-              }
-            }
-            // Pour les zones de l'AR qui ne s'intersectent pas, on peut les copier et les enregistrer sous AEP
-            const zonesWithoutIntersection = zonesEsu
-              .filter(z => !z.intersect || z.intersect.length < 1)
-              .concat(zonesEso.filter(z => !zonesEsu.some(ze => ze.intersect.some(i => i.id === z.id))))
-              .map(z => {
-                z.type = 'AEP';
-                return z;
-              });
-            zonesToSave = zonesToSave.concat(zonesWithoutIntersection);
-            // Pour chaque couple de zone qui s'intersectent, vérifier celle qui a le niveau de gravité max et qui doit être prioritaire
-            let zonesWithIntersection = zonesEsu
-              .filter(z => z.intersect && z.intersect.length > 0)
-              .concat(zonesEso.filter(z => zonesEsu.some(ze => ze.intersect?.some(i => i.id === z.id))))
-              .map(z => {
-                z.add = [];
-                z.remove = [];
-                return z;
-              });
-            for (const z of zonesEsu.filter(z => z.intersect && z.intersect.length > 0)) {
-              for (const zIntersected of z.intersect) {
-                // On décide ici quelle portion de quelle zone on ajoute ou on enlève à l'autre
-                // Si même niveau de gravité, on prend la zone SUP au pif
-                if (this.getNiveauGravite(z.id, ar.restrictions) >= this.getNiveauGravite(zIntersected.id, ar.restrictions)) {
-                  zonesWithIntersection.find(zwi => zwi.id === z.id).add.push(zIntersected.id);
-                  zonesWithIntersection.find(zwi => zwi.id === zIntersected.id).remove.push(z.id);
-                } else {
-                  zonesWithIntersection.find(zwi => zwi.id === z.id).remove.push(zIntersected.id);
-                  zonesWithIntersection.find(zwi => zwi.id === zIntersected.id).add.push(z.id);
-                }
-              }
-            }
-            for (const z of zonesWithIntersection) {
-              // On construit les nouvelles géométries de zones
-              z.geom = (await this.computeNewZone(z)).geom;
-            }
-            zonesWithIntersection = zonesWithIntersection.map(z => {
-              z.type = 'AEP';
-              return z;
-            });
-            zonesToSave = zonesToSave.concat(zonesWithIntersection);
-            break;
+        let allZones;
+
+        if (ar.ressourceEapCommunique === 'eso' || ar.ressourceEapCommunique === 'esu') {
+          allZones = zonesAr.filter((z) => z.type === (ar.ressourceEapCommunique === 'eso' ? 'SOU' : 'SUP') && ar.restrictions.some(r => r.id === z.restriction.id));
+          allZones = structuredClone(allZones);
+        } else {
+          const zonesEsu: any = structuredClone(zonesAr.filter(z => z?.type === 'SUP'));
+          const zonesEso: any = structuredClone(zonesAr.filter(z => z?.type === 'SOU'));
+          allZones = [...zonesEsu, ...zonesEso];
         }
+
+        // On boucle sur toutes les zones et on stock un tableau intersect avec les autres zones
+        if (allZones.length > 1) {
+          for (const zone of allZones) {
+            zone.intersect = (await this.getIntersect(zone.id, allZones.filter(z => z.id !== zone.id).map(z => z.id)));
+          }
+        }
+
+        // Pour les zones de l'AR qui ne s'intersectent pas, on peut les copier et les enregistrer sous AEP
+        const zonesWithoutIntersection = allZones
+          .filter(z => !z.intersect || z.intersect.length < 1)
+          .map(z => {
+            z.type = 'AEP';
+            return z;
+          });
+        zonesToSave = zonesToSave.concat(zonesWithoutIntersection);
+        // Pour chaque couple de zone qui s'intersectent, vérifier celle qui a le niveau de gravité max et qui doit être prioritaire
+        let zonesWithIntersection = allZones
+          .filter(z => z.intersect && z.intersect.length > 0)
+          .map(z => {
+            z.add = [];
+            z.remove = [];
+            return z;
+          });
+        for (const z of allZones.filter(z => z.intersect && z.intersect.length > 0)) {
+          for (const zIntersected of z.intersect) {
+            // On décide ici quelle portion de quelle zone on ajoute ou on enlève à l'autre
+            // Si même niveau de gravité, on prend la zone au pif
+            // Si ressource naturelle && ressource influencée, la ressource naturelle à l'aval pour l'AEP
+            if (
+              (z.type === zIntersected.type && !z.ressourceInfluencee && zIntersected.ressourceInfluencee) ||
+              (!(z.type === zIntersected.type && z.ressourceInfluencee && !zIntersected.ressourceInfluencee) &&
+                this.getNiveauGravite(z.id, ar.restrictions) >= this.getNiveauGravite(zIntersected.id, ar.restrictions))
+            ) {
+              zonesWithIntersection.find(zwi => zwi.id === z.id).add.push(zIntersected.id);
+              zonesWithIntersection.find(zwi => zwi.id === zIntersected.id).remove.push(z.id);
+            } else {
+              zonesWithIntersection.find(zwi => zwi.id === z.id).remove.push(zIntersected.id);
+              zonesWithIntersection.find(zwi => zwi.id === zIntersected.id).add.push(z.id);
+            }
+
+            // On supprime la zone en question de zIntersected afin de ne pas faire le calcul en double
+            const zi = allZones.find(az => az.id === zIntersected.id);
+            zi.intersect = zi.intersect.filter(iz => iz.id !== z.id);
+          }
+        }
+        for (const z of zonesWithIntersection) {
+          // On construit les nouvelles géométries de zones
+          z.geom = (await this.computeNewZone(z)).geom;
+        }
+        zonesWithIntersection = zonesWithIntersection.map(z => {
+          z.type = 'AEP';
+          return z;
+        });
+        zonesToSave = zonesToSave.concat(zonesWithIntersection);
       }
     }
     zonesToSave = zonesToSave.map(z => {
@@ -533,12 +536,33 @@ export class ZoneAlerteComputedHistoricService {
       .where('not st_isvalid(geom)')
       .andWhere('"departementId" = :id', { id: departement.id })
       .execute();
-    return this.zoneAlerteComputedHistoricRepository
+    await this.zoneAlerteComputedHistoricRepository
       .createQueryBuilder('zone_alerte_computed_historic')
       .update()
       .set({ geom: () => 'ST_CollectionExtract(geom, 3)' })
       .where('"departementId" = :id', { id: departement.id })
       .execute();
+    // Clean des résidus de moins de 100m²
+    await this.dataSource.query(`
+WITH cleaned_geometries AS (
+      SELECT
+          id,
+          ST_Collect(geom) AS cleaned_geom
+      FROM (
+          SELECT
+              id,
+              (ST_Dump(geom)).geom AS geom
+          FROM zone_alerte_computed_historic
+      ) AS dumped
+      WHERE ST_GeometryType(geom) = 'ST_Polygon' AND ST_Area(ST_Transform(geom, 2154)) > 100
+      GROUP BY id
+    )
+    UPDATE zone_alerte_computed_historic
+    SET geom = cleaned_geometries.cleaned_geom
+    FROM cleaned_geometries
+    WHERE zone_alerte_computed_historic.id = cleaned_geometries.id AND zone_alerte_computed_historic."departementId" = $1;
+  `, [departement.id]);
+    return;
   }
 
   async computeCommunesIntersected(departement: Departement) {
@@ -579,6 +603,7 @@ export class ZoneAlerteComputedHistoricService {
       .addSelect('zone_alerte_computed_historic.nom', 'nom')
       .addSelect('zone_alerte_computed_historic.code', 'code')
       .addSelect('zone_alerte_computed_historic.type', 'type')
+      .addSelect('zone_alerte_computed_historic.ressourceInfluencee', 'ressourceInfluencee')
       .addSelect('departement.id', 'departement_id')
       .addSelect('"niveauGravite"')
       .leftJoin('zone_alerte_computed_historic.departement', 'departement')

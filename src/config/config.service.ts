@@ -26,26 +26,42 @@ export class ConfigService {
     return this.configRepository.findOne({ where: { id: 1 } });
   }
 
-  async setConfig(computeMapDate: string, computeStatsDate: string) {
-    await this.configRepository.createQueryBuilder()
-      .update()
-      .set({ computeMapDate })
-      .where('id = 1')
-      .andWhere(new Brackets(qb => {
-        qb.where("computeMapDate > :computeMapDate", { computeMapDate })
-          .orWhere("computeMapDate IS NULL");
-      }))
-      .execute();
+  async setConfig(computeMapDate?: string, computeStatsDate?: string, computeZoneAlerteComputedDate?: Date) {
+    if(computeMapDate) {
+      await this.configRepository.createQueryBuilder()
+        .update()
+        .set({ computeMapDate })
+        .where('id = 1')
+        .andWhere(new Brackets(qb => {
+          qb.where("computeMapDate > :computeMapDate", { computeMapDate })
+            .orWhere("computeMapDate IS NULL");
+        }))
+        .execute();
+    }
 
-    await this.configRepository.createQueryBuilder()
-      .update()
-      .set({ computeStatsDate })
-      .where('id = 1')
-      .andWhere(new Brackets(qb => {
-        qb.where("computeStatsDate > :computeStatsDate", { computeStatsDate })
-          .orWhere("computeStatsDate IS NULL");
-      }))
-      .execute();
+    if(computeStatsDate) {
+      await this.configRepository.createQueryBuilder()
+        .update()
+        .set({ computeStatsDate })
+        .where('id = 1')
+        .andWhere(new Brackets(qb => {
+          qb.where("computeStatsDate > :computeStatsDate", { computeStatsDate })
+            .orWhere("computeStatsDate IS NULL");
+        }))
+        .execute();
+    }
+
+    if(computeZoneAlerteComputedDate) {
+      await this.configRepository.createQueryBuilder()
+        .update()
+        .set({ computeZoneAlerteComputedDate })
+        .where('id = 1')
+        .andWhere(new Brackets(qb => {
+          qb.where("computeZoneAlerteComputedDate < :computeZoneAlerteComputedDate", { computeZoneAlerteComputedDate })
+            .orWhere("computeZoneAlerteComputedDate IS NULL");
+        }))
+        .execute();
+    }
   }
 
   async resetConfig() {
