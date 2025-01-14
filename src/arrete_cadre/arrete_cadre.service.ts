@@ -261,6 +261,7 @@ export class ArreteCadreService {
           code: true,
           nom: true,
           type: true,
+          ressourceInfluencee: true,
           disabled: true,
           departement: {
             id: true,

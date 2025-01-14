@@ -229,6 +229,7 @@ export class ArreteRestrictionService {
               code: true,
               nom: true,
               type: true,
+              ressourceInfluencee: true,
               disabled: true,
             },
             arreteCadre: {
