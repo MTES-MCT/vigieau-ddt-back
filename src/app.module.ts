@@ -20,8 +20,6 @@ import { AppController } from './app.controller';
 import { LoggerModule } from './logger/logger.module';
 import { LoggerInterceptor } from './core/interceptor/logger.interceptor';
 import { SharedModule } from './shared/shared.module';
-import { MailerModule } from '@nestjs-modules/mailer';
-import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { CommuneModule } from './commune/commune.module';
 import { RestrictionModule } from './restriction/restriction.module';
 import { BassinVersantModule } from './bassin_versant/bassin_versant.module';
@@ -35,15 +33,14 @@ import { UsageFeedbackModule } from './usage_feedback/usage_feedback.module';
 import { StatisticModule } from './statistic/statistic.module';
 import { ArreteMunicipalModule } from './arrete_municipal/arrete_municipal.module';
 import { AbonnementMailModule } from './abonnement_mail/abonnement_mail.module';
-import { isArray, isObject } from './mail_templates/helpers/handlebars_helpers';
 
-// @ts-ignore
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRootAsync({
+    TypeOrmModule.forRootAsync(<any> {
       useFactory: () => ({
         type: 'postgres',
         url: `postgres://${process.env.DATABASE_USER}:${
@@ -84,37 +81,6 @@ import { isArray, isObject } from './mail_templates/helpers/handlebars_helpers';
         limit: 300,
       },
     ]),
-    MailerModule.forRoot({
-      transport: {
-        host: `${process.env.MAIL_HOST}`,
-        port: Number(`${process.env.MAIL_PORT}`),
-        secure: true,
-        auth: {
-          user: `${process.env.MAIL_USER}`,
-          pass: `${process.env.MAIL_PASSWORD}`,
-        },
-        tls: {
-          // do not fail on invalid certs
-          rejectUnauthorized: false,
-        },
-      },
-      preview: process.env.NODE_ENV === 'local',
-      template: {
-        dir: __dirname + '/mail_templates',
-        adapter: new HandlebarsAdapter({'isObject': isObject, 'isArray': isArray}),
-        options: {
-          strict: true,
-        },
-      },
-      options: {
-        partials: {
-          dir: __dirname + '/mail_templates/partials',
-          options: {
-            strict: true,
-          },
-        },
-      },
-    }),
     HealthModule,
     ArreteCadreModule,
     AuthModule,

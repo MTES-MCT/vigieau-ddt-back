@@ -12,6 +12,7 @@ import { Utils } from '../core/utils';
 import { writeFile } from 'node:fs/promises';
 import { S3Service } from '../shared/services/s3.service';
 import * as fs from 'fs';
+import * as util from 'util';
 import { ConfigService as NestConfigService } from '@nestjs/config';
 import { RestrictionService } from '../restriction/restriction.service';
 import { DatagouvService } from '../datagouv/datagouv.service';
@@ -22,7 +23,6 @@ import { StatisticDepartementService } from '../statistic_departement/statistic_
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
 import { ConfigService } from '../config/config.service';
 
-const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 
 @Injectable()

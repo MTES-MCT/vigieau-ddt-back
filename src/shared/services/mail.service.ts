@@ -1,8 +1,6 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
-import * as path from 'path';
 import { RegleauLogger } from '../../logger/regleau.logger';
-import { DepartementService } from '../../departement/departement.service';
 import { UserService } from '../../user/user.service';
 
 @Injectable()

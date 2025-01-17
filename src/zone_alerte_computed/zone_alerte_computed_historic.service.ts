@@ -6,7 +6,7 @@ import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { writeFile } from 'node:fs/promises';
 import fs from 'fs';
 import { ConfigService } from '@nestjs/config';
-import util from 'util';
+import * as util from 'util';
 import { S3Service } from '../shared/services/s3.service';
 import { ZoneAlerte } from '../zone_alerte/entities/zone_alerte.entity';
 import { StatisticService } from '../statistic/statistic.service';
@@ -44,6 +44,7 @@ export class ZoneAlerteComputedHistoricService {
               private readonly statisticDepartementService: StatisticDepartementService,
               @Inject(forwardRef(() => StatisticCommuneService))
               private readonly statisticCommuneService: StatisticCommuneService,
+              @Inject(forwardRef(() => DatagouvService))
               private readonly dataGouvService: DatagouvService,
               @InjectDataSource()
               private readonly dataSource: DataSource) {
