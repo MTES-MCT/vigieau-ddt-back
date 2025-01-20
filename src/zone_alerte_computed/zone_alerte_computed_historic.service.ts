@@ -5,7 +5,7 @@ import { ArreteRestrictionService } from '../arrete_restriction/arrete_restricti
 import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { writeFile } from 'node:fs/promises';
 import fs from 'fs';
-import { ConfigService } from '@nestjs/config';
+import { ConfigService as NestConfigService } from '@nestjs/config';
 import * as util from 'util';
 import { S3Service } from '../shared/services/s3.service';
 import { ZoneAlerte } from '../zone_alerte/entities/zone_alerte.entity';
@@ -22,6 +22,7 @@ import { DatagouvService } from '../datagouv/datagouv.service';
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
+import { ConfigService } from '../config/config.service';
 
 const exec = util.promisify(require('child_process').exec);
 
@@ -32,7 +33,7 @@ export class ZoneAlerteComputedHistoricService {
   constructor(@Inject(forwardRef(() => ArreteRestrictionService))
               private readonly arreteResrictionService: ArreteRestrictionService,
               private readonly zoneAlerteService: ZoneAlerteService,
-              private readonly configService: ConfigService,
+              private readonly nestConfigService: NestConfigService,
               private readonly s3Service: S3Service,
               private readonly statisticService: StatisticService,
               private readonly departementService: DepartementService,
@@ -47,7 +48,8 @@ export class ZoneAlerteComputedHistoricService {
               @Inject(forwardRef(() => DatagouvService))
               private readonly dataGouvService: DatagouvService,
               @InjectDataSource()
-              private readonly dataSource: DataSource) {
+              private readonly dataSource: DataSource,
+              private readonly configService: ConfigService,) {
     setTimeout(() => {
       // this.computeHistoricMapsComputed(moment('2024-04-29'));
       // this.computeHistoricMaps(moment('2023-01-01'));
@@ -137,7 +139,7 @@ export class ZoneAlerteComputedHistoricService {
         'features': zasFormated,
       };
 
-      const path = this.configService.get('PATH_TO_WRITE_FILE');
+      const path = this.nestConfigService.get('PATH_TO_WRITE_FILE');
 
       const fileNameToSave = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}`;
       await writeFile(`${path}/${fileNameToSave}.geojson`, JSON.stringify(geojson));
@@ -174,7 +176,9 @@ export class ZoneAlerteComputedHistoricService {
           return z;
         }), new Date(m.format('YYYY-MM-DD')), true, true);
         await this.statisticService.computeDepartementsSituationHistoric(zas, m.format('YYYY-MM-DD'));
+        await this.configService.setConfig(null, m.format('YYYY-MM-DD'));
       }
+      await this.configService.setConfig(m.format('YYYY-MM-DD'));
     }
   }
 
@@ -226,8 +230,10 @@ export class ZoneAlerteComputedHistoricService {
         await this.statisticDepartementService.computeDepartementStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
         await this.statisticCommuneService.computeCommuneStatisticsRestrictions(allZonesComputed, new Date(date.format('YYYY-MM-DD')), true);
         await this.statisticService.computeDepartementsSituation(allZonesComputed, date.format('YYYY-MM-DD'));
+        await this.configService.setConfig(null, m.format('YYYY-MM-DD'));
       }
       await this.zoneAlerteComputedHistoricRepository.update({}, { enabled: true });
+      await this.configService.setConfig(m.format('YYYY-MM-DD'));
     }
     await this.statisticCommuneService.sortStatCommune();
     await this.statisticDepartementService.sortStatDepartement();
@@ -826,7 +832,7 @@ DELETE FROM zone_alerte_computed_historic
       'features': allZones,
     };
 
-    const path = this.configService.get('PATH_TO_WRITE_FILE');
+    const path = this.nestConfigService.get('PATH_TO_WRITE_FILE');
 
     await writeFile(`${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.geojson`, JSON.stringify(geojson));
     const dataGeojson = fs.readFileSync(`${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.geojson`);
