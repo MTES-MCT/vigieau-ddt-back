@@ -111,10 +111,7 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node",
-    "setupFiles": [
-      "../jest.setup.ts"
-    ]
+    "testEnvironment": "node"
   },
   "resolutions": {
     "wrap-ansi": "7.0.0",
