@@ -2,18 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { RegleauLogger } from '../../logger/regleau.logger';
 import {
   DeleteObjectCommand,
-  DeleteObjectsCommand,
-  ListObjectsV2Command,
   CopyObjectCommand,
   S3,
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-import process from 'node:process';
 
 @Injectable()
 export class S3Service {
   private readonly logger = new RegleauLogger('S3Service');
-  private readonly client = new S3({
+  private readonly client = new S3(<any> {
     region: process.env.S3_REGION,
     endpoint: process.env.S3_ENDPOINT,
     credentials: {

@@ -1,7 +1,7 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { forwardRef, HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import {
   DeleteResult,
-  FindManyOptions, FindOneOptions,
+  FindManyOptions,
   FindOptionsWhere,
   In,
   LessThan,
@@ -41,6 +41,7 @@ export class ArreteCadreService {
   constructor(
     @InjectRepository(ArreteCadre)
     private readonly arreteCadreRepository: Repository<ArreteCadre>,
+    @Inject(forwardRef(() => ArreteRestrictionService))
     private readonly arreteRestrictionService: ArreteRestrictionService,
     private readonly departementService: DepartementService,
     private readonly zoneAlerteService: ZoneAlerteService,
@@ -261,6 +262,7 @@ export class ArreteCadreService {
           code: true,
           nom: true,
           type: true,
+          ressourceInfluencee: true,
           disabled: true,
           departement: {
             id: true,

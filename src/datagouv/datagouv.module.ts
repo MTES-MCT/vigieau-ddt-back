@@ -6,6 +6,7 @@ import { ZoneAlerteComputedModule } from '../zone_alerte_computed/zone_alerte_co
 import { SharedModule } from '../shared/shared.module';
 import { ArreteCadreModule } from '../arrete_cadre/arrete_cadre.module';
 import { DepartementModule } from '../departement/departement.module';
+import { StatisticCommuneModule } from '../statistic_commune/statistic_commune.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { DepartementModule } from '../departement/departement.module';
     forwardRef(() => ZoneAlerteComputedModule),
     SharedModule,
     DepartementModule,
+    StatisticCommuneModule
   ],
   controllers: [],
   providers: [DatagouvService],

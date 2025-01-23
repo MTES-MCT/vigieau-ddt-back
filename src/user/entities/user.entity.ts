@@ -35,6 +35,12 @@ export class User extends BaseEntity {
   @Column('text',{ nullable: true, array: true })
   role_communes: string[];
 
+  @Column({ type: 'date', nullable: true })
+  check_rules: string;
+
   @CreateDateColumn({ select: false, type: 'timestamp' })
   created_at: number;
+
+  @Column({ select: false, type: 'timestamp', nullable: true })
+  last_login: string;
 }

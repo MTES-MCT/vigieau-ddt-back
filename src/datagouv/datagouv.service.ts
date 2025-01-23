@@ -16,13 +16,15 @@ import JSZip from 'jszip';
 import { ArreteCadreService } from '../arrete_cadre/arrete_cadre.service';
 import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
 import { DepartementService } from '../departement/departement.service';
+import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
+import { StatisticCommune } from '../statistic_commune/entities/statistic_commune.entity';
 
 @Injectable()
 export class DatagouvService {
   private readonly logger = new RegleauLogger('DataGouvService');
-  private path;
-  private datagouvApiUrl;
-  private datagouvApiKey;
+  private path: string;
+  private datagouvApiUrl: string;
+  private datagouvApiKey: string;
   private datagouvResources = {
     'arretes': 'f425cfa6-ccd1-438e-bb03-9d90ab527851',
     'arretes_2012': 'c4e90996-fbdd-4496-9c56-af253900c7bf',
@@ -37,12 +39,14 @@ export class DatagouvService {
     'arretes_2021': 'c88b5dcb-7975-4509-865a-5e5d6b3cde97',
     'arretes_2022': '4489197f-63ce-4c8c-aff1-d2e1b02d2943',
     'arretes_2023': '9091f47f-b5b9-4569-b3c9-252f2eae185e',
+    'arretes_2024': null,
     'pmtiles': 'a101ef59-0999-4b9a-a682-6f9b79d53c7e',
     'geojson': 'bfba7898-aed3-40ec-aa74-abb73b92a363',
     'restrictions': 'e403a885-5eaf-411d-a03e-751a9c22930d',
     'pmtiles_archive': 'b0b246c3-f724-4eb2-a83a-c516e0044aa2',
     'geojson_archive': '3972a125-2372-41f1-b3f5-25794f860414',
     'arretes_cadre': '0732e970-c12c-4e6a-adca-5ac9dbc3fdfa',
+    'historique_communes': null,
   };
 
   constructor(private readonly httpService: HttpService,
@@ -54,83 +58,117 @@ export class DatagouvService {
               @Inject(forwardRef(() => ZoneAlerteComputedService))
               private readonly zoneAlerteComputedService: ZoneAlerteComputedService,
               private readonly s3Service: S3Service,
-              private readonly departementService: DepartementService) {
+              private readonly departementService: DepartementService,
+              private readonly statisticCommuneService: StatisticCommuneService) {
     this.path = this.configService.get('PATH_TO_WRITE_FILE');
     this.datagouvApiKey = this.configService.get('API_DATAGOUV_KEY');
     this.datagouvApiUrl = `${this.configService.get('API_DATAGOUV')}/datasets/${this.configService.get('API_DATAGOUV_DATASET')}`;
   }
 
+  /**
+   * Vérifie si toutes les configurations nécessaires pour l'upload vers Datagouv sont présentes.
+   * @returns {boolean} - `true` si toutes les configurations sont présentes, sinon `false`.
+   */
   canUploadToDataGouv(): boolean {
-    return this.configService.get('API_DATAGOUV') && this.configService.get('API_DATAGOUV_DATASET') && this.datagouvApiKey;
+    return (
+      !!this.configService.get('API_DATAGOUV') &&
+      !!this.configService.get('API_DATAGOUV_DATASET') &&
+      !!this.datagouvApiKey
+    );
   }
 
+  /**
+   * Tâche planifiée pour mettre à jour les données sur Datagouv chaque jour à 6 heures du matin.
+   */
   @Cron(CronExpression.EVERY_DAY_AT_6AM)
   async updateDatagouvData() {
     if (!this.canUploadToDataGouv()) {
+      this.logger.warn(`Configuration manquante pour l'upload vers Datagouv.`);
       return;
     }
 
     this.logger.log('MISE A JOUR DATAGOUV - DEBUT');
-    const arretes = await this.arreteRestrictionService.findDatagouv();
-    await this.updateArretes(arretes);
-    await this.updateArretesCadre();
-    await this.updateHistoriqueArretes(arretes);
-    await this.updateRestrictions();
-    await this.updateMaps();
+
+    try {
+      const arretes = await this.arreteRestrictionService.findDatagouv();
+      await this.updateArretes(arretes);
+      await this.updateArretesCadre();
+      await this.updateHistoriqueArretes(arretes);
+      await this.updateRestrictions();
+      await this.updateMaps();
+      await this.updateCommunes();
+    } catch (error) {
+      this.logger.error('Erreur lors de la mise à jour des données Datagouv', error);
+    }
+
     this.logger.log('MISE A JOUR DATAGOUV - FIN');
   }
 
-  async updateArretes(arretes: ArreteRestriction[]) {
+  /**
+   * Met à jour les arrêtés sur Datagouv.
+   * @param arretes - Liste des arrêtés à traiter.
+   */
+  async updateArretes(arretes: ArreteRestriction[]): Promise<void> {
     this.logger.log('MISE A JOUR DATAGOUV - ARRETES - DEBUT');
 
     const departements = await this.departementService.findAllLight();
-    const formatArretes = arretes.map(arrete => {
-      return {
-        id: arrete.id,
-        numero: arrete.numero,
-        date_debut: arrete.dateDebut,
-        date_signature: arrete.dateSignature,
-        date_fin: arrete.dateFin,
-        statut: arrete.statut,
-        departement: arrete.departement.code,
-        chemin_fichier: arrete.fichier ? arrete.fichier?.url : '',
-        niveau_gravite_specifique_aep: arrete.niveauGraviteSpecifiqueEap,
-        ressource_aep_communique: arrete.ressourceEapCommunique,
-        arrete_cadre: arrete.arretesCadre.map(arreteCadre => {
-          return {
-            id: arreteCadre.id,
-            numero: arreteCadre.numero,
-            date_debut: arreteCadre.dateDebut,
-            date_fin: arreteCadre.dateFin,
-            chemin_fichier: arreteCadre.fichier ? arreteCadre.fichier?.url : '',
-          };
-        }),
-        zones_alerte: arrete.restrictions.map(restriction => {
-          return {
-            id: restriction.zoneAlerte?.id,
-            type: restriction.communes.length > 0 ? 'AEP' : restriction.zoneAlerte.type,
-            code: restriction.zoneAlerte?.code,
-            nom: restriction.communes.length > 0 ? restriction.nomGroupementAep : restriction.zoneAlerte.nom,
-            niveau_gravite: restriction.niveauGravite,
-            id_sandre: restriction.zoneAlerte?.idSandre,
-            communes: restriction.communes.map(c => c.code),
-          };
-        }),
-        regle_gestion: departements.find(d => d.code === arrete.departement.code)
-          .parametres.find(p =>
-            moment(arrete.dateDebut).isSameOrAfter(moment(p.dateDebut))
-            && (!p.dateFin || moment(arrete.dateDebut).isSameOrBefore(moment(p.dateFin))),
-          )?.superpositionCommune,
-      };
-    });
-    const csv = await json2csv(formatArretes, {
-      expandArrayObjects: true,
-    });
-
-    await writeFile(`${this.path}/arretes.csv`, csv);
+    const formattedArretes = this.formatArretesData(arretes, departements);
+    await this.writeCsv('arretes.csv', formattedArretes);
     await this.uploadToDatagouv('arretes', 'arretes.csv', 'Arrêtés');
 
     this.logger.log('MISE A JOUR DATAGOUV - ARRETES - FIN');
+  }
+
+  /**
+   * Formate les données des arrêtés.
+   * @param arretes - Liste des arrêtés à formater.
+   * @param departements - Liste des départements pour enrichir les données.
+   * @returns Tableau formaté pour l'export.
+   */
+  private formatArretesData(arretes: ArreteRestriction[], departements: any[]): any[] {
+    return arretes.map((arrete) => ({
+      id: arrete.id,
+      numero: arrete.numero,
+      date_debut: arrete.dateDebut,
+      date_signature: arrete.dateSignature,
+      date_fin: arrete.dateFin,
+      statut: arrete.statut,
+      departement: arrete.departement.code,
+      chemin_fichier: arrete.fichier?.url || '',
+      niveau_gravite_specifique_aep: arrete.niveauGraviteSpecifiqueEap,
+      ressource_aep_communique: arrete.ressourceEapCommunique,
+      arrete_cadre: arrete.arretesCadre.map((cadre) => ({
+        id: cadre.id,
+        numero: cadre.numero,
+        date_debut: cadre.dateDebut,
+        date_fin: cadre.dateFin,
+        chemin_fichier: cadre.fichier?.url || '',
+      })),
+      zones_alerte: arrete.restrictions.map((restriction) => ({
+        id: restriction.zoneAlerte?.id,
+        type: restriction.communes.length > 0 ? 'AEP' : restriction.zoneAlerte.type,
+        code: restriction.zoneAlerte?.code,
+        nom: restriction.communes.length > 0 ? restriction.nomGroupementAep : restriction.zoneAlerte.nom,
+        niveau_gravite: restriction.niveauGravite,
+        id_sandre: restriction.zoneAlerte?.idSandre,
+        communes: restriction.communes.map((c) => c.code),
+      })),
+      regle_gestion: departements.find(d => d.code === arrete.departement.code)
+        .parametres.find(p =>
+          moment(arrete.dateDebut).isSameOrAfter(moment(p.dateDebut))
+          && (!p.dateFin || moment(arrete.dateDebut).isSameOrBefore(moment(p.dateFin))),
+        )?.superpositionCommune,
+    }));
+  }
+
+  /**
+   * Écrit un tableau de données dans un fichier CSV.
+   * @param fileName - Nom du fichier CSV.
+   * @param data - Données à écrire.
+   */
+  private async writeCsv(fileName: string, data: any[]): Promise<void> {
+    const csv = await json2csv(data, { expandArrayObjects: true });
+    await writeFile(`${this.path}/${fileName}`, csv);
   }
 
   async updateHistoriqueArretes(arretes: ArreteRestriction[]) {
@@ -141,63 +179,24 @@ export class DatagouvService {
     const departements = await this.departementService.findAllLight();
 
     for (let year = yearBegin; year < currentYear; year++) {
-      const formatArretes = arretes
+      let formatArretes = arretes
         .filter(arrete => {
           const startDate = moment(`01/01/${year}`, 'DD/MM/YYYY');
           const endDate = moment(`31/12/${year}`, 'DD/MM/YYYY');
           return moment(arrete.dateDebut).isBetween(startDate, endDate, 'days', '[]') ||
             (arrete.dateFin && moment(arrete.dateFin).isBetween(startDate, endDate, 'days', '[]'));
-        })
-        .map(arrete => {
-          return {
-            id: arrete.id,
-            numero: arrete.numero,
-            date_debut: arrete.dateDebut,
-            date_signature: arrete.dateSignature,
-            date_fin: arrete.dateFin,
-            statut: arrete.statut,
-            departement: arrete.departement.code,
-            chemin_fichier: arrete.fichier ? arrete.fichier?.url : '',
-            niveau_gravite_specifique_aep: arrete.niveauGraviteSpecifiqueEap,
-            ressource_aep_communique: arrete.ressourceEapCommunique,
-            arrete_cadre: arrete.arretesCadre.map(arreteCadre => {
-              return {
-                id: arreteCadre.id,
-                numero: arreteCadre.numero,
-                date_debut: arreteCadre.dateDebut,
-                date_fin: arreteCadre.dateFin,
-                chemin_fichier: arreteCadre.fichier ? arreteCadre.fichier?.url : '',
-              };
-            }),
-            zones_alerte: arrete.restrictions.map(restriction => {
-              return {
-                id: restriction.zoneAlerte?.id,
-                type: restriction.communes.length > 0 ? 'AEP' : restriction.zoneAlerte.type,
-                code: restriction.zoneAlerte?.code,
-                nom: restriction.communes.length > 0 ? restriction.nomGroupementAep : restriction.zoneAlerte.nom,
-                niveau_gravite: restriction.niveauGravite,
-                id_sandre: restriction.zoneAlerte?.idSandre,
-                communes: restriction.communes.map(c => c.code),
-              };
-            }),
-            regle_gestion: departements.find(d => d.code === arrete.departement.code)
-              .parametres.find(p =>
-                moment(arrete.dateDebut).isSameOrAfter(moment(p.dateDebut))
-                && (!p.dateFin || moment(arrete.dateDebut).isSameOrBefore(moment(p.dateFin))),
-              )?.superpositionCommune,
-          };
         });
-      const csv = await json2csv(formatArretes, {
-        expandArrayObjects: true,
-      });
-
-      await writeFile(`${this.path}/arretes_${year}.csv`, csv);
+      formatArretes = this.formatArretesData(formatArretes, departements);
+      await this.writeCsv(`arretes_${year}.csv`, formatArretes);
       await this.uploadToDatagouv(`arretes_${year}`, `arretes_${year}.csv`, `Arrêtés ${year}`);
     }
 
     this.logger.log('MISE A JOUR DATAGOUV - HISTORIQUE ARRETES - FIN');
   }
 
+  /**
+   * Met à jour les arrêtés cadres sur Datagouv.
+   */
   async updateArretesCadre() {
     this.logger.log('MISE A JOUR DATAGOUV - ARRETES CADRE - DEBUT');
 
@@ -223,16 +222,16 @@ export class DatagouvService {
         }),
       };
     });
-    const csv = await json2csv(formatArretes, {
-      expandArrayObjects: true,
-    });
 
-    await writeFile(`${this.path}/arretes_cadre.csv`, csv);
+    await this.writeCsv('arretes_cadre.csv', formatArretes);
     await this.uploadToDatagouv('arretes_cadre', 'arretes_cadre.csv', 'Arrêtés Cadre');
 
     this.logger.log('MISE A JOUR DATAGOUV - ARRETES CADRE - FIN');
   }
 
+  /**
+   * Met à jour les restrictions sur Datagouv.
+   */
   async updateRestrictions() {
     this.logger.log('MISE A JOUR DATAGOUV - RESTRICTIONS - DEBUT');
 
@@ -365,10 +364,18 @@ export class DatagouvService {
     console.log(`FIN GENERATION DE L'ARCHIVE ${geojsonOrPmtiles} DE L'ANNEE ${year}`);
   }
 
-  async uploadToDatagouv(resource: string, fileName: string, title: string, isUrl = false) {
+  /**
+   * Upload un fichier ou des métadonnées vers Datagouv.
+   * @param resource - Nom de la ressource Datagouv.
+   * @param fileName - Nom du fichier ou URL.
+   * @param title - Titre de la ressource.
+   * @param isUrl - Indique si le fichier est une URL.
+   */
+  async uploadToDatagouv(resource: string, fileName: string, title: string, isUrl = false): Promise<void> {
     this.logger.log(`ENVOI VERS DATAGOUV - ${resource}`);
 
     if (!this.datagouvResources[resource]) {
+      this.logger.warn(`Ressource non configurée : ${resource}`);
       return;
     }
 
@@ -386,18 +393,15 @@ export class DatagouvService {
       }).pipe(
         catchError((error: AxiosError) => {
           this.logger.error('ERREUR DANS L\'ENVOI VERS DATAGOUV', JSON.stringify(error));
-          throw 'An error happened!';
+          throw error;
         }),
       ));
     }
 
-    const body: any = {
-      title: title,
-    };
-    if (isUrl) {
-      body.url = fileName;
-    }
-    return lastValueFrom(this.httpService.put(url, body, {
+    const body: any = { title };
+    if (isUrl) body.url = fileName;
+
+    await lastValueFrom(this.httpService.put(url, body, {
       headers: {
         'Accept': 'application/json',
         'X-Api-Key': this.datagouvApiKey,
@@ -405,8 +409,30 @@ export class DatagouvService {
     }).pipe(
       catchError((error: AxiosError) => {
         this.logger.error('ERREUR DANS LA MISE A JOUR DES METADONNEES DATAGOUV', JSON.stringify(error));
-        throw 'An error happened!';
+        throw error;
       }),
     ));
+  }
+
+  async updateCommunes() {
+    this.logger.log('MISE A JOUR DATAGOUV - COMMUNES - DEBUT');
+
+    const historiqueCommunes: StatisticCommune[] = await this.statisticCommuneService.getStatisticCommune();
+    const formatHistorique = historiqueCommunes.map(sc => {
+      return {
+        commune: {
+          code: sc.commune.code,
+          nom: sc.commune.nom,
+        },
+        restrictions: sc.restrictions,
+      };
+    });
+
+    const csv = json2csv(formatHistorique, {});
+
+    await writeFile(`${this.path}/historique_communes.csv`, csv);
+    await this.uploadToDatagouv('historique_communes', 'historique_communes.csv', 'Historique Communes');
+
+    this.logger.log('MISE A JOUR DATAGOUV - COMMUNES - FIN');
   }
 }

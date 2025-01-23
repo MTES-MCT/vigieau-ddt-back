@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, LessThan, Repository } from 'typeorm';
 import { StatisticCommune } from './entities/statistic_commune.entity';
 import { ZoneAlerteComputed } from '../zone_alerte_computed/entities/zone_alerte_computed.entity';
 import { RegleauLogger } from '../logger/regleau.logger';
@@ -32,6 +32,15 @@ export class StatisticCommuneService {
     // setTimeout(() => {
     //   this.computeByMonth();
     // }, 5000);
+  }
+
+  async getStatisticCommune() {
+    return this.statisticCommuneRepository.find({
+      relations: ['commune'],
+      where: {
+        id: LessThan(1000)
+      }
+    });
   }
 
   async computeCommuneStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date, historic?: boolean, historicNotComputed?: boolean) {

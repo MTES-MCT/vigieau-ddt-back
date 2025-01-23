@@ -31,7 +31,7 @@ export class CommuneService {
     }
   }
 
-  async find(depCode?: string, withGeom?: boolean, user?: User): Promise<Commune[]> {
+  async find(depCodes?: string[], withGeom?: boolean, user?: User): Promise<Commune[]> {
     const qb = this.communeRepository
       .createQueryBuilder('commune')
       .select('commune.id', 'id')
@@ -44,15 +44,15 @@ export class CommuneService {
 
     qb.leftJoin('commune.departement', 'departement');
 
-    if (depCode) {
-      qb.where('departement.code = :depCode', { depCode });
+    if (depCodes && depCodes.length > 0) {
+      qb.where('departement.code IN(:...depCodes)', { depCodes });
     }
 
-    if (!depCode && user && user.role === 'departement') {
-      qb.where('departement.code IN (:...depsCode)', { depsCode: user.role_departements });
+    if ((!depCodes || depCodes.length < 1) && user && user.role === 'departement') {
+      qb.where('departement.code IN (:...depCodes)', { depCodes: user.role_departements });
     }
 
-    if (!depCode && user && user.role === 'commune') {
+    if ((!depCodes || depCodes.length < 1) && user && user.role === 'commune') {
       qb.where('commune.code IN (:...communesCode)', { communesCode: user.role_communes });
     }
 

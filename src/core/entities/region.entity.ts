@@ -1,4 +1,4 @@
-import { Departement } from 'src/departement/entities/departement.entity';
+import { Departement } from '../../departement/entities/departement.entity';
 import {
   BaseEntity,
   Column,

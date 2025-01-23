@@ -11,4 +11,7 @@ export class Config extends BaseEntity {
 
   @Column({ type: 'date', nullable: true })
   computeStatsDate: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  computeZoneAlerteComputedDate: Date;
 }

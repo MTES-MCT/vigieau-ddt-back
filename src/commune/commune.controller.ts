@@ -20,11 +20,11 @@ export class CommuneController {
   })
   async find(
     @Req() req,
-    @Query('depCode') depCode?: string,
+    @Query('depCode') depCodes?: string,
     @Query('withGeom') withGeom?: string,
   ): Promise<CommuneDto[]> {
     const communes = await this.communeService.find(
-      depCode,
+      depCodes?.split(','),
       withGeom === 'true',
       req.session.user,
     );

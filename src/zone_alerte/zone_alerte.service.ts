@@ -35,7 +35,7 @@ export class ZoneAlerteService {
     const za = await this.zoneAlerteRepository
       .createQueryBuilder('zone_alerte')
       .select('zone_alerte.id', 'id')
-      .select('zone_alerte.idSandre', 'idSandre')
+      .addSelect('zone_alerte.idSandre', 'idSandre')
       .addSelect('zone_alerte.code', 'code')
       .addSelect('zone_alerte.nom', 'nom')
       .addSelect('zone_alerte.type', 'type')
@@ -301,7 +301,7 @@ export class ZoneAlerteService {
       .addSelect('zone_alerte.nom', 'nom')
       .addSelect('zone_alerte.type', 'type')
       .where('zone_alerte.id IN(:...zonesId)', { zonesId: zones.map(z => z.id) })
-      .andWhere('ST_IsValid(ST_TRANSFORM(zone_alerte.geom, 4326))')
+      .andWhere(`ST_GeometryType(zone_alerte.geom) IN ('ST_Polygon', 'ST_MultiPolygon')`)
       .andWhere('ST_INTERSECTS(ST_TRANSFORM(zone_alerte.geom, 4326), (SELECT ST_TRANSFORM(c.geom, 4326) FROM commune as c WHERE c.id = :communeId))', { communeId })
       // Au moins 1% de la surface en commun
       .andWhere('ST_Area(ST_Intersection(ST_TRANSFORM(zone_alerte.geom, 4326), (SELECT ST_TRANSFORM(c.geom, 4326) FROM commune as c WHERE c.id = :communeId))) / ST_Area((SELECT ST_TRANSFORM(c.geom, 4326) FROM commune as c WHERE c.id = :communeId)) > 0.01', { communeId })

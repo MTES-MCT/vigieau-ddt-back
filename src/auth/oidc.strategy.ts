@@ -59,7 +59,7 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
 
   async validate(tokenset: TokenSet): Promise<any> {
     const userinfo: UserinfoResponse = await this.client.userinfo(tokenset);
-    let userInDb = await this.userService.findOne(userinfo?.email);
+    let userInDb = await this.userService.findOne(<string> userinfo?.email);
 
     /**
      * Si l'utilisateur n'existe pas en BDD, on vérifie son numéro SIREN associé afin d'associer sa commune
@@ -83,7 +83,7 @@ export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
     }
 
     await this.userService.updateName(
-      userinfo.email,
+      <string> userinfo.email,
       <string>userinfo.given_name,
       <string>userinfo.usual_name,
     );
