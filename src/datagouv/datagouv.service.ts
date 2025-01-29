@@ -46,7 +46,7 @@ export class DatagouvService {
     'pmtiles_archive': '9b5a883c-1b44-493e-9b4a-472b47f63e8f',
     'geojson_archive': 'f386e124-3dcc-435a-a368-427ac51fbe97',
     'arretes_cadre': '0732e970-c12c-4e6a-adca-5ac9dbc3fdfa',
-    'historique_communes': null,
+    'historique_communes': '662a5e2cd71b24df5e9a0827',
   };
 
   constructor(private readonly httpService: HttpService,
@@ -168,7 +168,7 @@ export class DatagouvService {
    */
   private async writeCsv(fileName: string, data: any[]): Promise<void> {
     const csv = await json2csv(data, { expandArrayObjects: true });
-    await writeFile(`${this.path}/${fileName}`, csv);
+    await writeFile(`${this.path}/${fileName}`, csv, 'utf8');
   }
 
   async updateHistoriqueArretes(arretes: ArreteRestriction[]) {
@@ -301,7 +301,7 @@ export class DatagouvService {
       expandArrayObjects: true,
     });
 
-    await writeFile(`${this.path}/restrictions.csv`, csv);
+    await writeFile(`${this.path}/restrictions.csv`, csv, 'utf8');
     await this.uploadToDatagouv('restrictions', 'restrictions.csv', 'Restrictions');
 
     this.logger.log('MISE A JOUR DATAGOUV - RESTRICTIONS - FIN');
@@ -428,10 +428,8 @@ export class DatagouvService {
       };
     });
 
-    const csv = json2csv(formatHistorique, {});
-
-    await writeFile(`${this.path}/historique_communes.csv`, csv);
-    await this.uploadToDatagouv('historique_communes', 'historique_communes.csv', 'Historique Communes');
+    await writeFile(`${this.path}/historique_communes.json`, JSON.stringify(formatHistorique, null, 2), 'utf8');
+    await this.uploadToDatagouv('historique_communes', 'historique_communes.json', 'Historique Communes');
 
     this.logger.log('MISE A JOUR DATAGOUV - COMMUNES - FIN');
   }
