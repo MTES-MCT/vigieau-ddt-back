@@ -46,7 +46,7 @@ export class DatagouvService {
     'pmtiles_archive': '9b5a883c-1b44-493e-9b4a-472b47f63e8f',
     'geojson_archive': 'f386e124-3dcc-435a-a368-427ac51fbe97',
     'arretes_cadre': '0732e970-c12c-4e6a-adca-5ac9dbc3fdfa',
-    'historique_communes': '662a5e2cd71b24df5e9a0827',
+    'historique_communes': '4322064e-cfb4-4c8a-8200-7620f491ccdb',
   };
 
   constructor(private readonly httpService: HttpService,
