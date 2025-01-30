@@ -6,7 +6,6 @@ import { ZoneAlerteService } from '../zone_alerte/zone_alerte.service';
 import { writeFile } from 'node:fs/promises';
 import fs from 'fs';
 import { ConfigService as NestConfigService } from '@nestjs/config';
-import * as util from 'util';
 import { S3Service } from '../shared/services/s3.service';
 import { ZoneAlerte } from '../zone_alerte/entities/zone_alerte.entity';
 import { StatisticService } from '../statistic/statistic.service';
@@ -23,8 +22,7 @@ import { StatisticDepartementService } from '../statistic_departement/statistic_
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
 import { ConfigService } from '../config/config.service';
-
-const exec = util.promisify(require('child_process').exec);
+import { exec } from 'child_process';
 
 @Injectable()
 export class ZoneAlerteComputedHistoricService {
@@ -847,7 +845,9 @@ DELETE FROM zone_alerte_computed_historic
       this.logger.error('ERROR UPLOADING GEOJSON', e);
     }
     try {
-      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles ${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.geojson`);
+      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles ${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.geojson`,
+        { maxBuffer: 1024 * 1024 * 100 },// 100 MB
+      );
       const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles`);
       const fileToTransfer = {
         originalname: `zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles`,
