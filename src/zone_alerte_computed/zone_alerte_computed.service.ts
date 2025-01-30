@@ -12,7 +12,6 @@ import { Utils } from '../core/utils';
 import { writeFile } from 'node:fs/promises';
 import { S3Service } from '../shared/services/s3.service';
 import * as fs from 'fs';
-import * as util from 'util';
 import { ConfigService as NestConfigService } from '@nestjs/config';
 import { RestrictionService } from '../restriction/restriction.service';
 import { DatagouvService } from '../datagouv/datagouv.service';
@@ -22,8 +21,8 @@ import { ZoneAlerteComputedHistoricService } from './zone_alerte_computed_histor
 import { StatisticDepartementService } from '../statistic_departement/statistic_departement.service';
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
 import { ConfigService } from '../config/config.service';
+import { exec } from 'child_process';
 
-const exec = util.promisify(require('child_process').exec);
 
 @Injectable()
 export class ZoneAlerteComputedService {
@@ -257,7 +256,7 @@ export class ZoneAlerteComputedService {
             if (
               (z.type === zIntersected.type && !z.ressourceInfluencee && zIntersected.ressourceInfluencee) ||
               (!(z.type === zIntersected.type && z.ressourceInfluencee && !zIntersected.ressourceInfluencee) &&
-              this.getNiveauGravite(z.id, ar.restrictions) >= this.getNiveauGravite(zIntersected.id, ar.restrictions))
+                this.getNiveauGravite(z.id, ar.restrictions) >= this.getNiveauGravite(zIntersected.id, ar.restrictions))
             ) {
               zonesWithIntersection.find(zwi => zwi.id === z.id).add.push(zIntersected.id);
               zonesWithIntersection.find(zwi => zwi.id === zIntersected.id).remove.push(z.id);
@@ -645,7 +644,10 @@ DELETE FROM zone_alerte_computed
       this.logger.error('ERROR COPYING GEOJSON', e);
     }
     try {
-      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur.pmtiles ${path}/zones_arretes_en_vigueur.geojson`);
+      await exec(
+        `${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur.pmtiles ${path}/zones_arretes_en_vigueur.geojson`,
+        { maxBuffer: 1024 * 1024 * 100 },// 100 MB
+      );
       const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur.pmtiles`);
       const fileToTransfer = {
         originalname: 'zones_arretes_en_vigueur.pmtiles',
