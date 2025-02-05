@@ -232,6 +232,7 @@ export class ZoneAlerteService {
         existingZone.type = f.properties.TypeZAS;
         existingZone.numeroVersionSandre = f.properties.NumeroVersionZAS ? +f.properties.NumeroVersionZAS : null;
         existingZone.geom = f.geometry;
+        existingZone.ressourceInfluencee = f.properties.RessInfluenceeZAS === 1;
         promises.push(this.zoneAlerteRepository.save(existingZone));
       }
       const idsToDisable = await this.zoneAlerteRepository.find(<FindManyOptions> {
