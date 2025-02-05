@@ -22,6 +22,7 @@ import { StatisticDepartementService } from '../statistic_departement/statistic_
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
 import { ConfigService } from '../config/config.service';
 import { exec } from 'child_process';
+import util from 'util';
 
 
 @Injectable()
@@ -30,6 +31,8 @@ export class ZoneAlerteComputedService {
   private isComputing = false;
   private askForCompute = false;
   private departementsToUpdate = [];
+  // Promisifier exec
+  private execPromise = util.promisify(exec);
 
   constructor(
     @InjectRepository(ZoneAlerteComputed)
@@ -644,9 +647,8 @@ DELETE FROM zone_alerte_computed
       this.logger.error('ERROR COPYING GEOJSON', e);
     }
     try {
-      await exec(
+      await this.execPromise(
         `${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur.pmtiles ${path}/zones_arretes_en_vigueur.geojson`,
-        { maxBuffer: 1024 * 1024 * 100 },// 100 MB
       );
       const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur.pmtiles`);
       const fileToTransfer = {

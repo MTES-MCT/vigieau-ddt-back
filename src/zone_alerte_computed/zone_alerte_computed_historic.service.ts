@@ -23,10 +23,13 @@ import { StatisticCommuneService } from '../statistic_commune/statistic_commune.
 import { ZoneAlerteComputed } from './entities/zone_alerte_computed.entity';
 import { ConfigService } from '../config/config.service';
 import { exec } from 'child_process';
+import util from 'util';
 
 @Injectable()
 export class ZoneAlerteComputedHistoricService {
   private readonly logger = new RegleauLogger('ZoneAlerteComputedHistoricService');
+  // Promisifier exec
+  private execPromise = util.promisify(exec);
 
   constructor(@Inject(forwardRef(() => ArreteRestrictionService))
               private readonly arreteResrictionService: ArreteRestrictionService,
@@ -142,7 +145,7 @@ export class ZoneAlerteComputedHistoricService {
       const fileNameToSave = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}`;
       await writeFile(`${path}/${fileNameToSave}.geojson`, JSON.stringify(geojson));
       try {
-        await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/${fileNameToSave}.pmtiles ${path}/${fileNameToSave}.geojson`);
+        await this.execPromise(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/${fileNameToSave}.pmtiles ${path}/${fileNameToSave}.geojson`);
         const dataPmtiles = fs.readFileSync(`${path}/${fileNameToSave}.pmtiles`);
         const fileToTransferPmtiles = {
           originalname: `${fileNameToSave}.pmtiles`,
@@ -845,9 +848,7 @@ DELETE FROM zone_alerte_computed_historic
       this.logger.error('ERROR UPLOADING GEOJSON', e);
     }
     try {
-      await exec(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles ${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.geojson`,
-        { maxBuffer: 1024 * 1024 * 100 },// 100 MB
-      );
+      await this.execPromise(`${path}/tippecanoe_program/bin/tippecanoe -zg -pg -ai -pn -f --drop-densest-as-needed -l zones_arretes_en_vigueur --read-parallel --detect-shared-borders --simplification=10 --output=${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles ${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.geojson`);
       const data = fs.readFileSync(`${path}/zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles`);
       const fileToTransfer = {
         originalname: `zones_arretes_en_vigueur_${date.format('YYYY-MM-DD')}.pmtiles`,
