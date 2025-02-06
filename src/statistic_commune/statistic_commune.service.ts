@@ -37,9 +37,6 @@ export class StatisticCommuneService {
   async getStatisticCommune() {
     return this.statisticCommuneRepository.find({
       relations: ['commune'],
-      where: {
-        id: LessThan(1000)
-      }
     });
   }
 
