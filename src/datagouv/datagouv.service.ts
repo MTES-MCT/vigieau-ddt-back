@@ -343,9 +343,13 @@ export class DatagouvService {
     for (let m = dateDebut;
          m.diff(moment(), 'days', true) <= 0 && m.year() === year;
          m.add(1, 'days')) {
-      const fileName = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles}`;
+      const fileName =  `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles}`;
+      this.logger.log( `ADDING zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles} to ZIP`);
       try {
-        const fileData = fs.readFileSync(`${path}/${fileName}`);
+        const filePath = m.diff(moment(), 'days', true) === 0 ?
+          `${path}/zones_arretes_en_vigueur.${geojsonOrPmtiles}` :
+          `${path}/${fileName}`;
+        const fileData = fs.readFileSync(filePath);
         zip.remove(fileName);
         zip.file(fileName, fileData);
       } catch (e) {
@@ -360,7 +364,7 @@ export class DatagouvService {
     };
     // @ts-ignore
     const s3Response = await this.s3Service.uploadFile(fileToTransfer, `${geojsonOrPmtiles}/`);
-    await this.uploadToDatagouv(geojson ? 'geojson_archive' : 'pmtiles_archive', s3Response.Location, `Cartes des zones et arrêtés en vigueur - ${geojson ? 'GEOJSON' : 'PMTILES'} - 2024`, true);
+    await this.uploadToDatagouv(geojson ? 'geojson_archive' : 'pmtiles_archive', s3Response.Location, `Cartes des zones et arrêtés en vigueur - ${geojson ? 'GEOJSON' : 'PMTILES'} - Année en cours`, true);
     console.log(`FIN GENERATION DE L'ARCHIVE ${geojsonOrPmtiles} DE L'ANNEE ${year}`);
   }
 
