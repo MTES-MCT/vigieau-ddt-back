@@ -34,10 +34,10 @@ export class StatisticCommuneService {
     // }, 5000);
   }
 
-  async getStatisticCommune() {
-    return this.statisticCommuneRepository.find({
-      relations: ['commune'],
-    });
+  async getStatisticCommuneStream() {
+    return this.statisticCommuneRepository.createQueryBuilder('sc')
+      .leftJoinAndSelect('sc.commune', 'commune')
+      .stream();
   }
 
   async computeCommuneStatisticsRestrictions(zones: ZoneAlerteComputed[], date: Date, historic?: boolean, historicNotComputed?: boolean) {
