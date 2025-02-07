@@ -17,7 +17,8 @@ import { ArreteCadreService } from '../arrete_cadre/arrete_cadre.service';
 import { ArreteRestriction } from '../arrete_restriction/entities/arrete_restriction.entity';
 import { DepartementService } from '../departement/departement.service';
 import { StatisticCommuneService } from '../statistic_commune/statistic_commune.service';
-import { StatisticCommune } from '../statistic_commune/entities/statistic_commune.entity';
+import { pipeline, Transform } from 'stream';
+const archiver = require('archiver');
 
 @Injectable()
 export class DatagouvService {
@@ -324,7 +325,7 @@ export class DatagouvService {
     const path = this.configService.get('PATH_TO_WRITE_FILE');
     const geojsonOrPmtiles = geojson ? 'geojson' : 'pmtiles';
 
-    console.log(`GENERATION DE L'ARCHIVE ${geojsonOrPmtiles} DE L'ANNEE ${year}`);
+    this.logger.log(`GENERATION DE L'ARCHIVE ${geojsonOrPmtiles} DE L'ANNEE ${year}`);
     // On récupère le zip existant, si il n'existe pas on le crée
     let dataZip;
     try {
@@ -343,12 +344,13 @@ export class DatagouvService {
     for (let m = dateDebut;
          m.diff(moment(), 'days', true) <= 0 && m.year() === year;
          m.add(1, 'days')) {
-      const fileName =  `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles}`;
-      this.logger.log( `ADDING zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles} to ZIP`);
+      const fileName = `zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles}`;
+      this.logger.log(`ADDING zones_arretes_en_vigueur_${m.format('YYYY-MM-DD')}.${geojsonOrPmtiles} to ZIP`);
       try {
         const filePath = m.diff(moment(), 'days', true) === 0 ?
           `${path}/zones_arretes_en_vigueur.${geojsonOrPmtiles}` :
           `${path}/${fileName}`;
+        this.logger.log(`ADDING ${filePath} to ZIP`);
         const fileData = fs.readFileSync(filePath);
         zip.remove(fileName);
         zip.file(fileName, fileData);
@@ -365,7 +367,7 @@ export class DatagouvService {
     // @ts-ignore
     const s3Response = await this.s3Service.uploadFile(fileToTransfer, `${geojsonOrPmtiles}/`);
     await this.uploadToDatagouv(geojson ? 'geojson_archive' : 'pmtiles_archive', s3Response.Location, `Cartes des zones et arrêtés en vigueur - ${geojson ? 'GEOJSON' : 'PMTILES'} - Année en cours`, true);
-    console.log(`FIN GENERATION DE L'ARCHIVE ${geojsonOrPmtiles} DE L'ANNEE ${year}`);
+    this.logger.log(`FIN GENERATION DE L'ARCHIVE ${geojsonOrPmtiles} DE L'ANNEE ${year}`);
   }
 
   /**
@@ -421,19 +423,65 @@ export class DatagouvService {
   async updateCommunes() {
     this.logger.log('MISE A JOUR DATAGOUV - COMMUNES - DEBUT');
 
-    const historiqueCommunes: StatisticCommune[] = await this.statisticCommuneService.getStatisticCommune();
-    const formatHistorique = historiqueCommunes.map(sc => {
-      return {
-        commune: {
-          code: sc.commune.code,
-          nom: sc.commune.nom,
-        },
-        restrictions: sc.restrictions,
-      };
+    const filePath = `${this.path}/historique_communes.json`;
+    const fileStream = fs.createWriteStream(filePath);
+    fileStream.write('['); // Début du fichier JSON
+    let first = true;
+
+    const transformStream = new Transform({
+      objectMode: true,
+      transform(chunk: any, encoding, callback) {
+        const formattedData = JSON.stringify({
+          commune: {
+            code: chunk.commune_code,
+            nom: chunk.commune_nom,
+          },
+          restrictions: chunk.sc_restrictions,
+        });
+
+        if (!first) {
+          callback(null, ',' + formattedData);
+        } else {
+          first = false;
+          callback(null, formattedData);
+        }
+      },
     });
 
-    await writeFile(`${this.path}/historique_communes.json`, JSON.stringify(formatHistorique, null, 2), 'utf8');
-    await this.uploadToDatagouv('historique_communes', 'historique_communes.json', 'Historique Communes');
+    const stream = await this.statisticCommuneService.getStatisticCommuneStream();
+
+    stream.pipe(transformStream).pipe(fileStream);
+
+    stream.on('end', () => {
+      fileStream.write(']'); // Fin JSON
+      fileStream.end();
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      fileStream.on('finish', resolve);
+      fileStream.on('error', reject);
+    });
+
+    this.logger.log('END FILESTREAM');
+
+    // 🔥 Création du ZIP en streaming
+    const zipFilePath = `${this.path}/historique_communes.zip`;
+    const zipStream = fs.createWriteStream(zipFilePath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    archive.pipe(zipStream);
+    archive.append(fs.createReadStream(filePath), { name: 'historique_communes.json' });
+
+    await archive.finalize(); // Finalisation de l'archive
+
+    await new Promise<void>((resolve, reject) => {
+      zipStream.on('close', resolve);
+      zipStream.on('error', reject);
+    });
+
+    this.logger.log(`Fichier ZIP disponible : ${zipFilePath}`);
+
+    await this.uploadToDatagouv('historique_communes', 'historique_communes.zip', 'Historique Communes');
 
     this.logger.log('MISE A JOUR DATAGOUV - COMMUNES - FIN');
   }
